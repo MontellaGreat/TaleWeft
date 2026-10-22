@@ -1,0 +1,1 @@
+ALTER TABLE chapters ADD COLUMN version_source TEXT NOT NULL DEFAULT '';

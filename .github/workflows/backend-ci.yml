@@ -1,0 +1,80 @@
+# Modified for TaleWeft on 2026-10-22: independent branding; upstream attribution retained.
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "**.py"
+      - "**.sql"
+      - "**.yaml"
+      - "**.yml"
+      - "infrastructure/ai/prompt_packages/**"
+      - "config/**"
+      - "shared/**"
+      - "requirements*"
+      - "release-manifest.json"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".importlinter"
+
+jobs:
+  architecture:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.14"]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+          cache-dependency-path: requirements-architecture.lock
+      - name: Install locked architecture checker
+        run: python -m pip install --require-hashes -r requirements-architecture.lock
+      - name: Enforce incremental import contracts and failure probes
+        run: python scripts/verify_architecture_contracts.py --output out/architecture-contracts.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-results-${{ matrix.os }}
+          path: out/architecture-contracts.json
+
+  test:
+    needs: architecture
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.14"]
+    runs-on: ${{ matrix.os }}
+    env:
+      PLOTPILOT_PROD_DATA_DIR: ${{ github.workspace }}/out/ci-runtime-data
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: "pip"
+          cache-dependency-path: requirements.lock
+
+      - name: Install dependencies
+        run: python -m pip install --require-hashes -r requirements.lock
+
+      - name: Compile all source packages
+        run: python -m compileall -q application domain infrastructure interfaces engine scripts
+      - name: Generate locked dependency SBOM
+        run: python scripts/generate_sbom.py --output out/taleweft.cdx.json
+      - name: Run isolated unit, DAG, integration and migrations
+        run: python -m pytest tests/unit tests/dag tests/integration -q --tb=short --junitxml=out/backend-tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-results-${{ matrix.os }}
+          path: |
+            out/backend-tests.xml
+            out/taleweft.cdx.json

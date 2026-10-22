@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="650" viewBox="0 0 1320 650" role="img" aria-labelledby="title desc">
+  <title id="title">叙织相对 PlotPilot v4.6.0 的改动概览</title>
+  <desc id="desc">继承上游创作基础，分为新增能力、修复问题、优化与保护三栏，最后列出尚未完成的验收与能力。</desc>
+  <rect width="1320" height="650" rx="24" fill="#f5f3ec"/>
+  <g font-family="'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+    <text x="48" y="51" fill="#50746a" font-size="14" letter-spacing="3">BUILT ON THE ORIGINAL · IMPROVED WITH EVIDENCE</text>
+    <text x="48" y="97" fill="#193d38" font-size="32" font-weight="700">继承创作基础，补齐执行与修改链路</text>
+    <rect x="48" y="122" width="1224" height="67" rx="14" fill="#193d38"/>
+    <text x="70" y="151" fill="#f5edda" font-size="18" font-weight="700">上游已有：小说工作台 · 设定 / 人物管理 · 章节生成 · DAG 与去 AI 味机制</text>
+    <text x="70" y="175" fill="#bdd1c7" font-size="14">对照基线为 PlotPilot v4.6.0。下列是本版的新增、补强与修复，不将上游基础能力列为原创。</text>
+    <rect x="48" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <rect x="465" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <rect x="882" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <g font-size="23" font-weight="700"><text x="74" y="262" fill="#376b55">新增 / 补齐</text><text x="491" y="262" fill="#8d6035">修复</text><text x="908" y="262" fill="#46678e">优化 / 保护</text></g>
+    <g fill="#425c52" font-size="17">
+      <text x="74" y="308">频道 → 大类 → 主题与自填</text><text x="74" y="344">主题五维画像与快照</text><text x="74" y="380">OpenAI C / R 独立选择</text><text x="74" y="416">思考参数、编辑关联重算</text><text x="74" y="452">叙织品牌 · 1 万字开书梗概</text>
+      <text x="491" y="308">DAG 节点未执行却报完成</text><text x="491" y="344">去味静默跳过与证据缺失</text><text x="491" y="380">地点异常、向导一直等待</text><text x="491" y="416">迟到保存覆盖、章名不同步</text><text x="491" y="452">错误被吞、断流后误报成功</text>
+      <text x="908" y="308">节点事件与真实提交回执</text><text x="908" y="344">改写候选、差异和人工确认</text><text x="908" y="380">分类搜索、折叠与共享配置</text><text x="908" y="416">版本冲突保护、备份恢复</text><text x="908" y="452">凭据保护、脱敏诊断与测试</text>
+    </g>
+    <rect x="48" y="515" width="1224" height="94" rx="14" fill="#e9e3d4"/>
+    <text x="70" y="547" fill="#705a32" font-size="18" font-weight="700">继续完善的部分</text>
+    <text x="70" y="575" fill="#665e4d" font-size="16">全程 R 两章流程 · 更多关联来源与历史恢复组合 · 可选自动改写实测 · 部分网站分类来源核验</text>
+    <text x="70" y="597" fill="#665e4d" font-size="14">任意节点断点续跑、更多厂商原生协议、安装升级 / 回滚全链验收与依赖发行许可核对亦未全部完成。</text>
+    <text x="48" y="633" fill="#738077" font-size="12">本图为源码与已有验证记录的摘要，不代表所有模型、协议和用户环境均已验收。详见 docs/UPSTREAM_CHANGES.md。</text>
+  </g>
+</svg>

@@ -1,0 +1,2 @@
+# Open-source frozen desktop build tools; pin runtime separately.
+PyInstaller==6.22.3

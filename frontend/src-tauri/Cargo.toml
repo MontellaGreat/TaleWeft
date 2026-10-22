@@ -1,0 +1,56 @@
+# Modified for TaleWeft on 2026-10-22: independent branding; upstream attribution retained.
+[package]
+name = "taleweft"
+version = "0.1.0-preview.1"
+description = "叙织 · TaleWeft — 长篇小说创作工作台"
+authors = ["TaleWeft maintainers", "PlotPilot Team (upstream)"]
+edition = "2021"
+
+# Tauri 不需要 bin 类型，我们用 lib + cdylib
+[lib]
+name = "taleweft_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[features]
+default = []
+signed-updater = ["dep:tauri-plugin-updater", "dep:reqwest", "dep:minisign-verify", "dep:semver"]
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "devtools"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = { version = "=2.13.3", optional = true }
+reqwest = { version = "0.13", default-features = false, optional = true }
+minisign-verify = { version = "=0.3.0", optional = true }
+semver = { version = "1", optional = true }
+url = "2"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+log = "0.4"
+env_logger = "0.11"
+which = "7"
+dirs = "6"
+ureq = "3"
+webbrowser = "1"
+zip = "2.1"
+
+[target.'cfg(windows)'.dependencies]
+win32job = "2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+embed-resource = "3"
+serde_json = "1"
+url = "2"
+base64 = "0.22"
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

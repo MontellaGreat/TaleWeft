@@ -1,0 +1,1 @@
+"""Story structure domain models."""

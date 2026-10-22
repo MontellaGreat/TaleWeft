@@ -1,0 +1,78 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "TaleWeft",
+  "version": "0.1.0-preview.1",
+  "identifier": "com.taleweft.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "叙织 · TaleWeft — 长篇小说创作工作台",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "center": true,
+        "decorations": true,
+        "resizable": true,
+        "fullscreen": false,
+        "devtools": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; img-src 'self' asset: data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:* http://localhost:* ws://localhost:*; frame-src 'none'; object-src 'none'; base-uri 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../../out/tauri/plotpilot-backend/": "plotpilot-backend/",
+      "../../LICENSE": "legal/LICENSE.txt",
+      "../../NOTICE": "legal/NOTICE.txt",
+      "../../CONTRIBUTORS.md": "legal/CONTRIBUTORS.txt",
+      "../../MODIFICATIONS.md": "legal/MODIFICATIONS.md",
+      "../../THIRD_PARTY_NOTICES/": "legal/third-party/"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "nsis": {
+        "template": "nsis/installer.nsi",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "both",
+        "languages": [
+          "SimpChinese",
+          "English"
+        ]
+      }
+    },
+    "shortDescription": "叙织 · 长篇小说创作工作台",
+    "longDescription": "叙织 · TaleWeft 是面向长篇小说的 AI 创作工作台，支持世界设定、章节写作、工作流与记忆管理。",
+    "category": "Productivity",
+    "publisher": "TaleWeft",
+    "copyright": "Based on PlotPilot. Original copyrights retained; see LICENSE and NOTICE.",
+    "licenseFile": "../../LICENSE"
+  },
+  "plugins": {}
+}

@@ -1,0 +1,35 @@
+# ════════════════════════════════════════════
+# NSIS / Tauri 安装包专用：运行时依赖（不含测试包）
+# ════════════════════════════════════════════
+# 构建脚本会将本文件安装进内嵌 Python（embed），与 requirements.txt
+# 功能一致，体积更小、安装更快。
+
+# ── Web 框架 ──
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.6
+
+# ── 数据验证 ──
+pydantic>=2.0.0
+
+# ── HTTP 客户端 ──
+httpx==0.27.0
+
+# ── AI / LLM SDK ──
+# Match the Python 3.14 compatible SDK in the source runtime.
+openai>=2.54.0,<3.0.0
+anthropic>=0.40.0
+volcengine-python-sdk[ark]>=1.0.0
+
+# ── 工具库 ──
+python-dotenv>=1.0.0
+json-repair>=0.30.0
+PyYAML>=6.0.1
+
+# ── 导出（DOCX / EPUB / PDF）──
+# Modified for TaleWeft on 2026-10-22: use the MIT EPUB writer.
+python-docx>=1.1.0
+epublib==0.1.7
+lxml>=4.9.0
+fpdf2>=2.7.0

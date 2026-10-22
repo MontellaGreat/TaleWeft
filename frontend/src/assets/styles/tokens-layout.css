@@ -1,0 +1,51 @@
+/*
+ * PlotPilot — 壳层排版 token（工作台 / 顶栏 / 章节轨 / 侧栏）
+ * 组件内请优先使用下列变量，避免重复硬编码间距与高度。
+ * TS 常量：src/design/layoutDensity.ts
+ */
+
+:root {
+  /* 作者书桌：书库与正文按不同内容任务限宽，字体档位继续由 rem 缩放。 */
+  --taleweft-library-max-width: 1440px;
+  --taleweft-reading-width: 46rem;
+  --taleweft-library-gutter: clamp(14px, 3vw, 40px);
+  --taleweft-space-2: 6px;
+  --taleweft-space-3: 8px;
+  --taleweft-space-4: 10px;
+  --taleweft-space-5: 12px;
+  --taleweft-space-6: 14px;
+  --taleweft-space-7: 16px;
+
+  --taleweft-topbar-height: 52px;
+  --taleweft-topbar-padding-x: 20px;
+  --taleweft-topbar-inner-gap: var(--taleweft-space-5);
+  --taleweft-topbar-stat-value-size: clamp(14px, 0.94rem + 0.35vw, 17px);
+
+  --taleweft-ai-trigger-pad-y: 6px;
+  --taleweft-ai-trigger-pad-x: var(--taleweft-space-6);
+
+  --taleweft-sidebar-pad-x: var(--taleweft-space-4);
+  --taleweft-sidebar-pad-y: var(--taleweft-space-5);
+  --taleweft-sidebar-head-gap: var(--taleweft-space-4);
+
+  --taleweft-chapter-rail-width: min(360px, 36vw);
+  --taleweft-chapter-rail-collapsed: 34px;
+  --taleweft-chapter-rail-drawer: min(400px, 92vw);
+
+  --taleweft-shell-toolbar-pad-x: var(--taleweft-space-7);
+  --taleweft-shell-toolbar-pad-top: var(--taleweft-space-3);
+
+  --taleweft-topbar-hit-md: 34px;
+  --taleweft-topbar-hit-lg: 36px;
+  /** 窄屏抽屉内 rail 纵向预留（标题栏 + 安全区近似）*/
+  --taleweft-rail-drawer-body-offset: 108px;
+
+}
+
+@media (max-width: 900px) {
+  :root {
+    --taleweft-topbar-height: 48px;
+    --taleweft-topbar-padding-x: 14px;
+    --taleweft-topbar-inner-gap: var(--taleweft-space-3);
+  }
+}

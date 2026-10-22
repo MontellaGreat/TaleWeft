@@ -1,0 +1,1 @@
+"""Worldbuilding domain contracts."""

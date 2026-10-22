@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="760" viewBox="0 0 1320 760" role="img" aria-labelledby="title desc">
+  <title id="title">叙织 TaleWeft 功能思维导图</title>
+  <desc id="desc">以作者为中心，连接开书定向、创作工作台、模型与工作流、编辑与记忆四组功能。底部说明本地数据、备份和人工审阅。</desc>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#d9e4de" stroke-width="0.5"/></pattern>
+  </defs>
+  <rect width="1320" height="760" rx="24" fill="#f5f3ec"/>
+  <rect width="1320" height="760" rx="24" fill="url(#grid)"/>
+  <g font-family="'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+    <text x="52" y="54" fill="#50746a" font-size="14" letter-spacing="3">TALEWEFT · PRODUCT MAP</text>
+    <text x="52" y="103" fill="#193d38" font-size="34" font-weight="700">把长篇创作，织成一条有据可循的线</text>
+    <text x="52" y="136" fill="#586b64" font-size="17">从灵感、设定到章节与记忆，让作者在同一工作台掌握故事。</text>
+    <g fill="none" stroke="#7d9d8e" stroke-width="3">
+      <path d="M535 375H470V290H444"/><path d="M785 375H850V290H876"/>
+      <path d="M535 423H470V524H444"/><path d="M785 423H850V524H876"/>
+    </g>
+    <g>
+      <rect x="52" y="198" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="52" y="198" width="7" height="188" rx="3" fill="#467c67"/>
+      <text x="78" y="239" fill="#234e42" font-size="22" font-weight="700">01  开书定向</text>
+      <text x="78" y="277" fill="#425c52" font-size="17">1 万字梗概 · 目标篇幅 / 自定章长</text>
+      <text x="78" y="310" fill="#425c52" font-size="17">男频 / 女频 / 双频 → 大类 → 主题</text>
+      <text x="78" y="343" fill="#425c52" font-size="17">21 大类 · 104 主题 · 支持自填</text>
+      <text x="78" y="369" fill="#697a71" font-size="14">五维画像由作者修改与确认</text>
+      <rect x="876" y="198" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="1261" y="198" width="7" height="188" rx="3" fill="#b08b48"/>
+      <text x="902" y="239" fill="#725822" font-size="22" font-weight="700">02  创作工作台</text>
+      <text x="902" y="277" fill="#425c52" font-size="17">世界观 · 人物 · 地点 · 关键物品</text>
+      <text x="902" y="310" fill="#425c52" font-size="17">宏观结构 → 幕次 → 节拍 → 章节</text>
+      <text x="902" y="343" fill="#425c52" font-size="17">章纲与正文生成 · 文风扫描与审阅</text>
+      <text x="902" y="369" fill="#697a71" font-size="14">保留人工决策与候选差异查看</text>
+      <rect x="52" y="430" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="52" y="430" width="7" height="188" rx="3" fill="#5b779c"/>
+      <text x="78" y="471" fill="#385677" font-size="22" font-weight="700">03  模型与工作流</text>
+      <text x="78" y="509" fill="#425c52" font-size="17">OpenAI C / R 分选 · 多协议接入</text>
+      <text x="78" y="542" fill="#425c52" font-size="17">按能力配置思考程度 / 思考预算</text>
+      <text x="78" y="575" fill="#425c52" font-size="17">DAG 节点 · 运行状态 · 错误与回执</text>
+      <text x="78" y="601" fill="#697a71" font-size="14">失败显式反馈；提交前检查正文版本</text>
+      <rect x="876" y="430" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="1261" y="430" width="7" height="188" rx="3" fill="#9b7583"/>
+      <text x="902" y="471" fill="#795366" font-size="22" font-weight="700">04  编辑与记忆</text>
+      <text x="902" y="509" fill="#425c52" font-size="17">正文 / 章节名编辑 · 历史版本</text>
+      <text x="902" y="542" fill="#425c52" font-size="17">保存后触发本章及后章关联重算</text>
+      <text x="902" y="575" fill="#425c52" font-size="17">摘要 · 记忆 · 人物状态 · 伏笔索引</text>
+      <text x="902" y="601" fill="#697a71" font-size="14">关联重算状态独立于正文保存状态</text>
+    </g>
+    <rect x="517" y="303" width="286" height="200" rx="26" fill="#193d38"/>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M626 337Q643 329 660 340Q677 329 694 337V369Q677 362 660 374Q643 362 626 369Z" stroke="#f4edda" stroke-width="3"/>
+      <path d="M660 340V374M640 352L680 359M640 362L680 348" stroke="#d8b266" stroke-width="3"/>
+    </g>
+    <text x="660" y="417" text-anchor="middle" fill="#fff9e9" font-size="30" font-weight="700">叙织 · TaleWeft</text>
+    <text x="660" y="451" text-anchor="middle" fill="#d8b266" font-size="17">编织故事，让灵感成章</text>
+    <text x="660" y="479" text-anchor="middle" fill="#bdd1c7" font-size="14">作者主导 · AI 协助</text>
+    <rect x="52" y="657" width="1216" height="60" rx="14" fill="#e6ebe1"/>
+    <text x="78" y="694" fill="#355248" font-size="17">创作保障</text>
+    <text x="190" y="694" fill="#50665b" font-size="16">本地作品库</text><text x="359" y="694" fill="#50665b" font-size="16">数据库备份与恢复</text>
+    <text x="594" y="694" fill="#50665b" font-size="16">稿件导入 / 导出</text><text x="820" y="694" fill="#50665b" font-size="16">脱敏诊断</text>
+    <text x="990" y="694" fill="#50665b" font-size="16">人工审阅与版本保护</text>
+    <text x="52" y="743" fill="#738077" font-size="12">能力示意图，非运行截图。模型兼容性与未完成项见 README 和改动说明。</text>
+  </g>
+</svg>

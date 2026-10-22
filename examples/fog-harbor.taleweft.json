@@ -1,0 +1,62 @@
+{
+  "format": "plotpilot-manuscript",
+  "format_version": 1,
+  "novel": {
+    "title": "雾港来信·功能测试",
+    "author": "叙织测试工作室",
+    "premise": "档案修复师林澄收到一封来自停航灯塔的信。她与摆渡人周渡追查三年前的失踪船，在雾港潮汐档案中发现被人为改写的航线。六章内揭示写信者、铜钥匙与九十二号仓库的关系。",
+    "target_chapters": 6,
+    "target_words_per_chapter": 2000
+  },
+  "chapters": [
+    {
+      "number": 1,
+      "title": "潮声里的信",
+      "content": "林澄推开潮汐档案馆的门时，雨水正沿铜门环滴落。桌上躺着一封没有邮戳的信，信封背面画着白鸥灯塔。\n\n姐姐失踪已经三年。她认得那道折痕，却不愿立即相信。林澄用镊子夹起信纸，一枚铜钥匙从夹层落下，敲在桌面上。\n\n“明天低潮，去九十二号仓库。”信上只有这一句。窗外有人敲了两下玻璃，是摆渡人周渡。他没有进门，只把一张被海水浸软的航线图按在窗上。\n\n图上的礁门被红墨划去。林澄握住铜钥匙，第一次发现钥匙柄上也刻着同样的红色记号。",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "b1013b6dba8d13df148f2bb843adf923257fd5451e92fd16ed68ee97a14621fb"
+    },
+    {
+      "number": 2,
+      "title": "九十二号仓库",
+      "content": "低潮比预报早了十分钟。林澄和周渡沿堤岸走到九十二号仓库，铁门下露出一道新鲜的拖痕。\n\n铜钥匙转了半圈便停住。周渡蹲下，从门缝里拽出一根细线，门后的铃铛才没有响。他解释说，这是老水手用来防潮鼠的机关，手指却一直发抖。\n\n仓库中央只有一盏航灯。林澄擦掉玻璃上的盐霜，看见灯罩内壁刻着姐姐的名字。灯下压着三年前的原始航线，终点并非白鸥灯塔，而是灯塔背后的礁洞。\n\n“你早就知道。”她望向周渡。\n\n周渡没有辩解。他把潮汐表摊开，指向下一次低潮：“如果现在去，我们还能赶在涨潮前回来。”",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "960e0905b355e7cf8c75b9eb5bd1ce079a15aa681cdc110fa869723dc85c6a1a"
+    },
+    {
+      "number": 3,
+      "title": "礁门后的灯",
+      "content": "",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 4,
+      "title": "被改写的航线",
+      "content": "",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 5,
+      "title": "最后的摆渡",
+      "content": "",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "number": 6,
+      "title": "归港",
+      "content": "",
+      "outline": "",
+      "status": "draft",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "payload_sha256": "6cdd7315009e25458bf921e868b1a7001fd93a738964caf2d0342a4bbc1f8208"
+}

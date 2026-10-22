@@ -1,0 +1,5725 @@
+schema_kind: plotpilot.cn_market_taxonomy
+schema_version: 2
+taxonomy_id: cn_market
+taxonomy_version: cn_market_v2_20261015_semantic
+locale: zh-CN
+title: 中文网文市场分类 v2
+description: 频道、canonical 大类、主题、创作画像与平台映射分离；v1 文件保留为兼容基线。
+profile_dimensions:
+- world_tone
+- story_structure
+- pacing_control
+- writing_style
+- special_requirements
+channels:
+- id: male
+  labels:
+    zh-CN: 男频
+  description: 以男频读者预期为主要市场入口；题材本身不受性别限制。
+  category_ids:
+  - major.xuanhuan
+  - major.qihuan
+  - major.wuxia
+  - major.xianxia
+  - major.dushi
+  - major.lishi
+  - major.youxi
+  - major.wangyou
+  - major.kehuan
+  - major.moshi
+  - major.tiyu
+  - major.tianyuan_zhong
+  - major.xuanyi
+  - major.lingyi
+  - major.junshi
+  - major.qingxiaoshuo
+  - major.tongren
+  - major.reality
+  - major.infinite
+  - major.short
+  featured_category_ids:
+  - major.xuanhuan
+  - major.qihuan
+  - major.wuxia
+  - major.xianxia
+  - major.dushi
+  - major.lishi
+  - major.youxi
+  - major.wangyou
+  - major.kehuan
+  - major.moshi
+  - major.tiyu
+  - major.tianyuan_zhong
+- id: female
+  labels:
+    zh-CN: 女频
+  description: 以女频及女性向读者预期为主要市场入口；关系向不是必选条件。
+  category_ids:
+  - major.dushi
+  - major.xianxia
+  - major.qihuan
+  - major.wuxia
+  - major.lishi
+  - major.tianyuan_zhong
+  - major.xuanyi
+  - major.lingyi
+  - major.kehuan
+  - major.moshi
+  - major.qingxiaoshuo
+  - major.tongren
+  - major.reality
+  - major.infinite
+  - major.short
+  - major.romance
+  featured_category_ids:
+  - major.romance
+  - major.reality
+  - major.dushi
+  - major.lishi
+  - major.xianxia
+  - major.qihuan
+  - major.tianyuan_zhong
+  - major.xuanyi
+  - major.lingyi
+  - major.kehuan
+  - major.qingxiaoshuo
+  - major.short
+- id: dual
+  labels:
+    zh-CN: 双频
+  description: 男频与女频可选大类并集，按 canonical ID 去重。
+  category_ids:
+  - major.xuanhuan
+  - major.qihuan
+  - major.wuxia
+  - major.xianxia
+  - major.dushi
+  - major.lishi
+  - major.youxi
+  - major.wangyou
+  - major.kehuan
+  - major.moshi
+  - major.tiyu
+  - major.tianyuan_zhong
+  - major.xuanyi
+  - major.lingyi
+  - major.junshi
+  - major.qingxiaoshuo
+  - major.tongren
+  - major.reality
+  - major.infinite
+  - major.short
+  - major.romance
+  featured_category_ids:
+  - major.dushi
+  - major.lishi
+  - major.kehuan
+  - major.moshi
+  - major.tianyuan_zhong
+  - major.xuanyi
+  - major.lingyi
+  - major.qingxiaoshuo
+  - major.tongren
+  - major.romance
+  - major.reality
+  - major.infinite
+categories:
+- id: major.xuanhuan
+  labels:
+    zh-CN: 玄幻
+  description: ''
+  legacy_ids:
+  - xuanhuan
+  audience_modes: &id001
+  - male
+  - dual
+  theme_ids:
+  - theme.xuanhuan.dongfang
+  - theme.xuanhuan.yishi
+  - theme.xuanhuan.gaowu
+  - theme.xuanhuan.naodong
+  status: legacy_compatible
+  default_profile:
+    world_tone: 架空社会中的超常力量、文化和生活相互影响；力量可来自修行、天赋、器物或原创规则，是否设置境界、宗门和强者秩序由自填主题确定。
+    story_structure: 从所选人物的具体目标进入，通过规则验证、历练、协作或分歧完成阶段选择；突破、守护、探索和秩序修复均可成为结果，不限定登顶或上界扩张。
+    pacing_control: 规则先以可观察反馈建立，再随行动展开；成长、恢复和生活有时间，局部成果可稳定收束，连续升级仅在主题明确选择时启用。
+    writing_style: 用身体感受、器物、空间和社会行为写幻想质感；人物语言符合自选文化，师门、家族、军团等组织只按实际世界配置。
+    special_requirements: 自填主题先定义力量来源、上限、代价、反制与社会作用，再编辑确认五维；频道不推导主角性别或战斗路线，境界和跨阶胜利非必选。
+  default_profile_status: legacy_review_required
+- id: major.qihuan
+  labels:
+    zh-CN: 奇幻
+  description: ''
+  legacy_ids:
+  - qihuan
+  audience_modes: &id002
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.qihuan.lishi
+  - theme.qihuan.alternative
+  - theme.qihuan.modern_magic
+  - theme.qihuan.sword_spell
+  - theme.qihuan.steampunk
+  status: legacy_compatible
+  default_profile:
+    world_tone: 采用明确原创或改编文化体系，幻想力量与日常、制度、信仰和生态相连；可为东方、现代、蒸汽、非人文明或剑与魔法，不预设西式王权教会。
+    story_structure: 由一项世界规则造成的具体问题进入，经探索、理解、试验或交涉实现选择；地方合作与个人愿望可收束，不强制王位争夺或神战。
+    pacing_control: 陌生规则逐步以现场反馈呈现，旅途、实践与生活交错；信息理解可作进展，后果依事件周期回收，工程和仪式有必要准备。
+    writing_style: 根据自选文明的感官、物件、语言和仪式表现世界；不同主体具有独立经验，不把所有文化统一成骑士、异族和导师阵列。
+    special_requirements: 确认文化来源及魔法、技术、神性或其他机制的边界；组织、职业和种族只依主题启用，终局规模与关系主线由作者确定，自填五维需审阅。
+  default_profile_status: legacy_review_required
+- id: major.wuxia
+  labels:
+    zh-CN: 武侠
+  description: ''
+  legacy_ids:
+  - wuxia
+  audience_modes: &id003
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.wuxia.chuantong
+  - theme.wuxia.gaowu
+  - theme.wuxia.guoshu
+  - theme.wuxia.tianyuan
+  status: legacy_compatible
+  default_profile:
+    world_tone: 武艺、侠义与具体社会生活相连，可取古代、近现代、幻想高武或田园背景；武力尺度、时代制度及江湖形态由主题确定。
+    story_structure: 从传承、信用、行旅或生活目标切入，交往、练习与取舍推动主线；护送、传艺、协商和行侠均可完成阶段结果，不限定争盟主或生死决战。
+    pacing_control: 练习、路途、交手与休整按身体和地域条件展开；恩怨按线索回收，技艺改进或信用修复可作进展，不每次行侠都新增强敌。
+    writing_style: 招式落到距离、身体与地形，侠义通过承担后果呈现；人物称谓、机构和对白符合所选时代，不把近现代武馆写成古代朝廷门派。
+    special_requirements: 确定武力上限、伤势、赛事或交手规则及社会权限；复仇和民族对抗按主题选择，非必选高潮。自填主题需明确年代和五维，不默认跨频道人物性别。
+  default_profile_status: legacy_review_required
+- id: major.xianxia
+  labels:
+    zh-CN: 仙侠
+  description: ''
+  legacy_ids:
+  - xianxia
+  audience_modes: &id004
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.xianxia.gudian
+  - theme.xianxia.xiuzhen
+  - theme.xianxia.naodong
+  - theme.xianxia.tianyuan
+  status: legacy_compatible
+  default_profile:
+    world_tone: 围绕问道、因果、寿命或修行生活构建世界，可偏古典游仙、制度修真、脑洞机制或灵田经营；力量与社会形式由主题明确，不预设男频杀伐和道侣。
+    story_structure: 从求道或生活中的实际约束进入，经行旅、修炼、经营与选择验证目标；偿愿、领悟、供应稳定和境界进展均可收束，不必须飞升渡劫。
+    pacing_control: 静修、实践和世间生活交错，资源及因果可以延迟兑现；突破有积累，等待与恢复有效，安稳维护不必转为护山大战。
+    writing_style: 山川、物候、仪式、灵力与技艺反馈建立仙境质感；人物各有道途与知情范围，减少境界口号，组织只按所选世界存在。
+    special_requirements: 定义道法权限、资源、寿命、誓约和因果，外挂另有触发及边界；频道不预设性别和恋爱，道侣仅在明确关系主线时启用。大类草稿须按自填主题编辑五维并确认。
+  default_profile_status: legacy_review_required
+- id: major.dushi
+  labels:
+    zh-CN: 都市
+  description: ''
+  legacy_ids:
+  - dushi
+  audience_modes: &id005
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.dushi.gaowu
+  - theme.dushi.tianyuan
+  - theme.dushi.naodong
+  - theme.dushi.life
+  - theme.dushi.yineng
+  - theme.dushi.school
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以现代城市、县域或城乡联系中的生活和制度为背景，可为现实日常、职业、农业、文化或能力题材；超常机制和恋爱由主题选择，不默认神豪与权贵。
+    story_structure: 从住房、工作、家庭、公共事务或所选目标切入，通过劳动、求证、协商和决策改变处境；可稳定改善或留下现实余波，不只打脸翻盘。
+    pacing_control: 工作、通勤、生产和家庭安排提供时间节点；反馈依真实流程与周期发生，日常恢复和延迟收益有空间，不逐轮增加财阀或情敌。
+    writing_style: 用收支、交通、空间和职责细节呈现现代生活；人物语言依职业、年龄和经验变化，不把所有人写成客户、权贵、同学或恋人模板。
+    special_requirements: 权限、财务、法律与时间因果可信；若含异能或系统另定义其边界，不能替代现实手续。自填主题明确主线和关系，按最终五维审阅，不从频道预设人生路线。
+  default_profile_status: legacy_review_required
+- id: major.lishi
+  labels:
+    zh-CN: 历史
+  description: ''
+  legacy_ids:
+  - lishi
+  audience_modes: &id006
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.lishi.naodong
+  - theme.lishi.gudai
+  - theme.lishi.jiakong
+  - theme.lishi.zhengba
+  status: legacy_compatible
+  default_profile:
+    world_tone: 置于可辨识时代、地域和制度，可采用考据、架空、穿越或历史寓言；民生、文化、政治和商业均可独立成线，不把帝王争霸设为默认。
+    story_structure: 从所选人物在时代中的目标进入，以资料、制度和地理条件推演行动；局部生活、工程、文化或政局结果都可闭环，不能只靠权力扩张推进。
+    pacing_control: 按交通、行政、农时、信息和人生阶段展开，结果可延迟；变局前有准备，阶段后留民生与关系影响，允许局部稳定收束。
+    writing_style: 物件、称谓、书信和行为体现时代经验；不同身份知情有限，解释落到手续与生活，不以全员现代价值观替代人物声音。
+    special_requirements: 标明史实、改编与架空分歧范围，维护时间、地图、军制、职业与资源一致；穿越知识需试验及资源。关系与终局由作者选择，自填画像不自动审定。
+  default_profile_status: legacy_review_required
+- id: major.youxi
+  labels:
+    zh-CN: 游戏
+  description: ''
+  legacy_ids:
+  - youxi
+  audience_modes: &id007
+  - male
+  - dual
+  theme_ids:
+  - theme.youxi.jingji
+  - theme.youxi.yijie
+  - theme.youxi.xitong
+  - theme.youxi.zhubo
+  - theme.youxi.moniq
+  - theme.game.esports
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以明确游戏玩法及玩家、角色或模拟世界关系为背景；可以是竞技、经营、探索、解谜、游戏异界或规则系统，不默认所有游戏都有职业赛事和战斗等级。
+    story_structure: 围绕核心玩法的目标、尝试、反馈和选择形成闭环；解谜、建设、比赛和生活皆可作阶段落点，现实线仅按主题配置，Boss战非必选。
+    pacing_control: 以回合、任务、工序、版本或活动周期组织；规则先展示再组合，反馈可即时也可延期，休整和资源结算有空间，不机械每轮升等级。
+    writing_style: 交互、界面或角色体验服务现场选择，术语对应可操作规则；玩家知识与角色所知分开，赛事人员和战队只在竞技主题中出现。
+    special_requirements: 确认游戏类型、版本、资源、失败与重置规则；系统权限和现实影响有边界，人物仍有自主目标。自填主题需具体化玩法和五维，关系线由作者决定。
+  default_profile_status: legacy_review_required
+- id: major.wangyou
+  labels:
+    zh-CN: 网游
+  description: ''
+  legacy_ids:
+  - wangyou
+  audience_modes: &id008
+  - male
+  - dual
+  theme_ids:
+  - theme.wangyou.vr
+  - theme.wangyou.jingji
+  - theme.wangyou.yijie
+  - theme.wangyou.tianyuan
+  - theme.wangyou.players
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以联网虚拟世界与现实生活的交互为基础，玩家、社群、运营和数字身份有明确权限；战斗、社交、经营和探索玩法按主题选择。
+    story_structure: 从一次社群或玩法目标进入，通过规则试验、合作及运营影响完成选择；公会建设、活动、社会关系和比赛可收束，不限定争服务器霸主。
+    pacing_control: 游戏活动与现实时间协调，版本、交易和协作窗口有周期；短反馈与长期社群变化并行，成果可维护稳定，不连续刷更强Boss。
+    writing_style: 界面、语音、交易和玩家习惯建立在线体验，现实身体与角色体验分清；非战斗社群不用固定战队、PK和装备炫耀表达地位。
+    special_requirements: 明确版本、数据权限、经济、掉线和失败规则，游戏能力进入现实需另有机制与边界；自填主题明确核心玩法，恋爱和竞技非默认，五维须编辑确认。
+  default_profile_status: legacy_review_required
+- id: major.kehuan
+  labels:
+    zh-CN: 科幻
+  description: ''
+  legacy_ids:
+  - kehuan
+  audience_modes: &id009
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.kehuan.xingji
+  - theme.kehuan.yineng
+  - theme.kehuan.moshi
+  - theme.kehuan.saibo
+  - theme.kehuan.shikong
+  - theme.scifi.near_future
+  - theme.scifi.evolution
+  status: legacy_compatible
+  default_profile:
+    world_tone: 围绕可解释的科学假设、技术或未来社会构建世界，可近未来、远未来、时空、机甲、生物或太空；科学与虚构边界明确，不默认宇宙战争。
+    story_structure: 由技术机会、异常或探索目标进入，通过观察、模型、试验与决策推进；修复、理解、适应和社会选择可收束，结论回收已设限制而非临时新科技。
+    pacing_control: 实验、航程、通信和社会适应按所选尺度展开；先给功能与问题再补原理，后果有时延，允许验证后的稳定结算，不每次突破都新增灾难。
+    writing_style: 用操作、故障、传感和身体反馈展示技术，语言清楚而不过度论文腔；信息限于人物所知，不用术语堆砌替代可追踪因果。
+    special_requirements: 确定核心假设、能力、能源、距离、时间模型及权限；真实专业信息核验，技术不能危机时临时万能。自填主题按具体机制完善五维，战斗与升级依主线启用。
+  default_profile_status: legacy_review_required
+- id: major.moshi
+  labels:
+    zh-CN: 末世
+  description: ''
+  legacy_ids:
+  - moshi
+  audience_modes: &id010
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.moshi.qiusheng
+  - theme.moshi.tianyuan
+  - theme.moshi.dunhuo
+  - theme.moshi.feitu
+  - theme.moshi.chongjian
+  status: legacy_compatible
+  default_profile:
+    world_tone: 明确灾害或社会失序的来源、阶段、范围和生存环境；可偏现实准备、灾后照护、群体重建、异能或废土，威胁形态由主题确定。
+    story_structure: 从具体安全、供给或协作目标进入，经信息核验、准备与行动改变处境；安全安置、通路和生活维护可结算，不一定争基地霸权或屠杀敌群。
+    pacing_control: 风险、运输、存量和恢复按灾害过程展开，等待和准备有意义；短期救援与长期消耗分开，稳定阶段允许喘息，不每次改善立即加灾难。
+    writing_style: 用天气、工具、身体和居住细节写处境，群体有职责与不同信息；避免只用惨状或善恶标签表达失序。
+    special_requirements: 记录资源消耗、卫生、能源、风险信息和组织授权；囤货、空间、重生、丧尸及异能只按主题启用且有边界。自填画像须审阅，不默认反社会掠夺或争霸。
+  default_profile_status: legacy_review_required
+- id: major.tiyu
+  labels:
+    zh-CN: 体育
+  description: ''
+  legacy_ids:
+  - tiyu
+  audience_modes: &id011
+  - male
+  - dual
+  theme_ids:
+  - theme.tiyu.lanqiu
+  - theme.tiyu.zuqiu
+  - theme.tiyu.gedou
+  - theme.tiyu.tianjing
+  - theme.tiyu.chongsheng
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以所选运动、参与层级和赛事或训练环境为基础，技术、规则、身体适应和协作共同决定结果；校园、业余和职业均可，不预设直通国家队。
+    story_structure: 从技术、参赛或团队目标进入，通过训练、测试、比赛和复盘改变选择；成绩改善、规则赛完成或退役转型可收束，不必须夺世界冠军。
+    pacing_control: 按训练周期、赛程、负荷和恢复组织；平台期与失败合理，进步有准备，赛后保留修复及复盘，不靠每轮伤病或更高量级制造高点。
+    writing_style: 动作、距离、时间、器材和身体感受写清运动，教练、队友及工作人员各有职责；解说和数据解释服务当下判断，不只喊热血口号。
+    special_requirements: 确认项目规则、赛制、资格、年龄、伤病和合同边界，真实运动资料核验；竞技层级与体重组别不能混作升级阶梯。自填主题五维按项目编辑，关系线可选。
+  default_profile_status: legacy_review_required
+- id: major.tianyuan_zhong
+  labels:
+    zh-CN: 种田
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong
+  audience_modes: &id012
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.tianyuan_zhong.gudai
+  - theme.tianyuan_zhong.nongjia
+  - theme.tianyuan_zhong.chuanyue
+  - theme.tianyuan_zhong.jijian
+  - theme.tianyuan_zhong.yanglao
+  status: legacy_compatible
+  default_profile:
+    world_tone: 围绕土地、居住、生产、照护或社区生活组织，可古代、现代、幻想或养老；目标可以维持、改善或经营，不默认产业无限扩张。
+    story_structure: 由一项家庭或供给问题进入，经分工、试作、协商与生活反馈推进；收成、工艺改善、照护安排和安稳关系均可结算，护家战另需威胁铺垫。
+    pacing_control: 按农时、工序、采购、身体和照护周期展开，收入与信任可以渐进积累；保留季节等待和日常停顿，不以连续强冲突替代生活。
+    writing_style: 工具、材料、院落、劳作与饮食形成质感，家人和邻里有独立需要；温情落到具体照顾，不把所有人写成被主角反超的竞争者。
+    special_requirements: 土地、劳力、产量、时间及收支可追踪，幻想机制另有边界；婚恋、扩张和战争依主线选择。养老不必以经营争霸证明成长，自填五维需按实际承诺审阅。
+  default_profile_status: legacy_review_required
+- id: major.xuanyi
+  labels:
+    zh-CN: 悬疑
+  description: ''
+  legacy_ids:
+  - xuanyi
+  audience_modes: &id013
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.xuanyi.zhentan
+  - theme.xuanyi.jingsong
+  - theme.xuanyi.zuian
+  - theme.xuanyi.minjian
+  - theme.xuanyi.naodong
+  - theme.mystery.social
+  - theme.mystery.psychological
+  - theme.mystery.rules
+  status: legacy_compatible
+  default_profile:
+    world_tone: 由未知信息、事件矛盾或认知不确定建立张力，可推理、社会疑案、心理、冒险或惊悚；是否犯罪、侦查和超自然由主题确定。
+    story_structure: 提出核心问题，经观察、求证、比较解释和关键选择形成闭环；解法与结论回收可见信息，惊悚可聚焦生存，不强制刑事破案或终局大反转。
+    pacing_control: 线索、行动与理解变化交错，关键事实按公平顺序出现；等待、排除和稳定确证都有价值，紧张段后留余波，不每轮新增骗局。
+    writing_style: 视角明确，事实、推测与误解可区分，用物件、空间、对白和行为埋信息；角色知情有限，不用万能侦探或作者解释抹掉求证过程。
+    special_requirements: 自填主题明确谜题类型、现实或超自然规则及信息公平边界；刑侦程序仅在选用时适配，心理困境不等同罪恶。关键解法可回溯，不自动强塞法医证据链。
+  default_profile_status: legacy_review_required
+- id: major.lingyi
+  labels:
+    zh-CN: 灵异
+  description: ''
+  legacy_ids:
+  - lingyi
+  audience_modes: &id014
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.lingyi.minjian
+  - theme.lingyi.fengshui
+  - theme.lingyi.guigua
+  - theme.lingyi.richang
+  status: legacy_compatible
+  default_profile:
+    world_tone: 超常现象与所选地域、传统或原创规则相连，可偏恐怖、怪谈、民俗、灵魂或温和日常；真实性和可知范围由主题明确。
+    story_structure: 从异常造成的实际目标进入，经观察、验证、协作或禁忌选择完成结果；安置、理解、逃离和解除均可收束，不仅驱邪大战或揭露阴谋。
+    pacing_control: 异常以感官和重复细节渐进呈现，验证与生活交错；恐惧、缓和和后果按主线安排，治愈灵异不强迫每轮惊吓或伤亡。
+    writing_style: 用声音、温度、器物、空间和人物反应呈现未知，解释限于可知信息；民俗术语注明来源，不统一成阴森口号或现代刑侦阵列。
+    special_requirements: 明确触发、禁忌、代价、解除及例外，民俗真实与原创分清；仪式与能力不能无成本万能。自填主题先确定恐怖或其他情绪承诺，人物与关系由作者选择。
+  default_profile_status: legacy_review_required
+- id: major.junshi
+  labels:
+    zh-CN: 军事
+  description: ''
+  legacy_ids:
+  - junshi
+  audience_modes: &id015
+  - male
+  - dual
+  theme_ids:
+  - theme.junshi.xiandai
+  - theme.junshi.kangzhan
+  - theme.junshi.diezhan
+  - theme.junshi.zhanzhen
+  - theme.junshi.lishi
+  - theme.junshi.scifi_mil
+  status: legacy_compatible
+  default_profile:
+    world_tone: 围绕明确年代、地域和技术条件中的军事任务及组织生活，可现代、历史、谍报、幻想或未来；作战、保障和训练均可成主线，不默认战区突破。
+    story_structure: 从任务、身份或组织目标进入，经筹备、行动、核验及结果处理推进；训练、交付、潜伏、撤离和停战均可结算，个人高光依赖制度与协作。
+    pacing_control: 侦察、部署、信息延迟、补给和恢复组织节拍；行动前有准备，任务后处理人员与民生，潜伏收益可长期不可见，不强制暴露或反杀。
+    writing_style: 命令、工具、地形和日常职责写清行动，前线、后方及居民知情不同；对白可以隐瞒和潜台词，不让秘密人物公开交代筹码。
+    special_requirements: 明确军制、授权、装备、通信、后勤及伤亡后果；幻想科技同样有边界，历史资料核验。自填主题按具体任务完善五维，不默认战争升级或征服终点。
+  default_profile_status: legacy_review_required
+- id: major.qingxiaoshuo
+  labels:
+    zh-CN: 轻小说
+  description: ''
+  legacy_ids:
+  - qingxiaoshuo
+  audience_modes: &id016
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.qingxiaoshuo.xh
+  - theme.qingxiaoshuo.tucao
+  - theme.qingxiaoshuo.zhuansheng
+  - theme.qingxiaoshuo.qingchun
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以鲜明人物和可亲近语气展开原创幻想、转生、青春、吐槽或其他轻小说主题；校园、异世界与RPG机制由主题选择，不自动同场启用。
+    story_structure: 从人物具体愿望与有趣事件进入，伙伴差异、试验和选择推进；活动、合作、适应和关系成长可收束，不限定冒险大战或世界最强。
+    pacing_control: 日常与事件闭环交替，梗有设置、停顿与变化，设定随行动展开；情绪余波和普通生活有空间，不机械每轮加等级或强敌。
+    writing_style: 人物语气有性格及知情差异，用动作、物件和回应写轻快感；吐槽不抢走行动，网络热梗和人设标签不代替因果。
+    special_requirements: 世界、年龄、记忆与机制边界明确；转生、校园、恋爱和升级只按主题启用，关系轴由最终画像确定。自填主题需给出专属五维，非必选异世界伙伴与长期对手。
+  default_profile_status: legacy_review_required
+- id: major.tongren
+  labels:
+    zh-CN: 同人
+  description: ''
+  legacy_ids:
+  - tongren
+  audience_modes: &id017
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.tongren.dongman
+  - theme.tongren.yingshi
+  - theme.tongren.erciyuan
+  - theme.tongren.game_f
+  - theme.tongren.lishi_f
+  status: legacy_compatible
+  default_profile:
+    world_tone: 依明确来源、版本和时间点展开新增视角、空白补完或分歧改写；源作可战斗、日常、经营、喜剧、影视、游戏或历史，不预设主角团与反派阵列。
+    story_structure: 从源作人物或新增视角的具体目标进入，新变量与原有规则相互作用；可保留原结局或改局部，日常番外也有效，不要求改命胜利和最终大战。
+    pacing_control: 按源作事件和玩法尺度推进，原创插曲与已知节点交错；变化有连锁后果，生活和情绪余波保留，不每次熟悉角色出现就反转原剧情。
+    writing_style: 保留角色语言、行为逻辑、称谓和所选表现风格，以熟悉物件与交互形成辨识；跨来源主体语气分开，不复制原文段落或统一成系统旁白。
+    special_requirements: 锁定来源、版本、遵循或偏离范围及能力转换边界；CP与恋爱只在作者明确选择时启用，未选不自动配对。自填主题须明确原作和专属五维，原作没有的组织不强加。
+  default_profile_status: legacy_review_required
+- id: major.romance
+  labels:
+    zh-CN: 言情 / 关系叙事
+  description: ''
+  legacy_ids:
+  - yanqing_general
+  audience_modes: &id018
+  - female
+  - dual
+  theme_ids:
+  - theme.yanqing_general.xiandai
+  - theme.yanqing_general.gufeng
+  - theme.yanqing_general.chongsheng_lv
+  - theme.yanqing_general.qita
+  - theme.romance.modern
+  - theme.romance.ancient
+  - theme.romance.fantasy
+  - theme.romance.youth
+  status: legacy_compatible
+  default_profile:
+    world_tone: 以作者明确的关系主线和世界背景组织叙事，可现代、古代、幻想、青春或家庭友情；明确恋爱时强调亲密变化，无CP时保留个人、家庭、友情与协作，不从频道推导被动一方。
+    story_structure: 具体交集、独立目标、边界与行动形成选择；恋爱分支按所选承诺确认或改变关系，无CP分支以个人和其他关系落点闭环，终局不强制情敌打脸或再起信任危机。
+    pacing_control: 按篇幅、生活或世界事件组织，关系信息可以渐进、延迟或稳定；甜宠、虐恋、混合与其他主情绪依作者选择，纯甜无需插虐，不固定每几章确认或分离。
+    writing_style: 以称谓、物件、照顾、职责和具体对白写情绪，人物各有声音与目标；恋爱选择才把亲密细节解释为心动，无CP不将合作与关怀自动浪漫化。
+    special_requirements: 自填主题先明确时代、主情绪、关系主线、篇幅和结局，再完整编辑五维；未明确恋爱不得自动配对，拒绝权与独立性保留，权力控制不无条件浪漫化。大类默认是草稿，不能代替主题审定。
+  default_profile_status: legacy_review_required
+  category_aliases:
+  - label: 综合言情
+    source: builtin_cn_v1
+    status: legacy_alias
+- id: major.reality
+  labels:
+    zh-CN: 现实 / 职场
+  description: 现实生活、社会议题、职业成长与经营题材。
+  legacy_ids: []
+  audience_modes: &id019
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.reality.career
+  - theme.reality.business
+  - theme.reality.social
+  - theme.reality.literary
+  - theme.reality.period
+  status: draft_catalog
+- id: major.infinite
+  labels:
+    zh-CN: 诸天无限
+  description: 以任务、副本、跨世界规则和连续代价构成主线。
+  legacy_ids: []
+  audience_modes: &id020
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.infinite.mission
+  - theme.infinite.heavens
+  status: draft_catalog
+- id: major.short
+  labels:
+    zh-CN: 短篇 / 文学
+  description: 短篇网文和文学现实题材入口；文本形态仍独立建模。
+  legacy_ids: []
+  audience_modes: &id021
+  - male
+  - female
+  - dual
+  theme_ids:
+  - theme.short.general
+  - theme.short.romance
+  status: draft_catalog
+themes:
+- id: theme.xuanhuan.dongfang
+  category_id: major.xuanhuan
+  labels:
+    zh-CN: 东方玄幻
+  description: ''
+  legacy_ids:
+  - xuanhuan.dongfang
+  profile_ref: profile.v1.xuanhuan.dongfang
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanhuan.dongfang
+  status: legacy_review_required
+  profile:
+    world_tone: 东方宗门、王朝、血脉与秘境体系并行，强调传承争夺、家族荣辱与逆天登阶，力量秩序森严且具中式神话质感。
+    story_structure: 从家族、宗门或王朝中的具体失衡切入；历练、传承与结盟逐步改变实力和立场；阶段结局兑现已铺垫的选择，可守住当前秩序，不必立刻飞升。
+    pacing_control: 一次功法验证或资源分配构成短节点，秘境或势力争端构成阶段闭环；突破之间保留练习、恢复与关系余波，跨阶胜利需足够准备。
+    writing_style: 用功法的身体反馈、器物与礼制写中式幻想；师门与亲族各有利益，人物对白通过行动和隐瞒呈现立场，避免集体替主角抬轿。
+    special_requirements: 力量、血脉与传承有上限、代价和反制；境界差影响选择但不替代谋略。复仇、身世反转和上界只在所选主线需要时启用，双频不预设单一性别视角。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id001
+- id: theme.xuanhuan.yishi
+  category_id: major.xuanhuan
+  labels:
+    zh-CN: 异世大陆
+  description: ''
+  legacy_ids:
+  - xuanhuan.yishi
+  profile_ref: profile.v1.xuanhuan.yishi
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanhuan.yishi
+  status: legacy_review_required
+  profile:
+    world_tone: 陌生大陆由帝国、种族、神殿或学院共同构成，职业、血脉与异能混合成长，核心看点是异域探索、文明碰撞和领地扩张。
+    story_structure: 从陌生地域的一项生存或身份难题进入；探索职业规则、文化摩擦与联盟；以通行、合作或领地选择收束，不限定战争扩张。
+    pacing_control: 短节点是学会一条本地规则或完成交换，阶段节点是探索区域或稳定合作；陌生感与理解交替，文明影响需要时间显现。
+    writing_style: 从旅人、本地居民、职业组织与不同文明的语言和习俗取景；解释制度时落到交易、通行和日常，不默认中式师门宗族。
+    special_requirements: 先确定职业、法术、血脉或技术体系及各文明边界；只有选用境界体系才按战力阶层推进。文明人物具有主动性，不以异族天然善恶替代利益。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id001
+- id: theme.xuanhuan.gaowu
+  category_id: major.xuanhuan
+  labels:
+    zh-CN: 高武世界
+  description: ''
+  legacy_ids:
+  - xuanhuan.gaowu
+  profile_ref: profile.v1.xuanhuan.gaowu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanhuan.gaowu
+  status: legacy_review_required
+  profile:
+    world_tone: 灵气复苏或武道现代化背景下，城市、防线、武考、军团与裂隙并存，实力等级公开映射社会阶层，核心冲突来自生存防卫与强者竞争。
+    story_structure: 以武考、训练或城市防线任务建立主角位置；能力训练、公共安全与制度限制共同推进；通过选拔、救援或防卫成果完成阶段目标。
+    pacing_control: 训练按适应、测试、恢复形成周期，任务按部署和反馈展开；成绩可暂时平台，战斗后须处理伤势与公共影响。
+    writing_style: 用训练数据、设施、考场和防线空间表现现代武道；同学、教官、居民和军团人员的职责与用语分开，不把军校写成宗门。
+    special_requirements: 武考标准、能力授权、装备与伤病规则保持一致；学生、民众和军团的权限不同。冲突可来自训练或治理，不强迫每轮跨阶反杀。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id001
+- id: theme.xuanhuan.naodong
+  category_id: major.xuanhuan
+  labels:
+    zh-CN: 玄幻脑洞
+  description: ''
+  legacy_ids:
+  - xuanhuan.naodong
+  profile_ref: profile.v1.xuanhuan.naodong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanhuan.naodong
+  status: legacy_review_required
+  profile:
+    world_tone: 以反套路金手指、概念级规则或异常系统为核心驱动，世界可宏大但必须围绕脑洞规则自洽运转，冲突来自设定反差与规则翻盘。
+    story_structure: 以反常规则造成的具体困境开篇；通过试验、误用和边界验证寻找解法；高潮可为救援、制度改变或机制证明，不限大型反杀。
+    pacing_control: 先展示规则和一次可复查反馈，再逐步增加组合与适用范围；验证失败、延迟效果和成功试验都合理，不为升级而临时添例外。
+    writing_style: 以受益者、误用者、追索者和被卷入者的观察差异呈现脑洞；术语首次出现写清可操作效果，少用设定宣言代替场景。
+    special_requirements: 除非作者明确选择修炼体系，否则不得自动补入境界、宗门或战力等级。记录规则触发、上限、代价与例外；解法应能从此前信息推出。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id001
+- id: theme.qihuan.lishi
+  category_id: major.qihuan
+  labels:
+    zh-CN: 历史神话
+  description: ''
+  legacy_ids:
+  - qihuan.lishi
+  profile_ref: profile.v1.qihuan.lishi
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qihuan.lishi
+  status: legacy_review_required
+  profile:
+    world_tone: 以已选古代神话、失落文明和神明谱系为背景；可以采用东方、西方或原创文化体系，强调传说、誓约、神性代价与历史记忆，不预设统一教会王权结构。
+    story_structure: 从遗迹、祭仪或一段互相矛盾的传说切入；追索历史与神祇立场；终局回收所选神话体系中的誓约、因果或历史责任。
+    pacing_control: 传说线索、仪式验证与历史发现递进；神迹后留出信仰和生活的变化，史诗高点需回收先前承诺，不连续以神明降临抬级。
+    writing_style: 按已选神话谱系写地名、仪式、称谓与禁忌；凡人、祭祀者和神祇有不同知情范围，不把所有神话写成西方王国教会。
+    special_requirements: 明确原创、改编及文化来源，保持神明权限、谱系和神性代价；东方或其他神话不默认西幻种族、教会和魔法职业。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id002
+- id: theme.qihuan.alternative
+  category_id: major.qihuan
+  labels:
+    zh-CN: 另类幻想
+  description: ''
+  legacy_ids:
+  - qihuan.alternative
+  profile_ref: profile.v1.qihuan.alternative
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qihuan.alternative
+  status: legacy_review_required
+  profile:
+    world_tone: 采用非标准种族、异类文明或反常魔法逻辑构成世界，重视陌生感、文化差异和非常规秩序，冲突不走典型王道模板。
+    story_structure: 以一种非人习惯或反常社会规则引出冲突；人物跨文化试探、合作或分歧；收束围绕彼此理解及实际选择，不回归默认王位争夺。
+    pacing_control: 用少量日常异常建立陌生逻辑，再让关键习俗影响选择；解释与事件交替，理解变化可作进展，不要求持续胜负与反超。
+    writing_style: 从该文明的感官、时间观和交流方式取景；保留不同主体的合理性，不自动安排国王、教会或人类导师。
+    special_requirements: 为非标准文明定义需求、交换、权力与禁忌；其规则在日常和重大事件中一致。竞争者可选，未知文明不必充当等待主角纠正的落后社会。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id002
+- id: theme.qihuan.modern_magic
+  category_id: major.qihuan
+  labels:
+    zh-CN: 现代魔法
+  description: ''
+  legacy_ids:
+  - qihuan.modern_magic
+  profile_ref: profile.v1.qihuan.modern_magic
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qihuan.modern_magic
+  status: legacy_review_required
+  profile:
+    world_tone: 现代都市表层秩序下隐藏魔法社群、学院、结社或禁忌遗产，科技与神秘并存，冲突来自双重社会与隐秘规则碰撞。
+    story_structure: 从一次施法暴露或现代生活与秘密规则的摩擦进入；调查授权、掩护与魔法后果；以解决事件并承担社会影响完成闭环。
+    pacing_control: 小范围施法先显示效果和痕迹，调查与生活掩护交替；暴露风险可以累积，解除危机后留出修复，不逐轮公开大战。
+    writing_style: 写监控、通勤、现代通信与施法反馈的并置；普通居民、结社成员和监管者语气不同，秘密通过行为而非成段设定介绍显露。
+    special_requirements: 规定魔法的可见性、科技交互、施法代价及组织授权；隐秘社群不默认王权教会。擦除记忆或遮蔽记录必须符合既定范围，不能万能收尾。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id002
+- id: theme.qihuan.sword_spell
+  category_id: major.qihuan
+  labels:
+    zh-CN: 剑与魔法
+  description: ''
+  legacy_ids:
+  - qihuan.sword_spell
+  profile_ref: profile.v1.qihuan.sword_spell
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qihuan.sword_spell
+  status: legacy_review_required
+  profile:
+    world_tone: 王国、骑士、法师塔、教会与地下遗迹共同构成经典西幻版图，职业分工清晰，主冲突来自冒险、战争与神秘遗产争夺。
+    story_structure: 以冒险委托或地方危机召集行动者；通过路线选择、职业协作与势力交涉推进；以任务解决及其地区后果收束，可停在地方规模。
+    pacing_control: 旅途、补给和探索形成准备段，遗迹或任务形成阶段闭环；战斗与休整交替，团队贡献和代价可见，不按章节机械加敌人等级。
+    writing_style: 骑士、法师、工匠和当地居民以职责产生不同视角；用行装、地形、魔法反馈写冒险，世界解释只补当前行动所需。
+    special_requirements: 施法、装备、职业与恢复规则稳定；神殿、王国和种族依选定世界存在，不把阵营身份直接等同善恶。解法可以协商或探索，不必杀死所有阻碍者。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id002
+- id: theme.qihuan.steampunk
+  category_id: major.qihuan
+  labels:
+    zh-CN: 蒸汽朋克
+  description: ''
+  legacy_ids:
+  - qihuan.steampunk
+  profile_ref: profile.v1.qihuan.steampunk
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qihuan.steampunk
+  status: legacy_review_required
+  profile:
+    world_tone: 蒸汽机械、齿轮工业、贵族资本和超凡技术并行，城市雾霾与阶级鸿沟显著，冲突来自工业革命、技术垄断和旧神秘残响。
+    story_structure: 从机械故障、工坊困境或技术垄断进入；研发、生产、劳资协商与城市变化相互影响；以可验证的工程或制度结果完成阶段结算。
+    pacing_control: 设计、试制、故障、修正与投产按工期展开；短节点是测试反馈，阶段高点是交付或谈判成果，维修和事故余波不能跳过。
+    writing_style: 用压力表、燃料气味、噪声与车间流程形成工业质感；工匠、劳工、资本方和工会各有语言，不只堆齿轮与贵族称号。
+    special_requirements: 记录能源、材料、维护、污染与生产能力；超凡技术也需边界。王权、教会及异族仅按世界设定启用，不替代工程成本和劳工处境。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id002
+- id: theme.wuxia.chuantong
+  category_id: major.wuxia
+  labels:
+    zh-CN: 传统武侠
+  description: ''
+  legacy_ids:
+  - wuxia.chuantong
+  profile_ref: profile.v1.wuxia.chuantong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wuxia.chuantong
+  status: legacy_review_required
+  profile:
+    world_tone: 低武或中武江湖秩序稳定存在，门派、镖局、帮会、朝廷与绿林彼此牵制，核心是侠义选择、恩仇旧案与江湖名望。
+    story_structure: 由镖路、旧案或一桩侠义取舍进入江湖；追索恩怨、建立信任并检验立场；以选择及其江湖后果收束，不一定争盟主或决战。
+    pacing_control: 路途、线索与交往留出空间，交手聚焦目的和结果；恩怨线按证据回收，武功练习与伤势恢复有时间，不让每次行侠都变成新仇。
+    writing_style: 招式写身体、距离与地形，侠义通过承担后果表达；门派、镖局和乡民各有利益，对话可有藏锋与不言，不全员公开筹码。
+    special_requirements: 武力上限、伤势与江湖信用保持连续；报恩和复仇并非唯一主线，朝廷与江湖关系依背景设定，善恶判断不只看门派归属。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id003
+- id: theme.wuxia.gaowu
+  category_id: major.wuxia
+  labels:
+    zh-CN: 高武武侠
+  description: ''
+  legacy_ids:
+  - wuxia.gaowu
+  profile_ref: profile.v1.wuxia.gaowu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wuxia.gaowu
+  status: legacy_review_required
+  profile:
+    world_tone: 高烈度武道体系覆盖江湖与朝堂，武者可撼城破军，门阀、宗派和国家机器共同掌握武力秩序，冲突更偏争霸与破局。
+    story_structure: 从武力改变城池或国家秩序的事件切入；战略协作、个人突破与权力约束共同推进；阶段结局回答武力使用对民众和秩序的影响。
+    pacing_control: 武道训练与军政部署交错，大战前积累资源和战略条件；胜利后处理治理与恢复，突破可以改变局势但不自动抵消后勤。
+    writing_style: 用破坏范围、机动距离和防御设施体现高武尺度；武者、指挥者与平民视角互补，避免仅用境界名表达力量。
+    special_requirements: 规定高武者的作用范围、消耗与反制，军队和制度仍有价值；强者竞争可选，不能把每位政治人物写成等主角反超的障碍。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id003
+- id: theme.wuxia.guoshu
+  category_id: major.wuxia
+  labels:
+    zh-CN: 国术武侠
+  description: ''
+  legacy_ids:
+  - wuxia.guoshu
+  profile_ref: profile.v1.wuxia.guoshu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wuxia.guoshu
+  status: legacy_review_required
+  profile:
+    world_tone: 近现代城市与乱世背景下，国术门派、帮会、军阀与租界秩序交错，拳法不仅是技艺也是身份与民族气节的体现。
+    story_structure: 从拜师、武馆经营或城市冲突建立人物位置；训练、交流和乱世取舍相互推动；终局可为传承、公开竞赛或守护生活，不限定生死擂台。
+    pacing_control: 功法练习按适应、实测和恢复展开；交手前建立规则与风险，拳术之外保留武馆人情和城市生活，失败可成为技术修正。
+    writing_style: 用步法、呼吸、劲路和器械细节写拳术；武馆、同行、军阀或租界机构按所选年代发声，不套古代朝廷江湖边界。
+    special_requirements: 时代、地理与赛事规则一致；竞技、街头冲突和战争的风险区别呈现。民族气节通过选择与代价体现，不靠全体对手降智或必然生死决斗。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id003
+- id: theme.wuxia.tianyuan
+  category_id: major.wuxia
+  labels:
+    zh-CN: 武侠种田
+  description: ''
+  legacy_ids:
+  - wuxia.tianyuan
+  profile_ref: profile.v1.wuxia.tianyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wuxia.tianyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 江湖规矩与乡野经营并行，门派、村镇、商路和地方豪强互相影响，冲突更重守家业、护乡里与慢热式扩张。
+    story_structure: 从农时、商路或家业问题落场；经营积累与侠义责任并行；阶段高点可为收成、通路或乡里协商，护家战只在真实威胁线建立后启用。
+    pacing_control: 以季节、工序和交易组织经营线，江湖事件按影响插入；短反馈可为信任或工序改善，长期收益允许滞后，留出安稳日常。
+    writing_style: 写农具、院落、劳作和江湖信用的交错；村民、行商与侠客各有生活目标，不把普通往来全部写成施压反超。
+    special_requirements: 记住地力、工期、劳力和路况；武力不能替代生产。身份揭露、守村大战和扩张不是必选终点，婚恋按作者明确主线配置。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id003
+- id: theme.xianxia.gudian
+  category_id: major.xianxia
+  labels:
+    zh-CN: 古典仙侠
+  description: ''
+  legacy_ids:
+  - xianxia.gudian
+  profile_ref: profile.v1.xianxia.gudian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xianxia.gudian
+  status: legacy_review_required
+  profile:
+    world_tone: 山海神怪、三界六道、仙门道统与因果轮回并行，气质偏古典神话与大道修真，重宿命、道心与天道秩序。
+    story_structure: 以因果、道心或山海异事引出问道；行旅、修行和对众生的选择逐步验证道义；收束可为领悟、偿愿或守护，不必渡劫大战。
+    pacing_control: 静修与行旅形成长短相间的节拍，灵验与因果可延后回收；关键选择前允许停顿，问道进展不等同连续升级和战斗胜负。
+    writing_style: 以山川、仪式、物候和人物行止写古典气息；仙、人、神各有视角，减少境界口号和宣判式大道独白。
+    special_requirements: 道法权限、誓约和轮回因果可追踪；频道不预设单一性别视角。道侣与恋爱只在作者明确选择时启用，道心选择允许无战斗结算。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id004
+- id: theme.xianxia.xiuzhen
+  category_id: major.xianxia
+  labels:
+    zh-CN: 修仙修真
+  description: ''
+  legacy_ids:
+  - xianxia.xiuzhen
+  profile_ref: profile.v1.xianxia.xiuzhen
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xianxia.xiuzhen
+  status: legacy_review_required
+  profile:
+    world_tone: 宗门、家族、坊市、秘境和上界构成标准修真文明，资源、寿命与境界绑定，主冲突来自争道、争命与争机缘。
+    story_structure: 由资源、寿命或入门条件的具体约束切入；修炼、交易和势力选择推进目标；以合理突破或改变求道路途结束阶段，可保留当前境界。
+    pacing_control: 功法学习、试炼与恢复构成周期，坊市和秘境事件形成闭环；资源投入到突破可有等待和失败，不能每次拿到灵药都立刻晋阶。
+    writing_style: 写灵力运行、材料品质与坊市交易的可感细节；师门、散修与家族成员利益不同，感情关系依作者设置，不默认道侣。
+    special_requirements: 境界、寿命、丹药、灵石和反制有账可查；稀缺性不可随章节消失。男频、女频和双频皆保留独立求道目标，不以恋爱或复仇替代所选路线。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id004
+- id: theme.xianxia.naodong
+  category_id: major.xianxia
+  labels:
+    zh-CN: 仙侠脑洞
+  description: ''
+  legacy_ids:
+  - xianxia.naodong
+  profile_ref: profile.v1.xianxia.naodong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xianxia.naodong
+  status: legacy_review_required
+  profile:
+    world_tone: 传统修仙框架上叠加系统、模拟器、面板、轮回或反套路规则，重点不在纯古典修真，而在脑洞规则与大道体系对撞。
+    story_structure: 先用系统、轮回或模拟机制造成一个修行难题；比较多次试验与真实后果；以验证机制、改变决策或化解因果收束，不强制世界反转。
+    pacing_control: 一轮试验只展示必要规则，记录变化后再增加组合；模拟结果与真实兑现分开，轮回可有遗失信息和延迟代价，不重复刷无成本奖励。
+    writing_style: 用面板变化、前后差异与角色误判呈现脑洞；保留修行生活和不同认知立场，少用系统旁白讲完全部世界。
+    special_requirements: 定义触发、重置、记忆保留、复制和资源转移边界；大道与外挂的交互一致。恋爱和道侣按选择启用，不预设单一频道或每轮必反杀。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id004
+- id: theme.xianxia.tianyuan
+  category_id: major.xianxia
+  labels:
+    zh-CN: 仙侠种田
+  description: ''
+  legacy_ids:
+  - xianxia.tianyuan
+  profile_ref: profile.v1.xianxia.tianyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xianxia.tianyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 修真世界中弱化纯杀伐，强化灵田、炼丹、洞府经营与家族积累，冲突更偏资源经营、护山护田与稳步扩张。
+    story_structure: 从灵田、丹炉或洞府的一项供给问题进入；经营、技艺与协作积累；以产率、稳定供应或家族分工收束，护山战须另有威胁铺垫。
+    pacing_control: 按灵植生长、炼丹批次和修炼恢复推进；小反馈为工艺测试或合作变化，大收益在周期结束结算，允许安稳维护与季节停顿。
+    writing_style: 灵土、药性、火候和洞府设施写出质感；农修、丹师、买家和邻居有独立需求，避免把所有人物写成宿敌或道侣。
+    special_requirements: 产量、灵力消耗、配方成功率与交易保持连续；种田不是杀伐升级的借口。频道不固定男频，恋爱按选择配置，战斗不能取代生产过程。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id004
+- id: theme.dushi.gaowu
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市高武
+  description: ''
+  legacy_ids:
+  - dushi.gaowu
+  profile_ref: profile.v1.dushi.gaowu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.gaowu
+  status: legacy_review_required
+  profile:
+    world_tone: 现代城市秩序与武道等级深度绑定，武考、军部、财阀、异境和公共安全体系同在，现实感与超凡压迫并行。
+    story_structure: 以武考、安保或异境事故把现代制度与能力冲突落地；训练、授权和组织协作改变处境；以考核、救援或公共风险处置完成阶段任务。
+    pacing_control: 训练负荷与城市任务交错，测试结果有短期反馈但发展需要周期；冲突后处理伤病、执法和舆论，生活线留出恢复时间。
+    writing_style: 写通勤、考场、装备和公共空间，能力影响现代生活的细节要具体；学生、军部、企业与居民用语和权限各不相同。
+    special_requirements: 武力不能自动取得执法、财务和组织权力；能力上限、授权与社会影响可查。阶层改变需真实路径，不让财阀或同学一概成为待打脸人物。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.dushi.tianyuan
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市种田
+  description: ''
+  legacy_ids:
+  - dushi.tianyuan
+  profile_ref: profile.v1.dushi.tianyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.tianyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 现代乡村、县域或城郊环境里，经营、返乡、土地、人情与产业升级并行，强调现实生活底盘上的改善与扩张。
+    story_structure: 以返乡后的土地、农时或销售难题开篇；试种、生产、渠道与乡里协作推进；收成或经营稳定构成阶段闭环，不强迫产业无限扩张。
+    pacing_control: 准备、农时、采收与销售各有时间，短节点为技术或协商进展；经营收益允许跨季结算，风险按真实天气和市场传导，不每轮立刻加新敌。
+    writing_style: 写土地、工具、物流和县域人情；农户、合作社、渠道商与家人有不同职责，不套权贵同学恋人的通用都市阵容。
+    special_requirements: 土地使用、劳力、种植周期、成本和渠道容量一致；技术改良需试验，销售不自动保证利润。感情线可选，合作关系不必以反超对手表达成长。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.dushi.naodong
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市脑洞
+  description: ''
+  legacy_ids:
+  - dushi.naodong
+  profile_ref: profile.v1.dushi.naodong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.naodong
+  status: legacy_review_required
+  profile:
+    world_tone: 现代社会底盘上叠加重生、系统、神豪、直播、曝光或超常设定，核心看点是现实规则被金手指高效撬动。
+    story_structure: 先展示超常机制怎样改变一个现实难题；试验其权限并处理制度与人际影响；以目标兑现或自觉限制机制收束，不限定神豪打脸。
+    pacing_control: 小反馈来自机制试用，阶段回报需经过现实流程；重生信息、财富或曝光可有延迟和失效，正常生活与后果留出空间。
+    writing_style: 将系统反馈嵌入具体收款、决策和社会反应；不同人物不因外挂而集体降智，现实细节支撑反差，不靠数字堆砌爽感。
+    special_requirements: 明确财富来源、任务触发、信息误差和能力权限；外挂不能跳过既定法律及职业因果。重生、直播、神豪按作者选择启用，不自动全装。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.dushi.life
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市生活
+  description: ''
+  legacy_ids:
+  - dushi.life
+  profile_ref: profile.v1.dushi.life
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.life
+  status: legacy_review_required
+  profile:
+    world_tone: 以现实都市生活为核心，不依赖强超凡设定，重家庭、职场、社交、邻里和个人成长，代入感建立在日常处境与关系真实上。
+    story_structure: 从住房、工作或家庭中的具体愿望切入；通过协商、劳动和选择改变日常处境；以关系、生活安排或认识变化收束，允许未完全解决的现实。
+    pacing_control: 日常片段积累处境与关系信息，重要选择形成阶段落点；改善可缓慢、反复或停滞，保留闲谈和恢复，不强制每章抬高代价。
+    writing_style: 用租金、交通、家务和工作交接写生活质感；人物说话有职业、年龄和经验差异，避免作者借全员发表统一道理。
+    special_requirements: 现实制度、收支和时间连续；合作、妥协和离开都可构成成长。反派、竞争者和恋爱非必选，不让平常生活不断转成打脸翻盘。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.dushi.yineng
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市异能
+  description: ''
+  legacy_ids:
+  - dushi.yineng
+  profile_ref: profile.v1.dushi.yineng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.yineng
+  status: legacy_review_required
+  profile:
+    world_tone: 现代社会表面平静，暗中存在异能者、隐秘组织、特殊案件或地下秩序，冲突来自超常力量与现实秩序之间的遮掩和利用。
+    story_structure: 从一次失控、暴露或异常事件进入；求证能力、协调隐秘组织与现实责任；阶段结局解决所选事件并保留能力使用后果。
+    pacing_control: 能力试验先建立效果和风险，调查、掩护与生活交错；连续使用有消耗，恢复和暴露余波不可省略，事件不必逐轮规模翻倍。
+    writing_style: 感官、身体反应和城市痕迹共同表现异能；居民、能力者、研究者及组织人员各有知情边界，不用万能解说员公布秘密。
+    special_requirements: 定义能力触发、范围、代价、反制与组织权限；异能不能无成本清除所有证据或改变他人意愿。特殊案件只是可选主线，不自动加入官方刑侦。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.dushi.school
+  category_id: major.dushi
+  labels:
+    zh-CN: 都市校园
+  description: ''
+  legacy_ids:
+  - dushi.school
+  profile_ref: profile.v1.dushi.school
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: dushi.school
+  status: legacy_review_required
+  profile:
+    world_tone: 校园、社团、竞赛、家庭期待与青春社交构成主要场域，可叠加轻异能或成长金手指，但核心仍是同龄关系和成长压力。
+    story_structure: 从新学期、社团或竞赛目标建立缺口；同龄协作、学习和家庭选择推动成长；以目标结果与青春选择收束，暗恋只在选定恋爱线时启用。
+    pacing_control: 按学期、考试、社团活动和休息组织节拍；短节点是技能、理解或关系变化，成绩可延迟反馈，不让每个日常段落变成打脸竞赛。
+    writing_style: 用教室、器材、作业和放学路写年龄感；同学、老师、家人各有目标，交流允许笨拙与沉默，不套成人职场口吻。
+    special_requirements: 兑现校园成长、同龄关系和青春选择；年龄、校园制度、学业安排和竞赛规则保持一致。友情与自我探索可独立成主线，未选恋爱时不默认暗恋或告白。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id005
+- id: theme.lishi.naodong
+  category_id: major.lishi
+  labels:
+    zh-CN: 历史脑洞
+  description: ''
+  legacy_ids:
+  - lishi.naodong
+  profile_ref: profile.v1.lishi.naodong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lishi.naodong
+  status: legacy_review_required
+  profile:
+    world_tone: 以穿越、历史假设或另类切口重组历史进程，制度与时代仍需自洽，但看点在于信息差和改命脑洞如何撬动大局。
+    story_structure: 由一个历史假设或知识差造成的局部选择进入；验证时代资源并推演连锁影响；以假设的阶段结果收束，可只改变地方生活而非改朝换代。
+    pacing_control: 新办法先小规模验证，再随交通、生产和信息扩散显效；史事节点与人物生活交错，知识优势会失准，不用即时成效跨过工艺和组织成本。
+    writing_style: 通过器物、制度流程和人们对变化的反应写时代差；主角可来自工匠、商旅或普通家庭，不默认一路科举升迁。
+    special_requirements: 标明历史基线和分歧点，信息误差及蝴蝶效应可追踪；现代知识需要材料和协作兑现。技术、文化或民生假设不必导向帝王争霸。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id006
+- id: theme.lishi.gudai
+  category_id: major.lishi
+  labels:
+    zh-CN: 历史古代
+  description: ''
+  legacy_ids:
+  - lishi.gudai
+  profile_ref: profile.v1.lishi.gudai
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lishi.gudai
+  status: legacy_review_required
+  profile:
+    world_tone: 接近真实古代生活与政治秩序，朝廷、宗族、乡里、门第和礼法共同塑造人物行动边界，重时代真实感。
+    story_structure: 从具体身份的生活目标和制度门槛进入；劳动、交易、家族或政治选择改变处境；以所选社会位置的阶段结果收束，不默认科举仕途。
+    pacing_control: 节日、农时、工期和行政流程提供时间尺度；日常细节与关键选择交替，晋升或经营收益按制度兑现，普通生活可有安稳段落。
+    writing_style: 按朝代和地域写称谓、物件与口语，生活人物有不同经验；制度通过交易、诉讼或家务呈现，不全篇朝堂讲解。
+    special_requirements: 明确朝代、地域、身份与考据范围；官员、商人、工匠、农人及女性生活史各有行动路径，史实和虚构标记清楚，不用现代价值观替代人物处境。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id006
+- id: theme.lishi.jiakong
+  category_id: major.lishi
+  labels:
+    zh-CN: 历史架空
+  description: ''
+  legacy_ids:
+  - lishi.jiakong
+  profile_ref: profile.v1.lishi.jiakong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lishi.jiakong
+  status: legacy_review_required
+  profile:
+    world_tone: 完全架空的王朝与地理版图允许自由推演制度、军政和文化，但必须保持一套稳定的国家机器和权力逻辑。
+    story_structure: 先建立一项自建制度怎样限制人物；局部行动逐步牵动经济、军政或文化；收束检验所设制度的后果，不假定修改现实史事。
+    pacing_control: 制度日常与突发事件交错，政策后果按传导时间展开；局部改良可形成闭环，重大变化需跨阶段积累，不无限追加王朝危机。
+    writing_style: 用税册、道路、官文和民间称谓表现自建社会；不同地区与阶层视角各异，设定只补当前选择所需。
+    special_requirements: 维护王朝、地理、交通、财政与权力的基线；完全自建历史不要求对应现实分歧点。政策影响有受益者与成本，不能临时增设万能机构。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id006
+- id: theme.lishi.zhengba
+  category_id: major.lishi
+  labels:
+    zh-CN: 历史争霸
+  description: ''
+  legacy_ids:
+  - lishi.zhengba
+  profile_ref: profile.v1.lishi.zhengba
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lishi.zhengba
+  status: legacy_review_required
+  profile:
+    world_tone: 群雄割据、军政并立、豪强与王朝争权的时代背景下，地图、兵源、粮草和人心共同决定争霸走势。
+    story_structure: 由割据格局中的资源或政治目标进入；联盟、征募、后勤与军政选择推进；以战役或治理结果结算，统一天下取决于作品承诺。
+    pacing_control: 侦察、筹备和行军构成积累段，战役与治理形成阶段闭环；版图扩大后处理补给和合法性，胜利后允许巩固而非立即再战。
+    writing_style: 地图距离、粮草运输与基层反应支撑权谋；将领、官员、农户和盟友各有利益，对话不以智谋口号替代信息与资源。
+    special_requirements: 兵源、财政、地理和通信决定可行动范围；结盟和妥协可改变局势，敌方具有合理目标。不能用单次战力胜利消除占领、治理和民生代价。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id006
+- id: theme.youxi.jingji
+  category_id: major.youxi
+  labels:
+    zh-CN: 游戏竞技
+  description: ''
+  legacy_ids:
+  - youxi.jingji
+  profile_ref: profile.v1.youxi.jingji
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: youxi.jingji
+  status: legacy_review_required
+  profile:
+    world_tone: 以现实电竞项目、职业联赛和俱乐部生态为核心，版本、操作、训练和舆论共同构成压力来源。
+    story_structure: 以选拔、战队位置或版本变动落场；训练、复盘和队内分工推进；以比赛及职业选择收束，可有失利与留队，不只夺冠。
+    pacing_control: 按训练日、赛程、版本和休赛期组织；局内反馈清晰，赛季成绩滞后，关键赛后安排复盘与恢复，不每局获胜都升到更高联盟。
+    writing_style: 操作与战术写出视野、时机和配合，选手、教练、俱乐部和观众视角区分；游戏术语只解释当前局势所需。
+    special_requirements: 项目规则、版本、赛制、合同与伤病保持一致；主角不能独占队友贡献。与电竞职业赛事主题共享题材范围，保留旧ID作为兼容入口，不伪造二者绝对边界。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.youxi.yijie
+  category_id: major.youxi
+  labels:
+    zh-CN: 游戏异界
+  description: ''
+  legacy_ids:
+  - youxi.yijie
+  profile_ref: profile.v1.youxi.yijie
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: youxi.yijie
+  status: legacy_review_required
+  profile:
+    world_tone: 游戏的职业、任务、交互或数值规则作用于具有真实生活和自主人物的异界；探索、经营、解谜、服务和战斗均可按主线选择，打怪与战力成长仅在明确选用战斗玩法时启用，不能将本地文明等同领奖脚本。
+    story_structure: 从游戏规则进入真实异界造成的生存或身份问题切入；探索职业、任务与本地文明；以区域目标和规则融合的后果收束，不限定职业赛事。
+    pacing_control: 规则先小规模试验，探索与任务形成闭环；成长取决于训练和资源，NPC行为可带来长期变化，休整不必立刻生成新代价。
+    writing_style: 通过旅人、本地居民、任务发布者与职业伙伴的不同认知呈现世界；面板和对话互相补充，不套教练、俱乐部或粉丝舆论。
+    special_requirements: 定义规则如何作用于真实伤害、死亡、物品和人物自主性；本地人不是只等主角领奖的脚本。战斗、职业联赛和直播仅在作者明确选择时出现。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.youxi.xitong
+  category_id: major.youxi
+  labels:
+    zh-CN: 游戏系统
+  description: ''
+  legacy_ids:
+  - youxi.xitong
+  profile_ref: profile.v1.youxi.xitong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: youxi.xitong
+  status: legacy_review_required
+  profile:
+    world_tone: 数值面板、任务系统、成就奖励或模拟机制直接作用于主角成长路径，世界运行高度数据化，反馈节奏需要清晰。
+    story_structure: 以任务、面板或奖励造成的具体选择进入；验证系统权限并比较路径；阶段高点为能力应用、目标完成或拒绝任务的后果，不限竞技夺冠。
+    pacing_control: 数值反馈服务于当前决策，任务结算和现实效果可以不同步；连续奖励有资源与冷却边界，升级间允许训练、失败和生活。
+    writing_style: 面板短而有用，描写数值怎样改变可行动范围；主角、任务关联者和系统受影响者各有利益，不默认战队、教练和直播观众。
+    special_requirements: 记录任务条件、奖励来源、数值口径、惩罚与上限；拒绝任务和负面效果也是有效变化。系统不能随剧情无条件增发奖励，非赛事世界不使用俱乐部模板。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.youxi.zhubo
+  category_id: major.youxi
+  labels:
+    zh-CN: 游戏主播
+  description: ''
+  legacy_ids:
+  - youxi.zhubo
+  profile_ref: profile.v1.youxi.zhubo
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: youxi.zhubo
+  status: legacy_review_required
+  profile:
+    world_tone: 游戏内容与直播流量双线并行，观众反馈、平台机制、舆论反应和比赛/副本结果互相影响，戏剧性来自“打得好”和“看得爽”双兑现。
+    story_structure: 从一场直播内容或经营困境开始；选题、游戏体验、观众反馈和商业责任共同推进；以内容成果、社区或经营变化收束，职业赛事可选。
+    pacing_control: 一场直播有准备、互动和复盘，频道成长跨多次内容积累；热度与收入允许滞后、波动，保留剪辑与休息，不把每次直播都写成舆论大战。
+    writing_style: 用具体玩法、弹幕差异和主播临场选择写互动；观众不是统一喝彩机器，内容可为攻略、解谜、经营或娱乐，不只高水平竞技。
+    special_requirements: 平台规则、流量、收入与合作条款可追踪；输局也能产生有价值内容。赛事、职业战队和平台斗争依主线启用，禁止观众数字自动等同稳定收益。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.youxi.moniq
+  category_id: major.youxi
+  labels:
+    zh-CN: 游戏模拟器
+  description: ''
+  legacy_ids:
+  - youxi.moniq
+  profile_ref: profile.v1.youxi.moniq
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: youxi.moniq
+  status: legacy_review_required
+  profile:
+    world_tone: 模拟器、经营器或沙盘机制主导成长，玩家通过反复试错与长线经营影响世界，核心乐趣来自策略优化和蝴蝶效应。
+    story_structure: 从沙盘目标与有限资源进入；比较模拟方案、试错并承担真实执行后果；以策略取舍或长期世界变化收束，不要求唯一最优解翻盘。
+    pacing_control: 模拟运行、观察和调整形成短循环，真实兑现按工期与时间尺度展开；可以接受多目标折中，失败和不可逆成本不会被重复模拟自动擦除。
+    writing_style: 用参数、日志和前后状态差异表现推演，管理者与受影响居民视角并列；避免纯数表堆叠，不套赛事教练俱乐部。
+    special_requirements: 定义重置、次数、信息精度、记忆和资源转移边界；模拟与现实的偏差可查。并非所有目标都有同时最优解，地方主体不只是待优化指标。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.wangyou.vr
+  category_id: major.wangyou
+  labels:
+    zh-CN: 虚拟网游
+  description: ''
+  legacy_ids:
+  - wangyou.vr
+  profile_ref: profile.v1.wangyou.vr
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wangyou.vr
+  status: legacy_review_required
+  profile:
+    world_tone: 全息潜行或沉浸式虚拟网游拥有完整经济、公会、装备和服务器生态，现实与游戏双线互相反哺。
+    story_structure: 由角色目标与服务器生态进入；任务、经济和公会选择与现实生活交错；以游戏成果及现实影响结算，不把所有活动归为战斗升级。
+    pacing_control: 任务和组队构成短闭环，经济与养成按版本和市场周期变化；装备获得后需学习和维护，现实休息与游戏进度平衡。
+    writing_style: 界面反馈与沉浸感并用，玩家、公会、商人和NPC认知不同；交易、探索和社交有具体过程，不只报等级和掉落。
+    special_requirements: 服务器、死亡、交易、物品与现实接口规则稳定；属性变化可以是惩罚、取舍或负面效果，不要求每次都形成可见优势。运营与玩家权限区别清楚。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id008
+- id: theme.wangyou.jingji
+  category_id: major.wangyou
+  labels:
+    zh-CN: 网游竞技
+  description: ''
+  legacy_ids:
+  - wangyou.jingji
+  profile_ref: profile.v1.wangyou.jingji
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wangyou.jingji
+  status: legacy_review_required
+  profile:
+    world_tone: 网游赛场、公会联赛和职业化运营并存，既有数值养成又有团队竞技，输赢不仅看操作也看资源运营。
+    story_structure: 由网游联赛或公会目标进入；养成资源、组队训练和赛场决策相互制约；以赛事及组织选择完成阶段目标，不抹去普通玩家生态。
+    pacing_control: 准备期安排装备、磨合和版本适应，比赛后有复盘与资源结算；数值差影响方案但不替代操作和协作，赛季允许平台与失利。
+    writing_style: 在局势中解释控制、走位和资源配置，队员与运营者各有立场；观众反馈可有分歧，不全篇解说式术语堆砌。
+    special_requirements: 赛制、装备限制、匹配与版本一致；团队贡献可追踪，付费与训练不能随时补足所有短板。虚拟资源收益与现实合同后果分开结算。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id008
+- id: theme.wangyou.yijie
+  category_id: major.wangyou
+  labels:
+    zh-CN: 网游异界
+  description: ''
+  legacy_ids:
+  - wangyou.yijie
+  profile_ref: profile.v1.wangyou.yijie
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wangyou.yijie
+  status: legacy_review_required
+  profile:
+    world_tone: 游戏世界被写成真实可居住的第二现实，NPC、玩家、任务链和地图文明拥有长期变化，重点在异界沉浸与双线命运。
+    story_structure: 由玩家目标与本地人物的真实需求相撞进入；探索、任务和地方关系产生持续后果；以一项地区选择收束，第二现实不只作为刷怪场。
+    pacing_control: 任务、居住和交往交错，NPC反应和地图变化可以跨阶段兑现；读档、离线或死亡按规则处理，不把每次探索都安排反杀。
+    writing_style: 玩家界面与本地生活感并置，NPC以自身经历和目的发声；任务之外的交流保留不完全可知的信息，避免所有人物都像任务按钮。
+    special_requirements: 明确游戏与现实身份、身体、死亡及物品的映射；当地人物的自主性持续存在。经营、解谜或合作也能推进命运，不默认职业战队和争冠。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id008
+- id: theme.wangyou.tianyuan
+  category_id: major.wangyou
+  labels:
+    zh-CN: 网游种田
+  description: ''
+  legacy_ids:
+  - wangyou.tianyuan
+  profile_ref: profile.v1.wangyou.tianyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wangyou.tianyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 网游中强化领地经营、生产职业、种植养殖和生活技能，打怪只是服务发展，核心看点是慢热积累与领地成长。
+    story_structure: 从生产职业、领地供给或生活技能缺口切入；播种、加工、交易与协作积累；以收成、订单或社区稳定结算，领地战争只在主线需要时出现。
+    pacing_control: 游戏农时、制造工期和市场周期构成节拍；局部反馈是工艺验证，利润可延后，建设间保留社交和维护，不持续加军事危机。
+    writing_style: 写工作台、材料、作物与玩家合作流程；生产者、顾客和邻居有不同目标，界面数值对应实际工序，不只旁白报领地升级。
+    special_requirements: 产出、消耗、交易和技能成长一致，服务器变动可影响经营；生活职业不是待转战斗职业。保卫战、经济战和反超对手均非必选。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id008
+- id: theme.wangyou.players
+  category_id: major.wangyou
+  labels:
+    zh-CN: 第四天灾
+  description: ''
+  legacy_ids:
+  - wangyou.players
+  profile_ref: profile.v1.wangyou.players
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: wangyou.players
+  status: legacy_review_required
+  profile:
+    world_tone: 以大批玩家降临异世界或服务器生态为核心，群像、论坛、阵营、版本和“玩家行为不可控”共同塑造叙事活力。
+    story_structure: 从新版本、群体任务或玩家与本地社会的摩擦进入；多队伍自主行为产生协作、分歧和连锁变化；以群体成果与NPC长期后果收束。
+    pacing_control: 论坛、行动现场和本地反馈交替，短节点为玩家实验，阶段节点为版本与地区变化；允许多人目标并行，不把全部进展归入单主角升级。
+    writing_style: 论坛语言有角色差异，现场写出集体行动的混乱与协作；玩家、运营者和本地人各有信息边界，梗不替代因果。
+    special_requirements: 版本、复活、权限和经济有稳定边界；群体行为不能完全由主角操控。NPC损失与制度变化不会因玩家下线消失，避免把群像改为单一反超对照人物。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id008
+- id: theme.kehuan.xingji
+  category_id: major.kehuan
+  labels:
+    zh-CN: 星际文明
+  description: ''
+  legacy_ids:
+  - kehuan.xingji
+  profile_ref: profile.v1.kehuan.xingji
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: kehuan.xingji
+  status: legacy_review_required
+  profile:
+    world_tone: 星舰、殖民地、文明联盟、外星种族和深空规则共同构成广阔版图，冲突来自文明差距、资源争夺与宇宙秩序重组。
+    story_structure: 从航行、接触或殖民地的一项需求进入；科技约束、文明交流和政治选择共同推进；以任务及接触后果收束，不自动终结宇宙秩序。
+    pacing_control: 航程、通信与部署提供长时尺度，关键发现和交涉形成短闭环；陌生文明信息逐步验证，大战后处理补给和外交，允许和平接触。
+    writing_style: 距离、舰内流程和外星感知写出深空质感；船员、居民及异文明各有知识盲区，不用统一人类口吻解释所有文明。
+    special_requirements: 技术能力、航速、通信延迟和资源来源一致；新科技需前置边界。文明接触保留误译、伦理和自主性，不把科技差自动等同善恶或殖民正当性。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.kehuan.yineng
+  category_id: major.kehuan
+  labels:
+    zh-CN: 科幻异能
+  description: ''
+  legacy_ids:
+  - kehuan.yineng
+  profile_ref: profile.v1.kehuan.yineng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: kehuan.yineng
+  status: legacy_review_required
+  profile:
+    world_tone: 科技体系依旧存在，但超能力、基因变异或心灵网络改变了人类秩序，冲突来自技术理性与异能失控双重压力。
+    story_structure: 由一次能力表现和可观测异常切入；实验、组织选择与社会适应推进；以明确能力边界或解决现实目标结束阶段，不限定力量争霸。
+    pacing_control: 观测、假设、测试和反馈形成周期，日常适应穿插实验；能力进展可平台或失效，后果按生理和制度时间显现，不每轮增添新天赋。
+    writing_style: 把检测数据与人物身体感受并写，研究者、能力者和受影响者有不同疑问；推测和已证实事实区分，少用科学术语假装完成论证。
+    special_requirements: 记录能力来源、测量口径、上限、代价与反制；科研伦理和同意权影响行动。不得用异能临时豁免已建立的物理、生理及社会后果。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.kehuan.moshi
+  category_id: major.kehuan
+  labels:
+    zh-CN: 末世科幻
+  description: ''
+  legacy_ids:
+  - kehuan.moshi
+  profile_ref: profile.v1.kehuan.moshi
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: kehuan.moshi
+  status: legacy_review_required
+  profile:
+    world_tone: 科技灾变、文明崩塌与未来废土交叉存在，既保留高科技遗产也保留末世求生压力，核心冲突是活下去与重建未来。
+    story_structure: 由科技灾变造成的供给或生存难题进入；探索技术遗产、验证风险并组织修复；以生存体系或灾因理解的阶段成果收束。
+    pacing_control: 危机处置、设备修复与生活重建交替；测试和维护有工期，知识与资源逐步积累，恢复稳定后可停顿，不持续以更大灾难抬级。
+    writing_style: 残存设备、污染痕迹与废弃空间形成未来感；工程人员、幸存者与组织者各有有限知识，不用全知科技旁白替代试验。
+    special_requirements: 技术遗产存在供能、零件和维护限制；灾变因果及污染规则连续。修复不等于一次启动就重建文明，解决方案需看得见的资源和协作。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.kehuan.saibo
+  category_id: major.kehuan
+  labels:
+    zh-CN: 赛博朋克
+  description: ''
+  legacy_ids:
+  - kehuan.saibo
+  profile_ref: profile.v1.kehuan.saibo
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: kehuan.saibo
+  status: legacy_review_required
+  profile:
+    world_tone: 巨型都市、公司寡头、义体改造、数据黑市和底层街区并存，个人自由与资本控制的冲突是核心张力。
+    story_structure: 从债务、义体故障或身份权限困境进入；交易、调查和公司规则牵动选择；以争取自主空间或承担具体代价收束，不必推翻全部公司。
+    pacing_control: 行动高压段与维修、偿债和街区生活交替；权限与身体成本持续累积，短胜利不消除长期约束，信息揭露需要先前数据痕迹。
+    writing_style: 用义体噪声、广告、狭窄居所和网络界面写高科技低生活；街区居民、维护者和公司雇员各有生存算计，避免只有宏大资本宣言。
+    special_requirements: 维护义体能源、兼容性、债务合同、数据所有权和身份权限；黑客行为有入口、限制和痕迹。技术不能无成本消除身体损耗或资本控制。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.kehuan.shikong
+  category_id: major.kehuan
+  labels:
+    zh-CN: 时空穿梭
+  description: ''
+  legacy_ids:
+  - kehuan.shikong
+  profile_ref: profile.v1.kehuan.shikong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: kehuan.shikong
+  status: legacy_review_required
+  profile:
+    world_tone: 时间旅行、多重时间线、因果回环或平行世界构成基础规则，设定重点是因果代价、时间悖论与选择后果。
+    story_structure: 先展示时间规则造成的具体错位；追踪信息、物品与选择的因果；收束回收已设定的时间链，可为接受损失或维持闭环，不限定改写历史。
+    pacing_control: 过去、现在和不同时间线用明确锚点切换；效果可延迟或反向显现，关键因果前留验证细节，不要求每次穿梭立刻获利。
+    writing_style: 使用时间标记、物件状态和记忆差异让读者定位；人物所知限定于其经历，别用含混叙述隐藏作者未设定的时间规则。
+    special_requirements: 先选定单线、分支或闭环时间模型；记录信息、物品、年龄、记忆与重置的流向及悖论处理。新例外需铺垫，不能在终局换模型抹掉代价。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.moshi.qiusheng
+  category_id: major.moshi
+  labels:
+    zh-CN: 末世求生
+  description: ''
+  legacy_ids:
+  - moshi.qiusheng
+  profile_ref: profile.v1.moshi.qiusheng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: moshi.qiusheng
+  status: legacy_review_required
+  profile:
+    world_tone: 灾变爆发初期或秩序崩塌边缘，丧尸、天灾、异兽或感染威胁持续逼近，核心是即时求生和危险识别。
+    story_structure: 从灾变中的即时需求与危险识别进入；避险、结伴和资源选择改变生存条件；以安全落点或逃离结果结算，可有损失，不只战斗胜利。
+    pacing_control: 危险逼近与短时补给形成紧张节拍，安全后留出休息、清点和心理余波；突发事件来自灾变规则，不机械按章抬威胁。
+    writing_style: 通过声响、能见度、体力和地形呈现危险；幸存者反应不同，选择受已知信息约束，避免全员无视常识只给主角制造麻烦。
+    special_requirements: 维护水、食物、体能、伤势和灾变传播规则；获救不自动补满资源。陌生人合作与撤离同样有效，不强制反超长期敌手。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id010
+- id: theme.moshi.tianyuan
+  category_id: major.moshi
+  labels:
+    zh-CN: 末世种田
+  description: ''
+  legacy_ids:
+  - moshi.tianyuan
+  profile_ref: profile.v1.moshi.tianyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: moshi.tianyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 末世环境中强化生产、种植、养殖、能源与避难所经营，危险仍在，但主叙事重长期生存体系搭建。
+    story_structure: 从避难所的种植、能源或生产缺口进入；试种、维修和分工建立稳定供给；阶段高点可为第一批收成或基础设施复用，保卫战可选。
+    pacing_control: 灾变风险与生产周期双轨推进，短节点是试验和工序改善；收成、维护和储备按真实周期结算，允许安稳生活，不每次经营成功就开战。
+    writing_style: 写温室、设备、作物与劳动过程，让读者看见基地怎样运转；生产者、居民和守卫有不同需求，不只展示首领扩张数值。
+    special_requirements: 土地、污染、能源、劳力和产率可查，灾变风险不随种田消失；收益需抵扣消耗。协作和生产链恢复是核心回报，不能被连续资源战争替代。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id010
+- id: theme.moshi.dunhuo
+  category_id: major.moshi
+  labels:
+    zh-CN: 末世囤货
+  description: ''
+  legacy_ids:
+  - moshi.dunhuo
+  profile_ref: profile.v1.moshi.dunhuo
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: moshi.dunhuo
+  status: legacy_review_required
+  profile:
+    world_tone: 在灾前有限时间与灾后消耗压力下规划储备，优势来自风险识别、预算与准备质量；可采用重生、预知或空间机制，也允许普通人依公开风险作现实准备，资源不是无限。
+    story_structure: 从已知风险与可行准备窗口进入；采购、存储、布局和危机到来后的分配验证计划；以储备如何支持生存及关系选择收束，不只展示碾压。
+    pacing_control: 准备按时间、预算和仓储分段，灾后按消耗和补给结算；清点、轮换和修正穿插危机，先知可能失准，不让每次囤货立即触发打脸。
+    writing_style: 清单只保留影响选择的物资，写包装、搬运、空间和家庭分工；他人也会准备并有真实需求，不把求助者全部写成贪婪反派。
+    special_requirements: 重生、预知和空间储备按作者选定机制启用，普通储备也成立；容量、保质期、预算、时间窗口和日常消耗持续有效。准备优势不等于无风险或无限物资。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id010
+- id: theme.moshi.feitu
+  category_id: major.moshi
+  labels:
+    zh-CN: 末世废土
+  description: ''
+  legacy_ids:
+  - moshi.feitu
+  profile_ref: profile.v1.moshi.feitu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: moshi.feitu
+  status: legacy_review_required
+  profile:
+    world_tone: 废土、辐射、荒漠、污染或遗迹构成主要空间，聚落稀少、物资紧缺、暴力秩序明显，强调荒凉感和生存算账。
+    story_structure: 从路线、聚落或污染带的一项生存目标进入；探索、交换和地缘选择推进；以可持续落脚点或关键发现收束，不必重建整颗星球。
+    pacing_control: 行路与补给构成短循环，聚落与遗迹事件形成阶段闭环；荒凉段落增加资源和距离信息，修复、休息和失去也有合理篇幅。
+    writing_style: 地表、风沙、腐蚀器物和身体反应表现废土；居民、拾荒者与商队并非统一暴力角色，对话包含有限信任与实际交易。
+    special_requirements: 污染、净水、交通、装备损耗和聚落承载力一致；科技遗产有维护限制。局部互助可产生回报，不要求每个路标或废弃物都制造误导反噬。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id010
+- id: theme.moshi.chongjian
+  category_id: major.moshi
+  labels:
+    zh-CN: 末世重建
+  description: ''
+  legacy_ids:
+  - moshi.chongjian
+  profile_ref: profile.v1.moshi.chongjian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: moshi.chongjian
+  status: legacy_review_required
+  profile:
+    world_tone: 末世中后期开始重建基地、规则、交易和组织秩序，主冲突从单纯生存转向谁来定义新文明。
+    story_structure: 从基地规则、交易或公共资源争议进入；协商、试行与执行检验新秩序；阶段结局呈现治理成果、合法性及未解决的权衡。
+    pacing_control: 供给、制度试行和居民反馈按周期展开，短节点是纠纷处理，阶段节点是稳定服务；治理可以渐进修正，不每轮安排篡位或战争。
+    writing_style: 通过配给、会议、岗位和日常执行写制度；不同居民、生产者与管理者各有合理诉求，不由首领独白完成文明重建。
+    special_requirements: 权利、职责、分配、问责与安全边界明确；集体成果不能全归个人反超。规则变动有程序和代价，重建既需资源也需认同，不等于单一强者掌权。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id010
+- id: theme.tiyu.lanqiu
+  category_id: major.tiyu
+  labels:
+    zh-CN: 篮球竞技
+  description: ''
+  legacy_ids:
+  - tiyu.lanqiu
+  profile_ref: profile.v1.tiyu.lanqiu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tiyu.lanqiu
+  status: legacy_review_required
+  profile:
+    world_tone: 校园、职业联赛、青训体系和团队战术是核心场域，比赛节奏快，个人天赋与团队配合同等重要。
+    story_structure: 由球队位置、训练目标或赛季问题进入；技术、轮换和团队磨合推进；以比赛与职业选择收束，不强迫个人包办冠军。
+    pacing_control: 按训练周、赛程和休赛期展开，局内比分与战术有即时反馈，成长需周期；赛后复盘、伤病和恢复占合理篇幅。
+    writing_style: 球场空间、脚步、视野与队友沟通写出攻防，球员、教练和运营者立场不同；关键球回收战术准备，避免全程报数据。
+    special_requirements: 维护比赛规则、轮换、负荷、合同与伤病；成绩源于团队配合及合理水平。失利和替补也是有效阶段，伤病不能通过意志或临时加点自动消失。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id011
+- id: theme.tiyu.zuqiu
+  category_id: major.tiyu
+  labels:
+    zh-CN: 足球竞技
+  description: ''
+  legacy_ids:
+  - tiyu.zuqiu
+  profile_ref: profile.v1.tiyu.zuqiu
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tiyu.zuqiu
+  status: legacy_review_required
+  profile:
+    world_tone: 联赛体系、青训梯队、战术执行和俱乐部生态共同决定成败，比赛结果常受团队组织与长期培养影响。
+    story_structure: 由青训位置、球队打法或联赛目标进入；训练、磨合、转会和比赛影响选择；以赛季或个人路径结算，不只有冠军与豪门加盟。
+    pacing_control: 训练负荷、赛程密度和恢复周期组织节拍，比赛有阶段攻防；成绩可受队伍磨合拖延，胜负后有复盘，不场场必须绝杀。
+    writing_style: 写跑位、空间、压迫和无球配合，门将到替补各有职责；队员与教练交流服务具体战术，舆论反馈保留分歧。
+    special_requirements: 项目规则、赛制、合同、转会窗口和伤病连续；主角不能无成本踢满全部赛事。队伍打法决定机会，个人升级不自动解决阵容与运营问题。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id011
+- id: theme.tiyu.gedou
+  category_id: major.tiyu
+  labels:
+    zh-CN: 格斗竞技
+  description: ''
+  legacy_ids:
+  - tiyu.gedou
+  profile_ref: profile.v1.tiyu.gedou
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tiyu.gedou
+  status: legacy_review_required
+  profile:
+    world_tone: 拳台、擂台、地下赛、俱乐部和训练营构成核心场景，身体极限、技战术与意志抗压是最大看点。
+    story_structure: 从所选项目、级别和职业阶段建立目标；技术、训练和规则内对抗检验准备；以比赛、传承或职业去留收束，可保持原量级。
+    pacing_control: 备赛、实战、复盘与恢复构成周期；进步可为技术修正和抗压，不每场赛后马上加挑战。伤病、减重和停赛有持续影响。
+    writing_style: 写距离、重心、呼吸和回合策略，教练、对手、裁判各有职责；比赛规则与非正式冲突分开，不靠血腥程度表达技术。
+    special_requirements: 明确项目、量级、判分、装备和医疗恢复；量级是资格条件，不是必须逐级上升的成长阶梯。允许原量级冠军、业余目标或退役，不以意志豁免伤病。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id011
+- id: theme.tiyu.tianjing
+  category_id: major.tiyu
+  labels:
+    zh-CN: 田径竞技
+  description: ''
+  legacy_ids:
+  - tiyu.tianjing
+  profile_ref: profile.v1.tiyu.tianjing
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tiyu.tianjing
+  status: legacy_review_required
+  profile:
+    world_tone: 训练场地、竞赛级别、选拔规则和纪录认定随故事阶段确定；个人训练、身体数据、恢复质量和比赛心态共同决定成长曲线，不默认从校园跳到国家队。
+    story_structure: 以选定项目、竞赛级别和当前成绩建立目标；技术、训练与选拔反馈推进；以达标、名次或个人选择完成阶段目标，业余参赛也可闭环。
+    pacing_control: 训练负荷、技术纠正、恢复和测试形成周期；成绩可能平台或回落，短进展是动作与策略改进，竞赛高点按所选阶段安排，不机械抬赛事级别。
+    writing_style: 用起跑、分段、助跑或器械细节写所选项目，教练与运动员交流依据观察；数字与身体感受互相校验，不只宣布破纪录。
+    special_requirements: 选拔、纪录认定、计时和场地条件一致；不默认从校园跳到国家队。不得把伤病反噬或误导当作默认桥段，竞争对手可选，业余目标不强制职业巅峰。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id011
+- id: theme.tiyu.chongsheng
+  category_id: major.tiyu
+  labels:
+    zh-CN: 体育重生
+  description: ''
+  legacy_ids:
+  - tiyu.chongsheng
+  profile_ref: profile.v1.tiyu.chongsheng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tiyu.chongsheng
+  status: legacy_review_required
+  profile:
+    world_tone: 重生或先知视角嵌入真实体育体系，核心爽点来自经验差、训练规划和关键节点改写。
+    story_structure: 从记忆与当前身体、时代条件的差异进入；训练规划和关键节点改写检验先知；以可追溯的比赛或职业选择结算，不保证重演原胜利。
+    pacing_control: 训练周期、赛程与记忆验证交错，身体进步需要时间；未来信息因选择逐步失准，成功后有复盘和恢复，不以连续预知替代比赛。
+    writing_style: 让前世回忆只在当前决策所需处进入；身体反应、队伍配合和对手选择写实，其他人物不因主角重生而丧失主动性。
+    special_requirements: 明确重生时间、保留记忆和身体起点；技术经验不自动转化体能，伤病与合同仍有效。蝴蝶效应和记忆误差可查，不能凭旧比分保证新赛果。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id011
+- id: theme.tianyuan_zhong.gudai
+  category_id: major.tianyuan_zhong
+  labels:
+    zh-CN: 古代种田
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong.gudai
+  profile_ref: profile.v1.tianyuan_zhong.gudai
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tianyuan_zhong.gudai
+  status: legacy_review_required
+  profile:
+    world_tone: 古代乡里、田亩、赋税、宗族和四时农事构成生活底盘，改善生活与守住家业是第一优先级。
+    story_structure: 从田亩、赋税或生活供给难题进入；农事、手艺和乡里协商积累；以收成、稳定家业或解决负担收束，婚嫁与扩张均按作者主线配置。
+    pacing_control: 按四时农事、工序和交易时机展开，短节点是准备或合作进展；收益允许跨季兑现，农闲与安稳生活有空间，不每轮加豪强危机。
+    writing_style: 写地力、农具、灶台和地方称谓，家人、邻里与官吏各有处境；劳动过程推动选择，不用账本旁白跳过生产。
+    special_requirements: 土地、赋税、劳力、气候和储存规则连续；改善来自材料、技艺与协作。婚嫁不自动成为女频终点，竞争人物可选，不能用一次妙计消除所有农时。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id012
+- id: theme.tianyuan_zhong.nongjia
+  category_id: major.tianyuan_zhong
+  labels:
+    zh-CN: 农家种田
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong.nongjia
+  profile_ref: profile.v1.tianyuan_zhong.nongjia
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tianyuan_zhong.nongjia
+  status: legacy_review_required
+  profile:
+    world_tone: 农户日常、人情往来、柴米油盐和小规模经营是主要内容，重烟火气与细水长流的改善反馈。
+    story_structure: 从柴米、家庭分工或小规模经营目标进入；劳作、交往和试错改善生活；以日常安排、收支或关系变化收束，不要求无限扩张。
+    pacing_control: 家务、农时和集市构成自然节拍，微小进展可跨多个日常段落累积；保留休息和烟火气，不把每笔收入马上转成新危机。
+    writing_style: 以工具、食物、院落和家人习惯写生活，邻里有互助也有分歧；对话贴近地域和年龄，避免人物只负责阻挠或夸赞主角。
+    special_requirements: 预算、劳力、成本与生产时间一致；家庭成员保留目标和选择权。婚恋按所选线配置，平常合作可独立产生回报，不强制对照人物及反转。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id012
+- id: theme.tianyuan_zhong.chuanyue
+  category_id: major.tianyuan_zhong
+  labels:
+    zh-CN: 穿越种田
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong.chuanyue
+  profile_ref: profile.v1.tianyuan_zhong.chuanyue
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tianyuan_zhong.chuanyue
+  status: legacy_review_required
+  profile:
+    world_tone: 穿越者以知识差、认知差和资源整合能力切入乡土或古代环境，冲突来自时代限制和新旧观念摩擦。
+    story_structure: 从知识与当地资源的落差进入；小试、协作和改良验证办法；以一项可持续生产或生活改善结算，不默认工业奇迹和登顶权力。
+    pacing_control: 先找材料与工匠，再试制、失败、修正和推广；收益按工艺与农时兑现，知识验证间保留当地日常，允许不适用的现代方法被放弃。
+    writing_style: 用本地材料、计量、工具和误解表现知识转译；工匠、农户和穿越者互相学习，避免现代人全知、当地人集体愚昧。
+    special_requirements: 明确穿越者技能边界和记忆误差；技术需本地材料、能源、实验和组织条件。制度、气候及市场限制持续生效，婚恋和强竞争按作者选择启用。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id012
+- id: theme.tianyuan_zhong.jijian
+  category_id: major.tianyuan_zhong
+  labels:
+    zh-CN: 种田基建
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong.jijian
+  profile_ref: profile.v1.tianyuan_zhong.jijian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tianyuan_zhong.jijian
+  status: legacy_review_required
+  profile:
+    world_tone: 围绕道路、水利、工坊、城镇开发和产业组织展开，经营规模比一般种田更大，重规划、建设和系统推进。
+    story_structure: 从交通、水利或产业瓶颈建立工程目标；勘察、设计、筹资与组织施工推进；以验收、运行和受益者反馈收束，不只报城镇等级上涨。
+    pacing_control: 规划、施工、试运行和维护按工期展开，短节点是难题解决，阶段高点是合格交付；允许等待、返工与停工，不能即时完成所有项目。
+    writing_style: 图纸、材料、地形和施工流程落到现场；工匠、管理者、居民及出资方各有需求，冲突通过协调和取舍体现。
+    special_requirements: 记录工期、预算、劳力、质量、安全和维护责任；容量与需求匹配，征地和分配有社会后果。工程成功需可复查验收，不以反超对手替代公共成果。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id012
+- id: theme.tianyuan_zhong.yanglao
+  category_id: major.tianyuan_zhong
+  labels:
+    zh-CN: 农家养老
+  description: ''
+  legacy_ids:
+  - tianyuan_zhong.yanglao
+  profile_ref: profile.v1.tianyuan_zhong.yanglao
+  profile_version: v1-semantic-review-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tianyuan_zhong.yanglao
+  status: legacy_review_required
+  profile:
+    world_tone: 以低冲突、慢生活和家庭陪伴为主，核心是从劳苦半生走向安稳余生，也允许小规模经营和邻里互动。
+    story_structure: '开篇：从回乡、退休后的重新安置或家庭照护安排切入，交代主角想保留的生活、现实限制和需要协商的人。
+
+      发展：围绕日常起居、邻里往来、轻量经营和家庭沟通推进；每个阶段让生活安排、相处边界、可用资源或人物心愿出现可感知的变化。
+
+      高点：用一次季节更替、家庭决定、邻里互助或个人心愿完成承接此前积累，不需要升级为强敌、争斗或惊天反转。
+
+      结尾：交代新的生活节奏和仍待解决的小事，让人物保有选择与继续生活的空间。'
+    pacing_control: '小回报：放在一次家务分工、邻里互助、轻量经营或家庭沟通完成后，让生活细节出现可感知的改善。
+
+      中回报：当日常经营、子女关系和邻里温情完成一轮小闭环，让居住安排、照护分工、资源余量或关系距离出现可见变化时触发。
+
+      大回报：集中放在家庭难题得到妥善安置或晚年心愿实现，必须回收前面铺过的选择、照护劳动、关系协商和时间成本。
+
+      节奏原则：按「生活需求出现 → 协商或劳动 → 改善可见 → 新的日常安排」推进；风险只在确有现实后果时升级，不强行制造战斗式反转。'
+    writing_style: '叙事：先写冲突场景、人物选择和行动结果，再补必要设定；每段说明都要能推动日常经营、子女关系和邻里温情升级或改变人物处境。
+
+      环境描写：围绕「以低冲突、慢生活和家庭陪伴为主，核心是从劳苦半生走向安稳余生，也允许小规模经营和邻里互动」挑选物件、空间、制度或氛围细节，让读者看见它们如何制造压迫、机会或代价。
+
+      人物对话：让角色围绕家人、同龄邻里、照护者和合作伙伴之间的生活安排、边界、情绪或现实分歧说话；同一场对话至少暴露一个需求、让步或尚未说出口的顾虑。'
+    special_requirements: '题材承诺：关键桥段兑现安稳生活、家庭陪伴和晚年主动选择；不以扩张经营或强冲突替代养老主题本身。
+
+      冲突要求：矛盾来自真实的健康、照护、收入、居住或家庭时间安排；写清协商路径和现实代价，不把意见不合自动升级成恶人陷害。
+
+      人物要求：围绕家人、邻里、照护者和合作伙伴呈现需求差异；每个重要配角都应有自己的生活安排，不能只围绕养老主角制造阻力。
+
+      禁忌：不能只有琐碎日常，照护分工、季节周期和现实风险要清楚；不能把衰老、疾病或家庭矛盾写成廉价反转，必须进入行动、选择和后果。
+
+      题材细则：每次出现以低冲突、慢生活和家庭陪伴为主、日常经营、子女关系和邻里温情相关要素，都要在后续转化为一次生活改善、关系松动、经营结算或心愿兑现。'
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id012
+- id: theme.xuanyi.zhentan
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 侦探推理
+  description: ''
+  legacy_ids:
+  - xuanyi.zhentan
+  profile_ref: profile.v1.xuanyi.zhentan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanyi.zhentan
+  status: legacy_review_required
+  profile:
+    world_tone: 逻辑推理、现场勘查、证据链和推理演绎是核心驱动力，案件世界规则清楚，重点在智力对抗而非超自然。
+    story_structure: 由可见谜面进入；勘查、询问与假设检验逐步收窄解释；揭示答案后回收关键证据及人物后果，可为私家调查或非刑事谜题。
+    pacing_control: 信息公开与疑点验证形成节拍，误导有可辨来源；推理高点依赖先前可见细节，解答后留出后果，不连续用新死人抬压力。
+    writing_style: 以时间、动线、物件和说法差异构建逻辑，调查者和相关者所知范围分开；叙述可藏动机，不隐瞒视角人物早已知道的决定性证据。
+    special_requirements: 建立证据来源、时间线和可能解的排除过程；对读者保持关键线索公平。私家侦探和逻辑谜题不强制官方刑侦、法医或抓捕，动机不能替代事实证明。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.xuanyi.jingsong
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 悬疑惊悚
+  description: ''
+  legacy_ids:
+  - xuanyi.jingsong
+  profile_ref: profile.v1.xuanyi.jingsong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanyi.jingsong
+  status: legacy_review_required
+  profile:
+    world_tone: 现实或半超现实空间中持续渗出恐惧感，信息不完整、危险难预测，压迫氛围和心理崩溃比纯逻辑更重要。
+    story_structure: 从一项持续异常侵入安全日常开始；求证、危险应对和认知失稳递进；以生存选择或真相的可回溯部分收束，不用大爽点强迫恐惧变成胜利。
+    pacing_control: 平静段埋可二次理解的细节，危险段后留下身体和心理余波；恐惧可以缓慢累积，不每次调查都马上领奖，揭示强度与人物应对相符。
+    writing_style: 用声音、距离、光线和有限视角制造压迫；幸存者、旁观者、被困者与不可靠叙述者反应不同，少解释恐惧，保留可定位的异常。
+    special_requirements: 不能套用刑侦破案模板，不强制套用法医、程序或证据链。明确威胁边界和关键客观事实，误导须有来源，不能终局宣布全是幻觉撤销因果。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.xuanyi.zuian
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 罪案刑侦
+  description: ''
+  legacy_ids:
+  - xuanyi.zuian
+  profile_ref: profile.v1.xuanyi.zuian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanyi.zuian
+  status: legacy_review_required
+  profile:
+    world_tone: 刑侦体系、法医手段、程序规则和犯罪心理共同构成主场，案件推进既要专业也要节奏强。
+    story_structure: 由案件与侦查权限落场；现场、检验、调查和假设交叉验证；真相与程序后果完成闭环，不用口供或天降证据独自收束。
+    pacing_control: 取证、检验等待和线索追踪交错，信息推进与行动风险分开；侦查突破后核验，重要鉴定有时间，不按章制造新案升级。
+    writing_style: 现场动作、记录和证据处理写清，侦查者、法医、相关者各有专业边界；技术说明服务当前推断，不把术语当万能权威。
+    special_requirements: 来源、保管、检验、权限与结论之间可追踪；排除合理替代解释，程序和法证能力符合设定。受害者有具体生活，不只作为主角高光工具。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.xuanyi.minjian
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 民间诡案
+  description: ''
+  legacy_ids:
+  - xuanyi.minjian
+  profile_ref: profile.v1.xuanyi.minjian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanyi.minjian
+  status: legacy_review_required
+  profile:
+    world_tone: 地方传闻、家族旧案、民俗禁忌和乡野秘密交错存在，真假难辨，案件往往牵连旧时代残留与人性黑洞。
+    story_structure: 由传闻、旧物或地方秘密引发异常；走访、对照记忆和现实痕迹求证；以所设谜团及社区后果收束，刑事犯罪并非必有。
+    pacing_control: 口述、现场与旧资料交错，可信度逐步改变；地方日常保留气氛，揭示前线索可回看，不把所有传说都变成新凶案。
+    writing_style: 地域语言、民俗物件与不同代际记忆构成质感；居民和求证者各有立场，不自动安排法医、警队和嫌疑人阵列。
+    special_requirements: 明确自然、人为或超自然解释的边界；传闻来源和互相矛盾的证据可追踪。民俗不等同真实有效知识，非刑事秘密不用悬疑刑侦赛道强套。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.xuanyi.naodong
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 悬疑脑洞
+  description: ''
+  legacy_ids:
+  - xuanyi.naodong
+  profile_ref: profile.v1.xuanyi.naodong
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: xuanyi.naodong
+  status: legacy_review_required
+  profile:
+    world_tone: 建立在规则谜题、概念设定、反转机制或非常规叙事结构上，重点是脑洞机制与悬疑逻辑如何互相咬合。
+    story_structure: 先建立概念谜面和可检验规则；比较视角、叙事顺序或信息限制；以机制解答及人物选择收束，答案能解释已公开细节。
+    pacing_control: 每轮验证增加或排除一个解释，复杂度渐进；反转需要回收，解答后留可验证结果，不靠不断新增谜题维持兴奋。
+    writing_style: 结构实验须给读者时间、视角与事实锚点，人物语言体现其知情差；清楚呈现异常，不用省略关键事实冒充烧脑。
+    special_requirements: 规则、视角可靠度、信息边界与例外预先一致；概念谜题不必对应犯罪，不强制侦查者、嫌疑人、法医或官方程序。重大解法不能依赖终局新规则。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.lingyi.minjian
+  category_id: major.lingyi
+  labels:
+    zh-CN: 民间灵异
+  description: ''
+  legacy_ids:
+  - lingyi.minjian
+  profile_ref: profile.v1.lingyi.minjian
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lingyi.minjian
+  status: legacy_review_required
+  profile:
+    world_tone: 中式民俗、村镇口耳相传、祖祠旧俗和地方禁忌是主骨架，恐怖来源往往与人情债、祖辈因果和地缘记忆绑定。
+    story_structure: 由地方禁忌或人情债影响具体生活开始；求证传闻、触及因果并作取舍；收束兑现所设民俗边界，不必都靠术士驱邪战。
+    pacing_control: 日常细节先建立可信生活，异常渐进验证；仪式与访谈交替，事后保留关系和生活余波，不连续抬鬼怪等级。
+    writing_style: 地方口述、祖祠、乡路和物件写出地缘记忆；长辈、外来者与当事人说法有差异，恐惧源于观察而非作者反复宣告诡异。
+    special_requirements: 记录禁忌来源、触发和解除代价，真假传说有线索；民俗行为是虚构世界规则，不作现实功效承诺。解决可为偿愿、改变习惯或互助，不强制反超长期敌人。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id014
+- id: theme.lingyi.fengshui
+  category_id: major.lingyi
+  labels:
+    zh-CN: 风水相术
+  description: ''
+  legacy_ids:
+  - lingyi.fengshui
+  profile_ref: profile.v1.lingyi.fengshui
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lingyi.fengshui
+  status: legacy_review_required
+  profile:
+    world_tone: 堪舆、命理、镇物、阵法和阴阳术数决定冲突展开，规则来源偏玄学系统，重讲究、门道和代价。
+    story_structure: 从场所异变或术数委托进入；勘察、验证与仪式方案比较；以符合既定规则的处理及代价收束，解法不能临时添万能法器。
+    pacing_control: 观察与布置形成短节点，验证和调整允许失败与等待；环境变化逐步反馈，仪式后有后续检查，不每次术数描述都制造反转。
+    writing_style: 通过空间、方位、材料和人物观察呈现门道，术语首次出现写清功能；委托者、术者和旁观者各有疑问，不靠故弄玄虚完成专业感。
+    special_requirements: 术数为故事内设定，明确适用、代价、反制和例外，不包装成现实科学结论。委托和失败后果可追踪，主角不因身份获得无限法力。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id014
+- id: theme.lingyi.guigua
+  category_id: major.lingyi
+  labels:
+    zh-CN: 鬼怪惊悚
+  description: ''
+  legacy_ids:
+  - lingyi.guigua
+  profile_ref: profile.v1.lingyi.guigua
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lingyi.guigua
+  status: legacy_review_required
+  profile:
+    world_tone: 鬼怪现形、惊悚空间和生死边界更突出，压迫感强于日常民俗铺垫，核心是正面遭遇未知恐怖后的生存与破局。
+    story_structure: 由封闭或陌生场所的威胁显现进入；遭遇、求证和共同避险形成选择；以生存落点或威胁边界揭示结束，未必彻底消灭鬼怪。
+    pacing_control: 未知、接近和逃离按空间与时间组织，安全间隙保留恢复；惊吓不连续堆叠，关键高点来自已验证规则，不强制每轮驱邪升级。
+    writing_style: 声音、温度、视野和身体限制写出压迫；共同遇险者和威胁观察者各有信息，不自动套村镇长辈与术士阵容。
+    special_requirements: 建立出现、追踪、伤害和逃离边界；线索足以解释主要解法，威胁不能随需要无限新增能力。生存与互助可闭环，不要求主角反超一个长期鬼怪对手。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id014
+- id: theme.lingyi.richang
+  category_id: major.lingyi
+  labels:
+    zh-CN: 灵异日常
+  description: ''
+  legacy_ids:
+  - lingyi.richang
+  profile_ref: profile.v1.lingyi.richang
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: lingyi.richang
+  status: legacy_review_required
+  profile:
+    world_tone: 日常生活表层下持续渗出小型怪异、阴事和禁忌，恐怖强度较缓但持久，重点在“熟悉生活被轻微扭曲”的不适感。
+    story_structure: 从一处熟悉生活的小异样开始；重复、差异与人际反应逐步改变日常认知；以局部求证或生活选择收束，不必让整个日常崩塌。
+    pacing_control: 轻微异常与普通生活交错，累计细节构成悬念；允许低强度持续不适，短节点可为观察差异，不每段都升级成驱邪大战。
+    writing_style: 用钥匙、门牌、家电、邻里声响等常见物制造轻微偏移；同事、家人和邻居反应有差异，避免过度解释和术语堆叠。
+    special_requirements: 异样的重复、可见范围和影响程度一致，关键解释有前置迹象；普通日常人物为默认，术士或村镇背景按选择启用。保留生活温度，不强制大战和长期反超敌人。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id014
+- id: theme.junshi.xiandai
+  category_id: major.junshi
+  labels:
+    zh-CN: 现代军事
+  description: ''
+  legacy_ids:
+  - junshi.xiandai
+  profile_ref: profile.v1.junshi.xiandai
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.xiandai
+  status: legacy_review_required
+  profile:
+    world_tone: 现代军旅、特种作战、军工研发和体系化部队并存，专业链条完整，冲突既可落在前线也可落在装备与训练。
+    story_structure: 从训练、装备或任务中的具体目标进入；部署、试验与团队执行检验计划；以考核、交付或任务结果收束，不限定战区突破。
+    pacing_control: 筹备、执行和复盘构成周期，训练与装备项目需要时间；行动高压后处理恢复和后勤，阶段成果可以是能力达标而非新战争。
+    writing_style: 用职责、流程、地形与装备反馈呈现专业链条；指挥、技术与基层人员视角互补，术语只解释当前行动需要。
+    special_requirements: 命令、权限、通信、补给和装备能力符合设定；团队贡献与伤亡有持续后果。训练、军工和非战斗任务均可独立成主线，不靠万能个人解决体系问题。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.junshi.kangzhan
+  category_id: major.junshi
+  labels:
+    zh-CN: 抗战军事
+  description: ''
+  legacy_ids:
+  - junshi.kangzhan
+  profile_ref: profile.v1.junshi.kangzhan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.kangzhan
+  status: legacy_review_required
+  profile:
+    world_tone: 抗战时期的民族存亡、敌后环境和力量悬殊构成压迫底盘，家国情绪与生存代价始终并行。
+    story_structure: 从所选地区和阶段的生存、作战或联络任务进入；后勤、群众关系与军事选择共同推进；以局部成果及代价收束，不改写所有历史困局。
+    pacing_control: 按筹备、行动、补给和恢复推进，信息与物资限制造成等待；战斗后处理伤亡、民众和组织影响，情绪高点需前置行动而非口号。
+    writing_style: 时代器物、道路、方言和军民生活形成质感；各方人物有信息和资源限制，家国情绪落到守护、劳动与牺牲。
+    special_requirements: 时间、地域、组织、装备和通信与历史条件一致；民众不是无代价资源，伤亡和行动后果持续有效。不能靠超前技术或对手降智抹去力量悬殊。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.junshi.diezhan
+  category_id: major.junshi
+  labels:
+    zh-CN: 谍战风云
+  description: ''
+  legacy_ids:
+  - junshi.diezhan
+  profile_ref: profile.v1.junshi.diezhan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.diezhan
+  status: legacy_review_required
+  profile:
+    world_tone: 情报机关、潜伏网络、密码系统和多方势力暗战构成主要场域，真枪实弹之外更重身份伪装和心理对抗。
+    story_structure: 从身份伪装和有限任务进入；试探、核验、传递与反侦察逐步改变风险；以任务结果和身份状态收束，成功潜伏不必揭穿身份或反杀。
+    pacing_control: 信息取得、等待和安全验证交替，收益可以长期隐而不显；暴露风险随行动累积，关键传递有此前准备，休整与潜伏生活保留时间。
+    writing_style: 对白通过潜台词、停顿和掩饰让读者感知目标，不要求角色向敌手口头交代筹码；日常身份细节与情报行为互相校验。
+    special_requirements: 身份、联络、密码、知情范围及反侦察边界连续；线索有来源和核验，机关不全知。隐忍、撤离和保密也是有效结局，不能为反转强迫暴露卧底。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.junshi.zhanzhen
+  category_id: major.junshi
+  labels:
+    zh-CN: 战争幻想
+  description: ''
+  legacy_ids:
+  - junshi.zhanzhen
+  profile_ref: profile.v1.junshi.zhanzhen
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.zhanzhen
+  status: legacy_review_required
+  profile:
+    world_tone: 允许在架空战争或幻想战场中强化兵种、装备或战略演化，但仍须保持军令、补给和战术逻辑自洽。
+    story_structure: 先建立幻想战争的目标与战略条件；兵种、技术和指挥选择相互制约；以战役、停战或治理结果结算，不默认无尽征服。
+    pacing_control: 侦察、动员、行军与交战构成积累和爆发，战后处理补给及恢复；新兵种需验证和部署，胜利后可巩固，不持续加更强军团。
+    writing_style: 地形、阵型、命令和战场感知写清行动，前线与后方视角互补；幻想术语对应功能与限制，不用阵营口号替代战略。
+    special_requirements: 幻想兵种的范围、能源、维护与反制稳定，军令及后勤仍有效；敌方有合理目标，平民及伤亡产生长期后果。战略成果可以来自协商或撤退，不只个人斩首。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.junshi.lishi
+  category_id: major.junshi
+  labels:
+    zh-CN: 历史军事
+  description: ''
+  legacy_ids:
+  - junshi.lishi
+  profile_ref: profile.v1.junshi.lishi
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.lishi
+  status: legacy_review_required
+  profile:
+    world_tone: 以真实历史战争或军队体制为基础，强调时代限制、兵员来源、后勤条件和战略环境。
+    story_structure: 由明确战争阶段中的兵员、后勤或作战目标进入；沿真实制度和地理条件推演选择；以局部战役或军旅结果收束，虚构分歧明确标注。
+    pacing_control: 筹备、行军、战斗和恢复按时代速度推进，侦察与通信有延迟；胜负后处理占领、人员和民生，不跳过补给马上进入下一战。
+    writing_style: 时代兵器、军令、营地和运输细节落到行动；将领、基层与居民知情范围不同，避免用现代军事语言直接替代所有对白。
+    special_requirements: 维护史实时间、军制、装备、地图与后勤边界；主角知识及指挥权限有限。真实事件与架空分支分清，伤亡不能复原，个人高光不抹去组织贡献。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.junshi.scifi_mil
+  category_id: major.junshi
+  labels:
+    zh-CN: 军事科幻
+  description: ''
+  legacy_ids:
+  - junshi.scifi_mil
+  profile_ref: profile.v1.junshi.scifi_mil
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: junshi.scifi_mil
+  status: legacy_review_required
+  profile:
+    world_tone: 未来舰队、机甲、轨道武器、AI指挥和星际补给体系构成战争图景，技术差与指挥差共同决定胜负。
+    story_structure: 从未来任务及技术条件进入；侦察、部署和多体系协同检验计划；以任务及军政后果收束，不仅靠新武器秒杀所有敌方。
+    pacing_control: 航程、通信和武器准备构成节拍，交战窗口明确；技术试验与人员训练需时间，战后修复、补给和复盘占合理阶段。
+    writing_style: 距离、传感器、座舱与通信反馈呈现未来战场，指挥、工程与基层视角互补；画面和数据相互支持，不只列武器名。
+    special_requirements: 射程、延迟、能源、散热、维护与AI权限可查；信息误差和对抗有边界。新技术有前置验证，舰队与机甲不能无成本续航，团队协作不被个人升级替代。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id015
+- id: theme.qingxiaoshuo.xh
+  category_id: major.qingxiaoshuo
+  labels:
+    zh-CN: 原生幻想
+  description: ''
+  legacy_ids:
+  - qingxiaoshuo.xh
+  profile_ref: profile.v1.qingxiaoshuo.xh
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qingxiaoshuo.xh
+  status: legacy_review_required
+  profile:
+    world_tone: 偏二次元语感的原创幻想世界，可包含学院、冒险、魔法、社团或异能设定，重点是人设鲜明和事件有趣。
+    story_structure: 从鲜明人物的一项原创幻想目标进入；通过事件与伙伴差异展示规则；阶段结局兑现角色选择，可为探索、合作或校园活动，不限定冒险大战。
+    pacing_control: 有趣事件与角色日常交替，短节点为性格碰撞和规则验证；设定逐步展开，事件后保留关系余波，不每轮硬加新等级。
+    writing_style: 轻快叙事保留人物语气差异，幻想感落到具体日常与反馈；学院、社团和冒险团按所选世界启用，梗不代替因果。
+    special_requirements: 原创世界的能力、组织和生活规则稳定，人设不等同单一标签；关系轴由作者明确配置，竞争角色可选。没有校园设定时不自动生成学校社团。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id016
+- id: theme.qingxiaoshuo.tucao
+  category_id: major.qingxiaoshuo
+  labels:
+    zh-CN: 搞笑吐槽
+  description: ''
+  legacy_ids:
+  - qingxiaoshuo.tucao
+  profile_ref: profile.v1.qingxiaoshuo.tucao
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qingxiaoshuo.tucao
+  status: legacy_review_required
+  profile:
+    world_tone: 世界可以正经也可以离谱，但人物必须有强反应和吐槽节奏，笑点、反差和自我意识是主要阅读动力。
+    story_structure: 由人物目标与荒诞阻碍的反差开篇；建立预期、误读、回应和回收；以选择、笑点回扣或关系变化收束，不必阴谋反杀。
+    pacing_control: 笑点设置与停顿交替，重复梗需变化或升级理解；轻松日常与事件闭环并行，重大笑点回收前置细节，不逐句插吐槽抢走行动。
+    writing_style: 人物吐槽根据性格、知情范围和当下目的发生，旁人回应制造节拍；具体行为支撑反差，避免网络热梗拼贴和统一作者口吻。
+    special_requirements: 荒诞也有稳定规则和后果；幽默不以现实群体贬低为默认。群像可合作而无长期施压对手，反噬、战斗和升级不是必选笑点发动机。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id016
+- id: theme.qingxiaoshuo.zhuansheng
+  category_id: major.qingxiaoshuo
+  labels:
+    zh-CN: 异世界转生
+  description: ''
+  legacy_ids:
+  - qingxiaoshuo.zhuansheng
+  profile_ref: profile.v1.qingxiaoshuo.zhuansheng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qingxiaoshuo.zhuansheng
+  status: legacy_review_required
+  profile:
+    world_tone: 第二人生将保留的前世经验与新身体、本地文化和生活目标并置；可选择日常、技艺、探索或冒险，RPG数值与种族设定仅在所选世界需要时启用，不把适应新生活默认写成职业等级升级。
+    story_structure: 从第二人生的身份和记忆落差进入；学习本地规则并选择新生活目标；以适应、冒险或关系改变收束，不预设成为世界最强。
+    pacing_control: 适应日常与任务交错，前世知识先试用再兑现；成长按新身体与当地资源推进，失败和等待有效，不立即开全职业面板。
+    writing_style: 前世回忆在当前选择需要时出现，异文化生活由观察和误解呈现；本地人物有自主目标，不只是赞叹现代知识。
+    special_requirements: 明确转生身份、年龄、保留记忆、语言和能力范围；前世技能不自动复制身体条件。RPG机制、恋爱与救世任务按所选主线启用，非必选第二人生。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id016
+- id: theme.qingxiaoshuo.qingchun
+  category_id: major.qingxiaoshuo
+  labels:
+    zh-CN: 青春物语
+  description: ''
+  legacy_ids:
+  - qingxiaoshuo.qingchun
+  profile_ref: profile.v1.qingxiaoshuo.qingchun
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: qingxiaoshuo.qingchun
+  status: legacy_review_required
+  profile:
+    world_tone: 校园、社团、家庭和友情构成青春场域，重点是关系温度、身份探索与成长选择；暗恋或轻幻想只在作者明确选择时加入，普通青春日常无需异世界伙伴。
+    story_structure: 以校园或青年生活中的共同目标进入；友情、家庭和身份探索改变选择；收束呈现成长与关系落点，恋爱和幻想只在明确选择时启用。
+    pacing_control: 学期、活动和日常小事形成轻快节拍，重要选择前后允许停顿；微小变化渐进积累，不用持续打脸和反超推动关系温度。
+    writing_style: 以座位、社团器材、聊天和放学路线表现年龄感；同龄人和家人的语气有差异，普通青春不自动加入异世界伙伴。
+    special_requirements: 年龄、学校规则和经济依赖可信，友情可独立成线；幻想与恋爱不预设。冲突可用合作或理解化解，不强制长期施压人物和世界危机。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id016
+- id: theme.tongren.dongman
+  category_id: major.tongren
+  labels:
+    zh-CN: 动漫同人
+  description: ''
+  legacy_ids:
+  - tongren.dongman
+  profile_ref: profile.v1.tongren.dongman
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tongren.dongman
+  status: legacy_review_required
+  profile:
+    world_tone: 严格依附动漫原作世界规则、角色关系和名场面记忆，读者期待的是高识别度角色还原与关键剧情再演绎。
+    story_structure: 从明确原作阶段中的新增视角或分歧点进入；新变量与原角色目标相互作用；以该分支后果收束，可补完日常而非必改写最终决战。
+    pacing_control: 按源作品事件尺度安排推进，原创插曲与关键节点交替；改变后有连锁后果，日常和情绪余波保留，不每次出现熟悉角色都反转原剧情。
+    writing_style: 保留角色语气、行为逻辑与所选动画风格，场景以熟悉物件和规则建立辨识；没有主角团或反派结构的作品不强塞该阵列。
+    special_requirements: 明确来源作品、版本、时间点及遵循或偏离原作的范围；关系与CP仅在作者明确选择时启用，未选择时不默认亲密配对。新增能力和改命需符合源作边界。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id017
+- id: theme.tongren.yingshi
+  category_id: major.tongren
+  labels:
+    zh-CN: 影视同人
+  description: ''
+  legacy_ids:
+  - tongren.yingshi
+  profile_ref: profile.v1.tongren.yingshi
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tongren.yingshi
+  status: legacy_review_required
+  profile:
+    world_tone: 影视原作的时代感、镜头感和角色表演逻辑必须保留，重点是熟悉人物在新变量介入下产生不同走向。
+    story_structure: 从所选影视版本的一项人物目标或剧情空白进入；新增视角改变行动和解释；结局回收分支因果，可保持原结局而补充人物经历。
+    pacing_control: 沿源作品的时代和事件尺度推进，紧张场景与生活段交替；新变量后有可信余波，熟悉桥段不必逐次改写成反杀。
+    writing_style: 以动作、场景调度、称谓和语言保留人物气质，心理描写与表演逻辑一致；现实剧、喜剧和非对抗群像不默认反派主角团模板。
+    special_requirements: 锁定来源、版本、年代和分歧点，角色所知与行动连续；恋爱及CP按作者明确选择启用。改写不是复制原台词或剧情段落，新增因果需符合源作制度和关系。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id017
+- id: theme.tongren.erciyuan
+  category_id: major.tongren
+  labels:
+    zh-CN: 二次元同人
+  description: ''
+  legacy_ids:
+  - tongren.erciyuan
+  profile_ref: profile.v1.tongren.erciyuan
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tongren.erciyuan
+  status: legacy_review_required
+  profile:
+    world_tone: 二次元跨作品或泛 ACG 语境更强，允许梗感、系统感和多作品互动，但必须维持基本角色辨识度和世界兼容性。
+    story_structure: 由已选作品或跨作品相遇的具体目标进入；规则兼容与角色选择共同推进；以本次互动后果收束，不要求全员参加大战或组CP。
+    pacing_control: 先展示少量兼容规则，再通过事件验证；角色日常、梗和任务交替，冲突后留余波，不每轮引入更强新作品抬级。
+    writing_style: 不同来源角色保留语气、知识和行为差异，梗只在读者可理解且服务场景时使用；跨作品解释清楚，不由统一系统解说包办。
+    special_requirements: 列明来源版本与跨世界力量、时间和物品转换规则；原作关系与新增关系区分。CP按作者选择启用，未选恋爱不自动配对，能力不能无限叠加绕过代价。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id017
+- id: theme.tongren.game_f
+  category_id: major.tongren
+  labels:
+    zh-CN: 游戏同人
+  description: ''
+  legacy_ids:
+  - tongren.game_f
+  profile_ref: profile.v1.tongren.game_f
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tongren.game_f
+  status: legacy_review_required
+  profile:
+    world_tone: 依托明确游戏及版本的世界、人物和交互规则，可采用战斗、经营、解谜、探索或日常分支；源作玩法和人物辨识度是锚点，不预设所有IP都有职业战斗、阵营战争和Boss。
+    story_structure: 从源游戏的一项任务、生活或剧情空白进入；角色自主选择与游戏规则相互作用；以区域目标或个人后果收束，战斗Boss仅在源作和主线需要时启用。
+    pacing_control: 按源作的任务、经营、探索或解谜周期组织，反馈服务当前选择；熟悉机制在新情境中验证，休整和NPC生活有空间，不默认一路刷Boss升级。
+    writing_style: 用源作交互、物件和角色语言形成辨识，玩家视角与角色经验分开；非战斗经营或解谜游戏不套战队、装备战力和反派阵列。
+    special_requirements: 注明游戏版本、剧情时间及canon与改写边界；规则、资源和人物自主性稳定。关系及CP仅按作者明确选择配置，不能把所有游戏同人都变成战斗与恋爱。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id017
+- id: theme.tongren.lishi_f
+  category_id: major.tongren
+  labels:
+    zh-CN: 历史同人
+  description: ''
+  legacy_ids:
+  - tongren.lishi_f
+  profile_ref: profile.v1.tongren.lishi_f
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: tongren.lishi_f
+  status: legacy_review_required
+  profile:
+    world_tone: 以真实历史人物、事件或演义文本为基底，重点在人物命运补完、视角重写和历史节点再解释。
+    story_structure: 从明确史料、演义或历史文本的空白与分歧进入；补视角、求证资料并推演选择；收束可保持既有悲剧或改写局部，不必获得改命胜利。
+    pacing_control: 史事锚点与人物日常交错，资料揭示和后果可延迟；已知结局也能通过细节获得张力，不机械每轮即时回报与新代价。
+    writing_style: 称谓、书信、礼制与地理符合所选来源；不同人物知情不等于读者已知史事，表达保留时代经验。
+    special_requirements: 注明史料、演义或具体作品版本及虚构范围，不默认安排亲密配对；不默认假定存在原作主角团或亲密配对。新增关系与改史路径可追溯，已知命运不保证能被改变。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id017
+- id: theme.yanqing_general.xiandai
+  category_id: major.romance
+  labels:
+    zh-CN: 都市言情·甜宠
+  description: ''
+  legacy_ids:
+  - yanqing_general.xiandai
+  profile_ref: profile.v1.yanqing_general.xiandai
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: yanqing_general.xiandai
+  status: legacy_review_required
+  profile:
+    world_tone: 现代都市关系场域下，甜宠、职场、豪门、婚恋和现实压力并行，核心是情绪反馈和亲密关系推进。
+    story_structure: 从现代生活中的具体交集进入；边界、相互照顾与独立目标推动所选恋爱；以可信承诺或当前关系落点收束，不因确认就强加新信任危机。
+    pacing_control: 甜宠以持续行动和小事兑现，职业家庭压力按真实节奏进入；允许纯甜与安稳日常，不要求甜虐交替或每轮情敌打脸。
+    writing_style: 称呼、消息、家务和工作细节承载偏爱；双方语气与目标独立，配角有自己的生活，不用空泛豪门排场替代具体支持。
+    special_requirements: 标签明确为甜宠时兑现所选温度，照顾不能取消拒绝权；收入、职业与家庭制度可信。其他关系轴需作者明确选择，不按女频默认被动一方，强制虐恋及情敌非必选。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.yanqing_general.gufeng
+  category_id: major.romance
+  labels:
+    zh-CN: 古风言情
+  description: ''
+  legacy_ids:
+  - yanqing_general.gufeng
+  profile_ref: profile.v1.yanqing_general.gufeng
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: yanqing_general.gufeng
+  status: legacy_review_required
+  profile:
+    world_tone: 古代门第、礼法、宅门、朝堂和家国处境与情感线交织，身份差、家族利益和权力秩序不断挤压人物选择。
+    story_structure: 从古代制度下的相遇、目标或承诺进入；身份、家族与个人选择检验关系；以所选情绪和时代后果收束，甜宠、悲剧和开放式由作者确定。
+    pacing_control: 礼制、书信和路程形成关系时间，生活与权力事件交错；情绪回报可延迟，重大转向前有行动证据，不逐次强加误会和反杀。
+    writing_style: 通过称谓、礼仪、物件和空间距离写情感；家人、同僚和盟友按时代背景存在，不默认现代职场流程和聊天话术。
+    special_requirements: 注明架空或考据范围，婚姻、继承和行动权限连续；恋爱方式与结局由作者设定，古风言情不自动等于甜宠。权力和强制控制不能被无条件浪漫化。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.yanqing_general.chongsheng_lv
+  category_id: major.romance
+  labels:
+    zh-CN: 重生恋爱
+  description: ''
+  legacy_ids:
+  - yanqing_general.chongsheng_lv
+  profile_ref: profile.v1.yanqing_general.chongsheng_lv
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: yanqing_general.chongsheng_lv
+  status: legacy_review_required
+  profile:
+    world_tone: 以重生、回档或再来一次的情感修正为核心，人物带着遗憾、误会或失败记忆重走关键关系节点。
+    story_structure: 从旧记忆与当前关系的差异进入；核验误解、承担责任并重新选择；终局可为建立新关系、拒绝旧关系或修复，不必旧仇反击。
+    pacing_control: 回忆只补当前判断所需，行动和反馈逐步改变信任；记忆失准和蝴蝶效应可延迟显现，关系修复需要时间，不以预知自动获得爱。
+    writing_style: 旧场景与新选择用细节对照，双方感受和知情范围分开；避免主角用未来知识替他人决定感情，配角不只是复仇名单。
+    special_requirements: 明确回档时间、记忆和现实变化边界；重生不取消对方拒绝权。恋爱、事业和复仇按主线配置，选择不再恋爱也可完成情感修正，不把伤害一键清零。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.yanqing_general.qita
+  category_id: major.romance
+  labels:
+    zh-CN: 其他言情
+  description: ''
+  legacy_ids:
+  - yanqing_general.qita
+  profile_ref: profile.v1.yanqing_general.qita
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: builtin_v1_migration
+    file: shared/taxonomy/builtin_cn_v1.yaml
+    legacy_id: yanqing_general.qita
+  status: legacy_review_required
+  profile:
+    world_tone: 承接综合言情的跨题材形态，可叠加成长、治愈、家庭、职业或轻幻想元素，但情感推进始终是第一主线。
+    story_structure: 先由作者确定主情绪、关系轴和外部场景；以人物目标、边界与具体互动推进；结局兑现该作品的承诺，兜底主题不强制套甜宠夺爱。
+    pacing_control: 按篇幅和核心情绪安排日常、事件与后果，信息和情绪变化可积累；不固定即时回报、虐甜交替或反超情敌，稳定关系可作为阶段结果。
+    writing_style: 语言密度和视角服务所选场景，以行为、物件和对白写情感；不同人物保留独立目标，不用统一言情标签替代人物经验。
+    special_requirements: 生成前明确世界、主情绪、关系类型、篇幅及结局；跨题材机制有边界，情敌、豪门、复仇与甜宠只按选择启用。无CP或家庭友情须在最终画像中明确，不从兜底名称自动推导恋爱。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.reality.career
+  category_id: major.reality
+  labels:
+    zh-CN: 职场与职业成长
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.reality.career
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 职场与职业成长
+  status: draft_profile_complete
+  profile:
+    world_tone: 职业规则由岗位职责、组织权限、行业惯例、考核和利益关系共同构成；成长来自技能、判断、人际协作与承担后果，而非主角无条件被所有同事认可。
+    story_structure: 以一个职业目标和一条能力成长线串联项目、客户、团队或危机任务。单个项目须呈现需求/约束、方案争夺、执行风险、可见结果及复盘，阶段成果再推动升职、转岗、独立或职业价值冲突。
+    pacing_control: 任务节点和职业决策提供章节钩子；在高压项目之间穿插恢复、关系变化和失败复盘。专业信息分散在具体工作行动中，不用整章会议纪要式解释，胜利需经历反复和可感知代价。
+    writing_style: 让工作产物和决策过程可见——版本差异、排期、成本、客户反馈、事故复盘；对话体现上下级权限、团队立场和信息差，不让每个角色都只提供行业科普。
+    special_requirements: 职业细节需符合基本流程和权限边界；明确主角的职位、可支配资源与无法决定之事。冲突不能长期靠“同事全员降智”；失败要留下影响，不能通过一次表扬自动抹去。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id019
+- id: theme.reality.business
+  category_id: major.reality
+  labels:
+    zh-CN: 商战与创业经营
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.reality.business
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 商战与创业经营
+  status: draft_profile_complete
+  profile:
+    world_tone: 市场不是主角单方面操纵的棋盘，产品需求、现金流、供应链、竞争者、团队能力和监管共同限制经营选择；资本与商业关系以可追踪的资源流动呈现。
+    story_structure: 从真实需求或经营困境开始，经过产品/策略选择、资源筹措、试错、竞争反应和结果验证，再进入下一轮规模或风险。每次扩张都要同时改变现金、组织、市场位置或责任。
+    pacing_control: 用订单、现金流、交付、用户反馈和竞争窗口作为节点；先展示判断依据，再揭示策略后果。重大成果后保留庆祝、复盘和恢复；管理成本、竞争反应与履约责任按真实经营周期兑现，不要求每次胜利立刻出现新危机，避免连续融资和估值暴涨的空转。
+    writing_style: 把商业抽象概念翻译成具体决定、数字和后果；用会议、谈判、用户现场、生产交付展现利益冲突。数据只保留会影响决策的部分，不堆砌伪精确术语。
+    special_requirements: 保持规模和时间线自洽，说明资金来源、成本、团队权限、产品能力与风险承担；避免把违法违规包装成必胜捷径。若借鉴真实公司、品牌、行业数据，应标记核验，不虚构现实主体的犯罪事实。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id019
+- id: theme.reality.social
+  category_id: major.reality
+  labels:
+    zh-CN: 社会议题与时代现实
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.reality.social
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 社会议题与时代现实
+  status: draft_profile_complete
+  profile:
+    world_tone: 个人命运嵌在具体年代、地域、制度与家庭网络里；结构性问题通过人物能碰到的门槛显形，不把社会议题写成抽象背景板或单一善恶宣言。
+    story_structure: 选择一个具体人物目标作为主线，让多方利益、制度限制和个人选择逐步交汇；关键节点要让当事人付出不同代价，结尾呈现选择的现实余波，而非作者代替读者宣布结论。
+    pacing_control: 以事件和决定推动主题，不连续插入议论；重要信息分层揭示，让人物经验先于观点总结。冲突升级靠可见的生活后果，而非不断提高口号音量或制造更极端的苦难。
+    writing_style: 采用具体、克制、有人物温度的叙述；给不同立场的人物自己的经历与语言逻辑，让环境、规则、劳动和物件承载时代质感，避免把配角写成议题标签。
+    special_requirements: 对现实事件、群体和专业制度区分事实、推断与虚构；不把复杂群体扁平化，不用创伤当廉价反转。涉及真实案件或敏感群体时需注意隐私、污名化和事实核验。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id019
+- id: theme.infinite.mission
+  category_id: major.infinite
+  labels:
+    zh-CN: 无限流 / 无限任务
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.infinite.mission
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 无限流 / 无限任务
+  status: draft_profile_complete
+  profile:
+    world_tone: 任务空间由稳定可理解的规则、入口条件、资源限制和退出代价构成；规则可以隐藏，但不能随剧情临时改写。参与者的行为会改变局面，任务奖励不是凭空发放。
+    story_structure: 每个副本建立目标、规则证据、方案选择、结果验证和资源/代价结算的闭环；方案可以成功、部分达成或失效，不要求每局必有反噬。长线用共同线索、角色关系和系统目的串联，不同副本有不同核心玩法，不能只有无关副本拼盘。
+    pacing_control: 进入副本尽早给出明确目标或生存压力；规则揭示分批出现，给读者留下推理窗口。副本结尾结算资源、伤势和关系，并用新问题而不是纯预告连接下一段。
+    writing_style: 规则说明简短且可回查，用人物试错和现场后果展示；动作空间清楚，队友有不同信息和动机。每次破局需能回溯到此前线索，不用临时技能或隐藏条款兜底。
+    special_requirements: 建立规则表、技能/道具代价表、伤病与资源账本；明确死亡、复活、退出、奖励的边界。不同副本须有不同核心玩法，不要只换皮复用同一解谜/打怪结构。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id020
+- id: theme.infinite.heavens
+  category_id: major.infinite
+  labels:
+    zh-CN: 诸天 / 位面穿梭
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.infinite.heavens
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 诸天 / 位面穿梭
+  status: draft_profile_complete
+  profile:
+    world_tone: 多世界之间存在可辨认的历史、文明、力量体系和通行规则；主角是跨界者，但每个世界不能只充当被征服的地图，须有本地社会的主动性与内部矛盾。
+    story_structure: 每一界设立本地目标、限制和冲突，再让跨界主线逐渐解释穿越机制、势力关系或主角代价；世界之间通过选择后果、遗留资源、人物牵连或主题回声形成连续性。
+    pacing_control: 开新世界时尽快落到具体处境和本地目标，设定随行动逐步揭示；跨界转换前完成当前情绪/事件小结，转换后避免大段重新介绍。每次跨界都要带来新策略或代价，而非重复升级。
+    writing_style: 用少量辨识度高的制度、物件、地貌和语言习惯建立世界差异；保留主角熟悉的观察视角，同时让本地角色拥有自己的知识体系，避免旁白把世界设定讲成百科。
+    special_requirements: 维护世界顺序、时间流速、携带物、力量适配、身份与因果后果；跨界不能无成本搬空当地资源。若使用现成 IP，注明同人属性并避免把不同作品规则混写成无差别战力表。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id020
+- id: theme.game.esports
+  category_id: major.youxi
+  labels:
+    zh-CN: 电竞职业与赛事
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.game.esports
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 电竞职业与赛事
+  status: draft_profile_complete
+  profile:
+    world_tone: 电竞是训练、战术、团队沟通、版本适应、心理压力和商业运营交织的职业竞技；胜负由规则和对手共同决定，不是主角个人操作的单人秀。
+    story_structure: 围绕选手/教练/战队目标组织训练、选拔、磨合、赛事、复盘与职业选择；每场关键比赛前埋下阵容、版本或状态问题，比赛后让输赢改变队伍关系、排名或资源。
+    pacing_control: 赛季有清楚的阶段和休赛期；比赛篇幅集中在关键回合和决策变化，避免逐秒播报。胜负结果要在赛前风险、临场调整和个人执行中有迹可循，连胜和失利都应有波动。
+    writing_style: 术语随人物身份使用，解说关注战术局势，选手关注信息和操作压力，管理者关注资源与合同；读者不熟悉游戏时也能理解目标、风险和关键决策。
+    special_requirements: 固定游戏规则、版本、赛制、队员位置、合同和时间线；不要把真实选手/战队的传闻当事实。训练成果须通过可见表现体现，伤病、状态和团队冲突不能在赛后自动归零。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id007
+- id: theme.scifi.near_future
+  category_id: major.kehuan
+  labels:
+    zh-CN: 近未来 / 科技科幻
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.scifi.near_future
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 近未来 / 科技科幻
+  status: draft_profile_complete
+  profile:
+    world_tone: 从当下技术趋势作有限外推，核心技术的能力、成本、使用门槛和副作用要一致；社会制度会适应技术，但不会在一夜间自动重构。
+    story_structure: 以一项技术带来的机会或故障作为冲突入口，逐步揭示其设计边界、利益归属和社会后果；科学问题、人物选择和伦理代价必须相互影响，结尾回收早先设定的限制。
+    pacing_control: 先让读者看到技术造成的具体问题，再补必要原理；技术展示不应中断人物行动。解决方案按既定时间、资源和权限限制实施，后果依因果链显现；维护、修复或终局允许稳定收束，不要求每次解决问题都立即引出更大危机。
+    writing_style: 解释采用准确但不过度论文腔的语言，用实验、操作、故障和决策展示技术；陌生概念以可感知的功能和限制落地，避免术语堆叠营造伪专业感。
+    special_requirements: 明确区分现实科学、合理推演和纯虚构设定；建立能力边界与时间线，不能在危机时临时提升技术。真实医学、AI、能源或法律信息须核验，不把预测写成既定事实。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.scifi.evolution
+  category_id: major.kehuan
+  labels:
+    zh-CN: 进化变异 / 灾变进化
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.scifi.evolution
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 进化变异 / 灾变进化
+  status: draft_profile_complete
+  profile:
+    world_tone: 生物或环境突变改变生态关系，进化不是无成本升级；食物链、传播途径、适应时间和身体代价决定危险如何扩散。
+    story_structure: 从异常征兆或首个暴露事件进入，经观察、试验、适应和生态反馈推演选择；能力变化遵循已建立的生理与环境边界，可以解决威胁、形成稳定适应或暴露原有限制，不要求每次都新增社会冲突或升级生态危机。
+    pacing_control: 以症状/行为/环境变化逐步提高风险，不一次性把所有真相抛出；行动和科学求证交替，能力突破须先有失败、证据或代价铺垫。
+    writing_style: 描写变化要有可观察的生理和环境征兆，恐怖感或奇观感服务于处境；解释控制在人物当前可知范围，避免用伪生物学术语替代因果。
+    special_requirements: 记录突变条件、传播方式、变异稳定性、能力上限和代价；不能随章节需要改变病原/生态规则。涉及真实疾病时避免误导性医疗建议或污名化患者。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id009
+- id: theme.mystery.social
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 社会派悬疑
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.mystery.social
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 社会派悬疑
+  status: draft_profile_complete
+  profile:
+    world_tone: 谜团与家庭、职场、社区、阶层或制度关系交织；真相既回答“发生了什么”，也揭示人物如何被利益和选择推到此处，但结构问题不能替个体行为免除责任。
+    story_structure: 从一个可见异常或事件切入，沿人物关系和信息遮蔽逐层逼近真相；线索同时揭露人物立场与社会关系，最后让谜底、人物选择和现实后果形成闭环。
+    pacing_control: 悬念需要靠信息差和行动风险维持，主题表达通过后果逐步显现；中段避免连续访谈和背景讲述，每次谈话都应改变怀疑对象、关系或下一步行动。
+    writing_style: 观察克制，保留人物自我辩护和立场矛盾；让空间、工作制度和生活细节自然暴露结构，不用反派长篇独白替作者讲道理。
+    special_requirements: 谜题本身须公平，社会议题须具体；不能把某类身份直接等同善恶，也不能用悲惨背景作为万能反转。避免结尾只揭穿个体却不处理故事已建立的现实影响。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.mystery.psychological
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 心理惊悚
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.mystery.psychological
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 心理惊悚
+  status: draft_profile_complete
+  profile:
+    world_tone: 威胁可以来自现实环境、关系控制或主观感知的不可靠性；读者要能分辨哪些是确证、哪些是角色推测。恐惧源于信任和认知逐渐失稳，不靠无休止突脸惊吓。
+    story_structure: 建立日常安全感和一个持续异常，再让主角求证、遭遇反证、失去信任并作出高代价选择；真相可以多义，但关键变化须能回溯到人物心理、环境或事件逻辑。
+    pacing_control: 平静段落埋下可二次理解的细节，惊吓后留下余波；避免连续误导后宣布“全是幻觉”。恐惧强度与人物应对能力同步变化，结尾留有解释空间但不撤销所有因果。
+    writing_style: 贴近人物感知，使用声音、距离、重复细节和空间限制制造不安；少解释情绪，多写注意力如何偏移、判断如何改变。避免用含混句子掩盖作者没有设定清楚。
+    special_requirements: 明确视角可靠度、异常发生边界和关键信息的客观证据；如涉及精神疾病，不把诊断直接等同危险或反派动机，也不把心理困境轻率治愈。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.mystery.rules
+  category_id: major.xuanyi
+  labels:
+    zh-CN: 规则怪谈
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.mystery.rules
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 规则怪谈
+  status: draft_profile_complete
+  profile:
+    world_tone: 封闭空间或异常组织中存在有限、可复查的生存规则；规则之间可能冲突或被伪造，但冲突本身必须有来源，读者可以通过线索识别风险。
+    story_structure: 先给出任务环境和规则文本，再让主角遭遇规则验证、矛盾线索和角色利益冲突；最终破局依赖比较规则来源、执行后果与信息篡改痕迹，而非猜中作者临时设置的暗号。
+    pacing_control: 每轮规则试探要产生明确的新信息或损失；规则条目控制在读者能记住的范围，重要条文通过场景重复而非全文反复粘贴。高潮回收早先看似无用的细节。
+    writing_style: 规则文本简洁、可操作且语气有辨识度；角色对规则的理解和执行有差异，环境线索补充纸面信息。悬念要清楚，不能用省略关键信息伪装烧脑。
+    special_requirements: 维护规则版本、来源、触发条件、违规后果和已验证状态；读者应能在答案揭示前推断主要解法。若规则允许例外，必须提前埋线。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id013
+- id: theme.short.general
+  category_id: major.short
+  labels:
+    zh-CN: 网文短篇 / 短篇小说
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.short.general
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 网文短篇 / 短篇小说
+  status: draft_profile_complete
+  profile:
+    world_tone: 场景范围有限、人物关系集中，世界设定只展开与核心冲突有关的部分；篇幅短不意味着情绪轻或逻辑可以跳过。
+    story_structure: 用一个明确欲望、阻碍和不可逆选择构成主轴；开篇尽快落到事件，发展只保留改变选择的关键节点，结尾兑现题目、意象或人物决定，不额外启动长篇支线。
+    pacing_control: 开头建立情境与问题，中段至少一次改变读者或角色的理解，结尾留余味但闭合主要情绪/因果；每场戏承担新信息、冲突升级或关系改变，删掉重复解释。
+    writing_style: 选择与篇幅匹配的视角和语言密度；以少量准确的物件、动作和对白呈现人物。避免为了“反转”故意隐瞒主角知道的事实，也避免结尾用一句金句替代故事。
+    special_requirements: 先确定目标字数、视角、核心冲突和结尾类型；控制出场人物、地点与支线数量。若用户要求系列短篇，单篇需自成闭环，同时用共同人物或主题连接。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id021
+- id: theme.reality.literary
+  category_id: major.reality
+  labels:
+    zh-CN: 文学现实 / 生活流
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.reality.literary
+  profile_version: draft-v2-2026-10-14
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/core-genres.md
+    section: 文学现实 / 生活流
+  status: draft_profile_complete
+  profile:
+    world_tone: 现实生活的重复、偶然与微小变化本身承载意义；冲突不必被放大成阴谋或胜负，但人物仍有愿望、盲点和选择后果。
+    story_structure: 从一个具体时段、关系或生活事件展开，通过细节累积使人物认识或关系悄然偏移；可以弱情节，但要有可感知的前后差异或情绪转折。
+    pacing_control: 允许停顿和日常，但每段停留都应增加感官、关系或处境信息；避免把松散等同没有筛选。关键情绪不急于解释，结尾以动作、物件或未完成的交流承接余韵。
+    writing_style: 关注具体感受和观察角度，少替人物作道德判词；句子节奏与人物意识相符，环境不是纯装饰，而能反照当下关系或生活状态。
+    special_requirements: 尊重人物经验的复杂性，不强行添加商业爽点、反派或道德总结；如果主题涉及现实群体，避免以一个人物概括整个群体。保留必要的情节线索以维持阅读方向。
+  supported_relationship_axes: []
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id019
+- id: theme.romance.modern
+  category_id: major.romance
+  labels:
+    zh-CN: 现代言情
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.romance.modern
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 现代言情
+  status: draft_profile_complete
+  profile:
+    world_tone: 以当代城市、县城、校园、职场或家庭为现实底盘。职业流程、收入差距、住房、医疗、舆论、家庭责任和地域迁移必须真实可感；豪门、娱乐圈、商业竞争、婚恋契约等可以放大冲突，但不能让社会规则只为主角服务。世界的核心压力来自身份差、资源差、亲密关系边界和个人选择的代价。
+    story_structure: 先确定最终项目画像中的关系主线。明确选择恋爱时，处境交集、价值观碰撞、共同应对与关系选择形成双线，确认关系可作为结局，信任危机只在已铺垫时发生。无 CP 时以职业、家庭、友情或个人目标组织交集、协作、分歧和选择，不强制恋爱确认；两种分支都保留现实后果。
+    pacing_control: 由工作、家庭或共同目标组织节点，关系信息变化可渐进积累；事件后允许日常和恢复。甜宠、虐恋与混合温度按作者明确选择执行，纯甜不必插虐。已确认恋爱不必继续升级危机；无 CP 时用能力、边界、友情或生活安排反馈，篇幅和阶段由作品目标决定，不固定每几章换一次关系。
+    writing_style: 以消息、称呼、工作交接与共同承担的小事写情绪，人物各有目标和边界；选定恋爱线时表现亲密变化，无 CP 时表现信任、尊重或个人认识，不把所有照顾都解释成心动。职业、收入和资源获取可感，避免空泛豪门排场或解释式情绪旁白。
+    special_requirements: 最终项目画像须明确恋爱、无 CP 或其他关系主线；未明确恋爱时不得自动配对，所有恋爱约束仅在所选恋爱分支启用。关系变化有行动证据，人物有独立目标、拒绝权与后果；职业、财务和制度可信。情敌、契约、豪门和娱乐圈按标签启用，不能覆盖现实因果；纯甜允许稳定收束，不用强制误会和降智制造虐点。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.romance.ancient
+  category_id: major.romance
+  labels:
+    zh-CN: 古代言情
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.romance.ancient
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 古代言情
+  status: draft_profile_complete
+  profile:
+    world_tone: 以架空或明确历史时期的宫廷、门阀、官场、宅门、边疆、商路或乡土社会为舞台。礼法、婚姻制度、继承、户籍、交通、信息速度和身份等级决定人物能做什么；女性行动空间可以通过职业、家族、盟约、技艺或政治位置拓展，但不能无成本地跳出现实秩序。朝堂、家国与亲密关系相互牵制。
+    story_structure: 从所选古代身份中的具体目标和制度限制进入；宅门、商路、技艺或权力行动按作品主线推进。明确恋爱时，情感选择与外部线相互影响，可承担代价也可建立合作；无 CP 时以家族、友情、事业或个人归宿收束，不强制婚约、情感确认或家国大战。
+    pacing_control: 开篇交代时代位置、身份限制和眼前事件，不限定前三章必须婚姻危机；按交通、季节、行政或经营周期组织，布置和转折留证据。情感节点依作者所选主线发生，无 CP 时由独立目标和关系边界提供反馈；阶段后果可稳定、延迟或修正，不每次权谋进展都损害信任。
+    writing_style: 语言雅致而清楚，称谓、礼仪、物件、空间和书信体现身份；权谋场景写清信息、资源与代价。恋爱明确选择时用细节表现亲密，否则保留家族、同僚和友情的信任，不将所有联盟浪漫化；不套现代工作流程和网络话术。
+    special_requirements: 标明架空或考据范围，时代制度与身份路径一致；最终画像明确所选关系轴，无 CP 时关闭强制婚约、CP确认和情感代价模板。反转有前置线索，身份和财富变化有可行路径；重生、穿越及现代知识有失准和资源边界。不美化强制控制，权谋推进不必每次都付出名分或亲密关系代价。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.romance.fantasy
+  category_id: major.romance
+  labels:
+    zh-CN: 幻想言情
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.romance.fantasy
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 幻想言情
+  status: draft_profile_complete
+  profile:
+    world_tone: 以所选仙侠、玄幻、西幻、灵异、神话、魔法或其他幻想社会为舞台，先明确力量来源、寿命、契约、阵营、资源与代价。恋爱主线明确选择时可影响阵营、能力和身份；无 CP 时由友情、协作或独立目标承载关系选择，两种分支遵循同一世界规则。
+    story_structure: 异常事件引出目标，再经规则验证、协作或分歧与关键选择完成闭环。明确恋爱时可展开相遇、亲密变化和所选情感结局；无 CP 时以伙伴协作、阵营选择或个人愿望替代恋爱确认、决裂和承诺节点。终局规模由目标决定，局部任务可完成，不强制世界危机。
+    pacing_control: 小任务和规则验证先建立边界，设定随行动展开；任务、恢复与关系余波交错。恋爱分支按选定温度推进，无 CP 分支反馈能力、合作和认识变化，不强制每轮靠近或决裂；线索回收依事件周期，阶段结局不必升级力量与世界规模。
+    writing_style: 以光、温度、身体限制和能力反馈建立幻想质感，术语先给功能与风险；对话保留任务信息与不同立场。明确恋爱时可用寿命、契约和身份差写亲密张力，无 CP 时这些规则服务自主选择与合作，不自动把互补能力或敌对阵营解释成爱情。
+    special_requirements: 维护能力来源、上限、代价、反制、资源和例外，所有关系分支共用此表。最终画像明确恋爱或无 CP；无 CP 时不安排恋爱靠近、强制配对、决裂和关系承诺。契约与控制有边界及解除条件，不能无成本复活或突然觉醒；阵营有独立利益，升级并非必选。文化和神话来源注明原创或改编。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.romance.youth
+  category_id: major.romance
+  labels:
+    zh-CN: 浪漫青春
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.romance.youth
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 浪漫青春
+  status: draft_profile_complete
+  profile:
+    world_tone: 以中学、大学、初入职场、社团、竞赛、寄宿学校或小城成长环境为核心。世界重点是同龄人群体、家庭期待、升学/就业、友情边界、身份探索和第一次重大选择。校园规则、年龄与经济依赖关系必须可信，成年前后使用不同的亲密关系和冲突边界。
+    story_structure: 从新环境或共同目标进入；群体关系、家庭期待和未来选择推动成长；以个人认识和所选关系落点收束。明确恋爱时爱情与生活目标相互影响；无 CP 时保留友情、身份探索和协作，群像可有多条独立目标，不强制告白或分离复合。
+    pacing_control: 学期、竞赛、活动和升学就业提供时间节点，日常逐步增加人物及关系信息；重要选择前后允许停顿和恢复。恋爱或友情变化按主线配置，成长可以渐进，不固定每几章关系重组或必须一次不可逆分离。
+    writing_style: 明快而有年龄感，用座位、器材、公交站和作业表现生活；人物语气与家庭经验不同。明确恋爱时细节可传达心动，无 CP 时传达友情、尊重、好奇和自我认识，不把所有合作浪漫化；群像不由统一成熟宣言代替声音。
+    special_requirements: 明确阶段、年龄与最终关系主线，无 CP 或群像不自动生成校园恋爱和告白。学业、竞赛、资源及经济依赖可信，人物有独立家庭和个人目标；未成年与权力不对等关系按真实边界处理。心理困境不能由恋爱一键治愈，跨成年阶段时明确语气和制度变化。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  - relationship.ensemble
+  audience_profile_overlays:
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id018
+- id: theme.short.romance
+  category_id: major.short
+  labels:
+    zh-CN: 短篇言情
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.short.romance
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 短篇言情
+  status: draft_profile_complete
+  profile:
+    world_tone: 以一个可在短篇篇幅内封闭的现实、古代、幻想或青春场景为主：婚礼、车站、医院、职场项目、宅门一夜、任务副本、重逢现场等。世界观只保留影响本次关系选择的最小规则集，强调单一核心情绪和清晰的时间/空间边界，不追求庞大设定。
+    story_structure: 围绕一个关系问题或个人情感选择组织情境、阻碍、关键行动和余韵；恋爱明确选择时兑现所选关系状态，无 CP 时以亲情、友情或自我认识闭环。章数依目标字数确定，可单场完成；允许零反转，有反转时必须重新解释既有细节。
+    pacing_control: 尽早落到现场与问题，信息、行动和情绪变化按目标长度分布，不机械每固定字数加转折；压缩无关人物和支线，留出后果与余韵。零反转、稳定关系和开放式都可成立，短篇不必同时塞甜点虐点与大反转。
+    writing_style: 句子和意象集中，少量动作与对白完成信息和情绪变化；选定恋爱时写亲密选择，无 CP 时不把所有离别重逢变成爱情。结尾用具体行动回收开篇，不靠旁白或金句代替人物结果。
+    special_requirements: 最终画像先明确篇幅、主情绪、关系主线和结局，反转次数可以为零。恋爱分支可选HE、BE或开放式，无 CP 分支回收人物选择与核心情绪，不要求恋人状态。场景至少改变信息、关系或处境；不堆叠车祸、失忆和绝症催泪，来源与现实信息仍需核验。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id021
+- id: theme.reality.period
+  category_id: major.reality
+  labels:
+    zh-CN: 年代现实
+  description: ''
+  legacy_ids: []
+  profile_ref: profile.v2.theme.reality.period
+  profile_version: semantic-draft-20261015
+  profile_source:
+    type: profile_draft
+    file: analysis/implementation/profile-drafts/female-romance.md
+    section: 年代现实
+  status: draft_profile_complete
+  profile:
+    world_tone: 落在可辨识的年代与社会转型中，围绕所选人物的家庭、城乡迁移、教育、劳动、住房、医疗、婚姻或职业选择展开，不从男频、女频、双频预设主角性别。政策、物资与生活路径符合所选年代，架空需说明差异；时代及局部关系影响人物用有限资源作选择。
+    story_structure: 采用“家庭/生活变故 → 主角争取一项具体资源或人生选择 → 家庭成员立场冲突 → 社会环境变化 → 主角建立新的生活秩序”。长篇可按学业、就业、婚育、迁徙、家庭经营等阶段推进；事业线、亲情线、友情线和恋爱线按作品承诺配置，不默认由恋爱收束。每个阶段需要留下可见的生活改善、关系变化或代价。
+    pacing_control: 开篇以物件、生活流程和眼前难题给出年代与家庭处境，建立分工和资源缺口的篇幅依总长度确定，可在单场完成；中段按季节、政策、行业、人生阶段或家庭事件推进。宏观变迁以可感影响进入，时间跳跃前回收当前阶段的因果与情绪，不固定前期章数或连续跳年。
+    writing_style: 以物件、价格、交通、饮食、工作流程、居住空间和家庭称呼建立年代感，少用作者直接评论时代。人物语言体现年龄、地域、教育和生活经验差异；避免全员现代价值观同声表达。温情和苦难都落到具体劳动与选择上，不靠怀旧滤镜替代冲突。
+    special_requirements: 明确年代、地域、城乡背景、真实或架空状态及主要家庭关系，对政策、职业、价格和技术作时间一致性检查。改善生活有劳动、协作、试错和时间成本，不靠偶然横财轻易解困。所选人物的成长不限定为事业成功或婚恋，路径符合当时条件且保留主动性；涉及女性成长时结合具体身份与制度，不把女性视角设为所有频道必选。伤害不浪漫化，关系主线由最终画像确定，未选恋爱时关闭强制CP推进。
+  supported_relationship_axes:
+  - romance.hetero
+  - romance.boys_love
+  - romance.girls_love
+  - relationship.none
+  - relationship.family_friendship
+  audience_profile_overlays:
+    male:
+      status: pending_review
+      profile: null
+    female:
+      status: pending_review
+      profile: null
+    dual:
+      status: pending_review
+      profile: null
+  audience_modes: *id019
+relationship_axes:
+- id: romance.hetero
+  label: 异性恋爱主线
+- id: romance.boys_love
+  label: 男性角色间恋爱（纯爱）
+- id: romance.girls_love
+  label: 女性角色间恋爱（百合）
+- id: relationship.none
+  label: 无恋爱主线
+- id: relationship.ensemble
+  label: 多组关系并行
+- id: relationship.family_friendship
+  label: 亲情 / 友情为主
+custom_entry:
+  scope: project
+  category:
+    enabled: true
+    id_prefix: custom.category.
+    max_per_project: 5
+    parent_category_optional: true
+  theme:
+    enabled: true
+    id_prefix: custom.theme.
+    max_per_project: 20
+    parent_category_required: true
+    custom_category_parent_allowed: true
+  profile_dimensions:
+  - world_tone
+  - story_structure
+  - pacing_control
+  - writing_style
+  - special_requirements
+  draft_status: custom_profile_draft
+  generation_requires_complete_profile: true
+  registry_mutation_allowed: false
+platforms:
+- id: qidian_mobile
+  label: 起点中文网
+  source_url: https://m.qidian.com/category
+  status: observed
+  observed_at: '2026-05-31'
+  source_file: shared/taxonomy/sources/genre_taxonomy_sources_2026-05-31.json
+  mappings:
+  - source_category_label: 仙侠
+    source_path: 仙侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 修真文明
+    source_path: 仙侠/修真文明
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/subcatid18-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 古典仙侠
+    source_path: 仙侠/古典仙侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: theme.xianxia.gudian
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/subcatid20101-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 幻想修仙
+    source_path: 仙侠/幻想修仙
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/subcatid44-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 现代修真
+    source_path: 仙侠/现代修真
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/subcatid64-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 神话修真
+    source_path: 仙侠/神话修真
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid22/subcatid207-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 体育
+    source_path: 体育
+    canonical_category_id: major.tiyu
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid8/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 体育赛事
+    source_path: 体育/体育赛事
+    canonical_category_id: major.tiyu
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid8/subcatid55-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 篮球运动
+    source_path: 体育/篮球运动
+    canonical_category_id: major.tiyu
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid8/subcatid28-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 足球运动
+    source_path: 体育/足球运动
+    canonical_category_id: major.tiyu
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid8/subcatid82-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 军事
+    source_path: 军事
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 军事战争
+    source_path: 军事/军事战争
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/subcatid65-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 军旅生涯
+    source_path: 军事/军旅生涯
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/subcatid54-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 战争幻想
+    source_path: 军事/战争幻想
+    canonical_category_id: major.junshi
+    canonical_theme_id: theme.junshi.zhanzhen
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/subcatid80-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 抗战烽火
+    source_path: 军事/抗战烽火
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/subcatid230-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 谍战特工
+    source_path: 军事/谍战特工
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid6/subcatid231-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 历史
+    source_path: 历史
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 上古先秦
+    source_path: 历史/上古先秦
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid220-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 两宋元明
+    source_path: 历史/两宋元明
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid224-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 两晋隋唐
+    source_path: 历史/两晋隋唐
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid222-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 五代十国
+    source_path: 历史/五代十国
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid223-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 历史传记
+    source_path: 历史/历史传记
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid32-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 外国历史
+    source_path: 历史/外国历史
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid226-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 架空历史
+    source_path: 历史/架空历史
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid22-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 民间传说
+    source_path: 历史/民间传说
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid20094-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 清史民国
+    source_path: 历史/清史民国
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid225-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 秦汉三国
+    source_path: 历史/秦汉三国
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid5/subcatid48-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 奇幻
+    source_path: 奇幻
+    canonical_category_id: major.qihuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 剑与魔法
+    source_path: 奇幻/剑与魔法
+    canonical_category_id: major.qihuan
+    canonical_theme_id: theme.qihuan.sword_spell
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid62-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 历史神话
+    source_path: 奇幻/历史神话
+    canonical_category_id: major.qihuan
+    canonical_theme_id: theme.qihuan.lishi
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid20092-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 另类幻想
+    source_path: 奇幻/另类幻想
+    canonical_category_id: major.qihuan
+    canonical_theme_id: theme.qihuan.alternative
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid20093-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 史诗奇幻
+    source_path: 奇幻/史诗奇幻
+    canonical_category_id: major.qihuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid201-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 现代魔法
+    source_path: 奇幻/现代魔法
+    canonical_category_id: major.qihuan
+    canonical_theme_id: theme.qihuan.modern_magic
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid38-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 神秘幻想
+    source_path: 奇幻/神秘幻想
+    canonical_category_id: major.qihuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid1/subcatid202-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 悬疑灵异
+    source_path: 悬疑灵异
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 侦探推理
+    source_path: 悬疑灵异/侦探推理
+    canonical_category_id: major.xuanyi
+    canonical_theme_id: theme.xuanyi.zhentan
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/subcatid57-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 惊悚微恐
+    source_path: 悬疑灵异/惊悚微恐
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/subcatid20095-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 灵异民俗
+    source_path: 悬疑灵异/灵异民俗
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/subcatid260-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 规则怪谈
+    source_path: 悬疑灵异/规则怪谈
+    canonical_category_id: major.xuanyi
+    canonical_theme_id: theme.mystery.rules
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/subcatid35-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 诡异神秘
+    source_path: 悬疑灵异/诡异神秘
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid10/subcatid26-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 武侠
+    source_path: 武侠
+    canonical_category_id: major.wuxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 传统武侠
+    source_path: 武侠/传统武侠
+    canonical_category_id: major.wuxia
+    canonical_theme_id: theme.wuxia.chuantong
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/subcatid5-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 古武未来
+    source_path: 武侠/古武未来
+    canonical_category_id: major.wuxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/subcatid20099-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 国术无双
+    source_path: 武侠/国术无双
+    canonical_category_id: major.wuxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/subcatid206-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 武侠同人
+    source_path: 武侠/武侠同人
+    canonical_category_id: major.wuxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/subcatid20100-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 武侠幻想
+    source_path: 武侠/武侠幻想
+    canonical_category_id: major.wuxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid2/subcatid30-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 游戏
+    source_path: 游戏
+    canonical_category_id: major.youxi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 游戏主播
+    source_path: 游戏/游戏主播
+    canonical_category_id: major.youxi
+    canonical_theme_id: theme.youxi.zhubo
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/subcatid20103-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 游戏异界
+    source_path: 游戏/游戏异界
+    canonical_category_id: major.youxi
+    canonical_theme_id: theme.youxi.yijie
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/subcatid240-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 游戏系统
+    source_path: 游戏/游戏系统
+    canonical_category_id: major.youxi
+    canonical_theme_id: theme.youxi.xitong
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/subcatid20102-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 电子竞技
+    source_path: 游戏/电子竞技
+    canonical_category_id: major.youxi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/subcatid7-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 虚拟网游
+    source_path: 游戏/虚拟网游
+    canonical_category_id: major.wangyou
+    canonical_theme_id: theme.wangyou.vr
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid7/subcatid70-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 玄幻
+    source_path: 玄幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid21/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 东方玄幻
+    source_path: 玄幻/东方玄幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: theme.xuanhuan.dongfang
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid21/subcatid8-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 异世大陆
+    source_path: 玄幻/异世大陆
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: theme.xuanhuan.yishi
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid21/subcatid73-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 王朝争霸
+    source_path: 玄幻/王朝争霸
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid21/subcatid58-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 高武世界
+    source_path: 玄幻/高武世界
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: theme.xuanhuan.gaowu
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid21/subcatid78-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 现实
+    source_path: 现实
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 人间百态
+    source_path: 现实/人间百态
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid209-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 女性题材
+    source_path: 现实/女性题材
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid20104-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 家庭伦理
+    source_path: 现实/家庭伦理
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid6-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 成功励志
+    source_path: 现实/成功励志
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid20107-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 时代叙事
+    source_path: 现实/时代叙事
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid20106-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 社会悬疑
+    source_path: 现实/社会悬疑
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid20105-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 青年故事
+    source_path: 现实/青年故事
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid15/subcatid20108-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 短篇
+    source_path: 短篇
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 人物传记
+    source_path: 短篇/人物传记
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20098-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 影视剧本
+    source_path: 短篇/影视剧本
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20075-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 生活随笔
+    source_path: 短篇/生活随笔
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20078-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 短篇小说
+    source_path: 短篇/短篇小说
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20096-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 美文游记
+    source_path: 短篇/美文游记
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20079-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 评论文集
+    source_path: 短篇/评论文集
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20077-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 诗歌散文
+    source_path: 短篇/诗歌散文
+    canonical_category_id: major.short
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20076/subcatid20097-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 科幻
+    source_path: 科幻
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 古武机甲
+    source_path: 科幻/古武机甲
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid21-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 时空穿梭
+    source_path: 科幻/时空穿梭
+    canonical_category_id: major.kehuan
+    canonical_theme_id: theme.kehuan.shikong
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid251-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 星际文明
+    source_path: 科幻/星际文明
+    canonical_category_id: major.kehuan
+    canonical_theme_id: theme.kehuan.xingji
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid68-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 未来世界
+    source_path: 科幻/未来世界
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid25-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 末世危机
+    source_path: 科幻/末世危机
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid253-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 超级科技
+    source_path: 科幻/超级科技
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid250-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 进化变异
+    source_path: 科幻/进化变异
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid9/subcatid252-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 诸天无限
+    source_path: 诸天无限
+    canonical_category_id: major.infinite
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20109/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 无限
+    source_path: 诸天无限/无限
+    canonical_category_id: major.infinite
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20109/subcatid20110-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 综漫
+    source_path: 诸天无限/综漫
+    canonical_category_id: major.infinite
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20109/subcatid20112-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 诸天
+    source_path: 诸天无限/诸天
+    canonical_category_id: major.infinite
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid20109/subcatid20111-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 轻小说
+    source_path: 轻小说
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 原生幻想
+    source_path: 轻小说/原生幻想
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: theme.qingxiaoshuo.xh
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/subcatid60-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 恋爱日常
+    source_path: 轻小说/恋爱日常
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/subcatid66-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 搞笑吐槽
+    source_path: 轻小说/搞笑吐槽
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: theme.qingxiaoshuo.tucao
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/subcatid282-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 现代幻想
+    source_path: 轻小说/现代幻想
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/subcatid10-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 衍生同人
+    source_path: 轻小说/衍生同人
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid12/subcatid281-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 都市
+    source_path: 都市
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 商战职场
+    source_path: 都市/商战职场
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid153-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 娱乐明星
+    source_path: 都市/娱乐明星
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid151-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 异术超能
+    source_path: 都市/异术超能
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid74-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 爱情婚姻
+    source_path: 都市/爱情婚姻
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid65535-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 都市异能
+    source_path: 都市/都市异能
+    canonical_category_id: major.dushi
+    canonical_theme_id: theme.dushi.yineng
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid16-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 都市生活
+    source_path: 都市/都市生活
+    canonical_category_id: major.dushi
+    canonical_theme_id: theme.dushi.life
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid12-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 青春校园
+    source_path: 都市/青春校园
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category/catid4/subcatid130-male/
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 悬疑灵异
+    source_path: 悬疑灵异
+    canonical_category_id: major.xuanyi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.qidian.com/category
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+- id: zongheng_mobile
+  label: 纵横中文网
+  source_url: https://m.zongheng.com/category
+  status: observed
+  observed_at: '2026-05-31'
+  source_file: shared/taxonomy/sources/genre_taxonomy_sources_2026-05-31.json
+  mappings:
+  - source_category_label: N次元
+    source_path: N次元
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8108&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 体育
+    source_path: 体育
+    canonical_category_id: major.tiyu
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8110&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 军事
+    source_path: 军事
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8111&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 历史
+    source_path: 历史
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8104&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 奇闻异事
+    source_path: 奇闻异事
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8106&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 武侠仙侠
+    source_path: 武侠仙侠
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: &id022
+    - major.xianxia
+    - major.wuxia
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8102&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 游戏
+    source_path: 游戏
+    canonical_category_id: major.youxi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8107&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8101&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 现实题材
+    source_path: 现实题材
+    canonical_category_id: major.reality
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8109&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 科幻
+    source_path: 科幻
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8105&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 都市
+    source_path: 都市
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category/rank?bookType=0&cateFineId=8103&order=_score&serialStatus=9&totalWord=0
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 武侠仙侠
+    source_path: 武侠仙侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 奇闻异事
+    source_path: 奇闻异事
+    canonical_category_id: major.lingyi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: N次元
+    source_path: N次元
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://m.zongheng.com/category
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+- id: zongheng_store
+  label: 纵横中文网（PC书库）
+  source_url: https://book.zongheng.com/store.html
+  status: observed
+  observed_at: '2026-05-31'
+  source_file: shared/taxonomy/sources/genre_taxonomy_sources_2026-05-31.json
+  mappings:
+  - source_category_label: 军事
+    source_path: 军事
+    canonical_category_id: major.junshi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8111.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 历史
+    source_path: 历史
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8104.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 历史军事
+    source_path: 历史军事
+    canonical_category_id: major.junshi
+    canonical_theme_id: theme.junshi.lishi
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/6.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 奇幻玄幻
+    source_path: 奇幻玄幻
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 奇闻异事
+    source_path: 奇闻异事
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8106.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 悬疑灵异
+    source_path: 悬疑灵异
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/18.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 武侠仙侠
+    source_path: 武侠仙侠
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id022
+    audience: null
+    source_url: https://www.zongheng.com/category/3.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 游戏
+    source_path: 游戏
+    canonical_category_id: major.youxi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8107.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8101.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 玄幻小说
+    source_path: 玄幻小说
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 现实题材
+    source_path: 现实题材
+    canonical_category_id: major.reality
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8109.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 科幻
+    source_path: 科幻
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8105.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 科幻游戏
+    source_path: 科幻游戏
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids:
+    - major.kehuan
+    - major.youxi
+    audience: null
+    source_url: https://www.zongheng.com/category/15.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 竞技同人
+    source_path: 竞技同人
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/21.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 都市
+    source_path: 都市
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/8103.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 都市娱乐
+    source_path: 都市娱乐
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/9.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 都市小说
+    source_path: 都市小说
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.zongheng.com/category/9.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 武侠仙侠
+    source_path: 武侠仙侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 历史军事
+    source_path: 历史军事
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 悬疑灵异
+    source_path: 悬疑灵异
+    canonical_category_id: major.xuanyi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 奇闻异事
+    source_path: 奇闻异事
+    canonical_category_id: major.lingyi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 奇幻玄幻
+    source_path: 奇幻玄幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 玄幻小说
+    source_path: 玄幻小说
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 都市娱乐
+    source_path: 都市娱乐
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://book.zongheng.com/store.html
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+- id: 17k_all
+  label: 17K小说网
+  source_url: https://www.17k.com/all
+  status: observed
+  observed_at: '2026-05-31'
+  source_file: shared/taxonomy/sources/genre_taxonomy_sources_2026-05-31.json
+  mappings:
+  - source_category_label: 仙侠武侠
+    source_path: 仙侠武侠
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: &id023
+    - major.xianxia
+    - major.wuxia
+    audience: null
+    source_url: https://www.17k.com/all/book/2_24_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 传统武侠
+    source_path: 仙侠武侠/传统武侠
+    canonical_category_id: major.wuxia
+    canonical_theme_id: theme.wuxia.chuantong
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_24_2_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 历史武侠
+    source_path: 仙侠武侠/历史武侠
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id023
+    audience: null
+    source_url: https://www.17k.com/all/book/2_24_124_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 古典仙侠
+    source_path: 仙侠武侠/古典仙侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: theme.xianxia.gudian
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_24_9_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 奇幻修真
+    source_path: 仙侠武侠/奇幻修真
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id023
+    audience: null
+    source_url: https://www.17k.com/all/book/2_24_82_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 历史军事
+    source_path: 历史军事
+    canonical_category_id: major.junshi
+    canonical_theme_id: theme.junshi.lishi
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_22_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 军旅生涯
+    source_path: 历史军事/军旅生涯
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: &id024
+    - major.lishi
+    - major.junshi
+    audience: null
+    source_url: https://www.17k.com/all/book/2_22_94_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 历史传奇
+    source_path: 历史军事/历史传奇
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id024
+    audience: null
+    source_url: https://www.17k.com/all/book/2_22_120_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 历史穿越
+    source_path: 历史军事/历史穿越
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id024
+    audience: null
+    source_url: https://www.17k.com/all/book/2_22_4_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 架空历史
+    source_path: 历史军事/架空历史
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id024
+    audience: null
+    source_url: https://www.17k.com/all/book/2_22_93_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 古代言情
+    source_path: 古代言情
+    canonical_category_id: major.romance
+    canonical_theme_id: theme.romance.ancient
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/3_5_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 幻想言情
+    source_path: 幻想言情
+    canonical_category_id: major.romance
+    canonical_theme_id: theme.romance.fantasy
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/3_18_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 悬疑推理
+    source_path: 悬疑推理
+    canonical_category_id: major.xuanyi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_29_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 浪漫青春
+    source_path: 浪漫青春
+    canonical_category_id: major.romance
+    canonical_theme_id: theme.romance.youth
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/3_20_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 游戏竞技
+    source_path: 游戏竞技
+    canonical_category_id: major.youxi
+    canonical_theme_id: theme.youxi.jingji
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_23_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_21_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 东方玄幻
+    source_path: 玄幻奇幻/东方玄幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: theme.xuanhuan.dongfang
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_21_8_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 异世争霸
+    source_path: 玄幻奇幻/异世争霸
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_21_115_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 异界大陆
+    source_path: 玄幻奇幻/异界大陆
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_21_83_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 现代言情
+    source_path: 现代言情
+    canonical_category_id: major.romance
+    canonical_theme_id: theme.romance.modern
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/3_17_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 科幻末世
+    source_path: 科幻末世
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: &id025
+    - major.kehuan
+    - major.moshi
+    audience: null
+    source_url: https://www.17k.com/all/book/2_14_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 未来幻想
+    source_path: 科幻末世/未来幻想
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id025
+    audience: null
+    source_url: https://www.17k.com/all/book/2_14_6_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 末世危机
+    source_path: 科幻末世/末世危机
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id025
+    audience: null
+    source_url: https://www.17k.com/all/book/2_14_128_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 进化变异
+    source_path: 科幻末世/进化变异
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: *id025
+    audience: null
+    source_url: https://www.17k.com/all/book/2_14_129_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: ambiguous
+  - source_category_label: 轻小说
+    source_path: 轻小说
+    canonical_category_id: major.qingxiaoshuo
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_30_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_category
+  - source_category_label: 都市小说
+    source_path: 都市小说
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_3_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 现实题材
+    source_path: 都市小说/现实题材
+    canonical_category_id: major.reality
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_3_91_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_alias
+  - source_category_label: 都市异能
+    source_path: 都市小说/都市异能
+    canonical_category_id: major.dushi
+    canonical_theme_id: theme.dushi.yineng
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_3_87_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 都市激战
+    source_path: 都市小说/都市激战
+    canonical_category_id: major.dushi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_3_92_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: parent_only_pending_theme
+  - source_category_label: 都市生活
+    source_path: 都市小说/都市生活
+    canonical_category_id: major.dushi
+    canonical_theme_id: theme.dushi.life
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_3_3_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: mapped_theme
+  - source_category_label: 默认
+    source_path: 默认
+    canonical_category_id: null
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all/book/2_0_0_0_0_0_0_0_1.html
+    observed_at: '2026-05-31'
+    confidence: official_observed
+    status: pending_mapping
+  - source_category_label: 仙侠武侠
+    source_path: 仙侠武侠
+    canonical_category_id: major.xianxia
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 历史军事
+    source_path: 历史军事
+    canonical_category_id: major.lishi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 游戏竞技
+    source_path: 游戏竞技
+    canonical_category_id: major.youxi
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 玄幻奇幻
+    source_path: 玄幻奇幻
+    canonical_category_id: major.xuanhuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+  - source_category_label: 科幻末世
+    source_path: 科幻末世
+    canonical_category_id: major.kehuan
+    canonical_theme_id: null
+    candidate_category_ids: []
+    audience: null
+    source_url: https://www.17k.com/all
+    observed_at: '2026-05-31'
+    confidence: legacy_mapping
+    status: mapped_legacy_alias
+- id: fanqie
+  label: 番茄小说
+  source_url: https://fanqienovel.com/
+  status: pending_source_review
+  observed_at: null
+  source_file: analysis/fanqie.html
+  mappings: []
+- id: jjwxc
+  label: 晋江文学城
+  source_url: https://www.jjwxc.net/bookbase.php
+  status: pending_source_review
+  observed_at: null
+  source_file: analysis/jjwxc.html
+  mappings: []
+- id: qimao
+  label: 七猫中文网
+  source_url: https://www.qimao.com/shuku/
+  status: pending_source_review
+  observed_at: null
+  source_file: analysis/qimao.html
+  mappings: []
+provenance:
+  taxonomy_source: shared/taxonomy/builtin_cn_v1.yaml
+  market_source: shared/taxonomy/genre_market_cn_v1.yaml
+  platform_observation_source: shared/taxonomy/sources/genre_taxonomy_sources_2026-05-31.json
+  profile_draft_sources:
+  - analysis/implementation/profile-drafts/core-genres.md
+  - analysis/implementation/profile-drafts/female-romance.md
+  generated_at: '2026-10-14'
+  policy: 只保存分类与画像元数据，不保存平台作品正文；未观察到的映射保持 pending。

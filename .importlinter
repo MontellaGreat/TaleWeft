@@ -1,0 +1,49 @@
+[importlinter]
+root_packages =
+    domain
+    application
+    infrastructure
+    interfaces
+    engine
+    shared
+
+[importlinter:contract:domain-direct-boundary]
+name = Domain has no new direct dependencies on runtime layers
+type = forbidden
+source_modules =
+    domain
+forbidden_modules =
+    application
+    infrastructure
+    interfaces
+    engine
+# Incremental baseline: transitive paths through the two explicit legacy
+# imports below are not claimed as clean. New direct edges fail this contract.
+allow_indirect_imports = True
+ignore_imports =
+    domain.engine.dag.repositories.dag_version_repository -> application.engine.dag.models
+    domain.novel.value_objects.story_phase -> engine.core.entities.story
+unmatched_ignore_imports_alerting = error
+
+[importlinter:contract:pure-domain-transitive-boundary]
+name = Evolution and foundational domain modules stay transitively independent
+type = forbidden
+source_modules =
+    domain.evolution
+    domain.shared
+    domain.ai
+    domain.structure
+forbidden_modules =
+    application
+    infrastructure
+    interfaces
+    engine
+allow_indirect_imports = False
+
+[importlinter:contract:evolution-layers]
+name = Evolution reducer depends on models then contracts
+type = layers
+layers =
+    domain.evolution.reducer
+    domain.evolution.models
+    domain.evolution.contracts

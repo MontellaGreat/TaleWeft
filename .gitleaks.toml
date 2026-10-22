@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Literal token-counting algorithm identifier returned by capabilities API"
+regexTarget = "match"
+regexes = ['''token_counter': 'utf8_byte_upper_bound''']

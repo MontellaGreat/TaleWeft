@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="710" viewBox="0 0 1320 710" role="img" aria-labelledby="title desc">
+  <title id="title">叙织创作与编辑关联工作流</title>
+  <desc id="desc">上方流程为开书、设定规划、写作审阅、正文提交。下方为人工编辑、保存与失效、顺序重建关联、核对再续写。正文保存成功不表示关联任务完成，关联重算不会自动改写后章正文。</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#719585"/></marker></defs>
+  <rect width="1320" height="710" rx="24" fill="#f5f3ec"/>
+  <g font-family="'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+    <text x="48" y="50" fill="#50746a" font-size="14" letter-spacing="3">FROM IDEA TO REVISION</text>
+    <text x="48" y="96" fill="#193d38" font-size="32" font-weight="700">写完之后，修改也有后续</text>
+    <text x="48" y="128" fill="#586b64" font-size="17">生成、提交、关联分析分别确认状态；遇到失败，保留稿件并给出处理入口。</text>
+    <g fill="#fffef9" stroke="#cbd8ce"><rect x="48" y="167" width="280" height="155" rx="16"/><rect x="362" y="167" width="280" height="155" rx="16"/><rect x="676" y="167" width="280" height="155" rx="16"/><rect x="990" y="167" width="282" height="155" rx="16"/></g>
+    <g fill="none" stroke="#719585" stroke-width="2.5" marker-end="url(#arrow)"><path d="M328 243H356"/><path d="M642 243H670"/><path d="M956 243H984"/><path d="M1131 322V356H188V402"/></g>
+    <g fill="#244d40" font-size="21" font-weight="700"><text x="70" y="206">01  开书定向</text><text x="384" y="206">02  设定与规划</text><text x="698" y="206">03  写作与审阅</text><text x="1012" y="206">04  正文提交</text></g>
+    <g fill="#50675b" font-size="16">
+      <text x="70" y="245">梗概 ≤ 10000 字</text><text x="70" y="275">频道 / 大类 / 主题</text><text x="70" y="300">五维画像与目标篇幅</text>
+      <text x="384" y="245">人物、地点与世界观</text><text x="384" y="275">总纲、幕次与节拍</text><text x="384" y="300">生成后核对保存结果</text>
+      <text x="698" y="245">按选定流程生成正文</text><text x="698" y="275">扫描 / 改写候选 / 复验</text><text x="698" y="300">人工确认或配置自动采用</text>
+      <text x="1012" y="245">版本 / hash 检查</text><text x="1012" y="275">核对真实持久化回执</text><text x="1012" y="300">章后任务独立跟踪</text>
+    </g>
+    <rect x="48" y="340" width="246" height="32" rx="16" fill="#f5f3ec"/>
+    <text x="48" y="363" fill="#8a682c" font-size="16" font-weight="700">作者编辑后的关联更新</text>
+    <g fill="#eaf0e8" stroke="#bdcebf"><rect x="48" y="409" width="280" height="155" rx="16"/><rect x="362" y="409" width="280" height="155" rx="16"/><rect x="676" y="409" width="280" height="155" rx="16"/><rect x="990" y="409" width="282" height="155" rx="16"/></g>
+    <g fill="none" stroke="#719585" stroke-width="2.5" marker-end="url(#arrow)"><path d="M328 486H356"/><path d="M642 486H670"/><path d="M956 486H984"/></g>
+    <g fill="#244d40" font-size="21" font-weight="700"><text x="70" y="449">05  人工编辑</text><text x="384" y="449">06  保存与失效</text><text x="698" y="449">07  顺序重建关联</text><text x="1012" y="449">08  核对再续写</text></g>
+    <g fill="#50675b" font-size="16">
+      <text x="70" y="488">修改章名与正文</text><text x="70" y="518">查看差异和历史版本</text><text x="70" y="543">作者保留最终决定权</text>
+      <text x="384" y="488">保存回执确认本次修改</text><text x="384" y="518">本章与后章关联标记过期</text><text x="384" y="543">过期任务拒绝覆盖新稿</text>
+      <text x="698" y="488">摘要、记忆、人物、伏笔</text><text x="698" y="518">撤销有来源的旧机器事实</text><text x="698" y="543">本章及后章逐章分析</text>
+      <text x="1012" y="488">分别查看本章与级联状态</text><text x="1012" y="518">失败可重跑关联分析</text><text x="1012" y="543">关联就绪后继续生成</text>
+    </g>
+    <rect x="48" y="601" width="1224" height="73" rx="14" fill="#193d38"/>
+    <text x="70" y="631" fill="#f5edda" font-size="17" font-weight="700">保存成功 ≠ 关联任务完成</text>
+    <text x="70" y="657" fill="#c5d7cb" font-size="15">关联重算不会自动改写后章正文；跨章情节矛盾仍需作者核对。真实页面的完整关联链仍待进一步验收。</text>
+    <text x="48" y="697" fill="#738077" font-size="12">流程示意图。DAG 单章执行与全托管共用必要的版本和提交检查，但不支持任意节点持久断点续跑。</text>
+  </g>
+</svg>

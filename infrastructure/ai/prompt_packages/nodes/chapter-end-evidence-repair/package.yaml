@@ -1,0 +1,23 @@
+id: chapter-end-evidence-repair
+name: 章末状态引文修复
+category: extraction
+description: 仅纠正一次不合格引文，保留全部已抽取事实并重新严格验证
+builtin: true
+tags:
+- 证据
+- 修复
+- JSON
+output_format: json
+variables:
+- name: content
+  desc: 本章完整正文
+  type: string
+  required: true
+- name: candidate
+  desc: 不可改变事实的原始候选
+  type: string
+  required: true
+- name: validation_error
+  desc: 严格证据校验反馈
+  type: string
+  required: true

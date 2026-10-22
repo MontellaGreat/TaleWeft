@@ -1,0 +1,193 @@
+# ════════════════════════════════════════════
+# 叙织 · TaleWeft— AI 小说创作平台
+# ════════════════════════════════════════════
+
+# ── 环境与密钥（永远不提交） ──
+.env
+.env.*
+!.env.example
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.venv/
+venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+# PyInstaller / 冻结后端目录（仅打包机本机生成，勿提交）
+out/
+*.egg
+# PyInstaller 单次构建在仓库根目录生成的 spec（由脚本传入 CLI，勿入库）
+/plotpilot-backend.spec
+*.log
+*.pid
+.superpowers/
+
+# ── 前端 ──
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright-browsers/
+
+# ── 本地 Agent / MCP 缓存 ──
+.playwright-mcp/
+.claude/
+.trae/
+
+# ── 覆盖率 / 测试产物 ──
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# ── 数据库 SQLite 副本 ──
+*.db
+*.db.backup
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── 办公文档 / 草稿资料（可能包含未公开内容，勿提交） ──
+*.doc
+*.docx
+*.docm
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+
+# ── 应用运行时数据（保留目录结构，忽略内容） ──
+data/novels/
+data/foreshadowings/
+data/bibles/bible-novel-*.json
+data/bibles/novel-*-bible.json
+data/bibles/bible-test-*.json
+data/bibles/bible-final-*.json
+
+# ── 书籍输出（仅保留占位文件） ──
+output/novels/*/
+!output/novels/.gitkeep
+
+# ── 临时 / 生成的 API fixtures ──
+interfaces/data/
+
+# ── OS / 编辑器 ──
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── 本地向量 DB / 开发 dump ──
+qdrant_storage/
+
+# ── 本地模型文件（~2GB，按需下载） ──
+.models/
+
+# ── 评估结果 ──
+scripts/evaluation/results/
+
+# ── 运行时数据目录（保留结构，忽略内容） ──
+data/chromadb/
+data/logs/
+data/llm_configs.json
+
+# ── 日志 ──
+logs/
+
+# ── PyInstaller 打包产物（根目录） ──
+plotpilot.spec
+plotpilot.lock
+plotpilot.exe
+plotpilot.pkg
+Analysis-*.toc
+COLLECT-*.toc
+EXE-*.toc
+PKG-*.toc
+PYZ-*.toc
+warn-*.txt
+xref-*.html
+localpycs/
+base_library.zip
+
+# ── 内嵌 Python（保留 zip 原始包，解压目录不入库） ──
+/tools/python_embed/
+/tools/plotpilot/
+# tools/python-*.zip       # ← 保留！Python embed 原始包（~15MB），入库供用户直接用
+
+# ── 临时 / 无关文件 ──
+=++Contribution Value Roster++=
+# Contributors: xibian-YQ, JamesGoslings
+
+# ── PlotPilot 残留 ──
+plotpilot-master/
+llm_profiles.json
+
+# ── 锁文件（运行时生成） ──
+plotpilot.lock
+scripts/plotpilot.lock
+
+# ── Tauri 桌面壳 ──
+# 提交源码，忽略构建产物
+frontend/src-tauri/target/
+frontend/src-tauri/scripts/
+frontend/src-tauri/tools/
+
+# 构建源码与锁文件随源码分发；本机构建产物仍由 out/、target/ 忽略。
+
+# ── 桌面分发物（勿拷进仓库根再提交） ──
+PlotPilot_*-setup.exe
+PlotPilot*.exe
+*.msi
+
+# ── Cursor / MCP 本地（机器相关，一般不入库） ──
+.cursor/*
+!.cursor/rules/
+mcps/
+
+# ── Windows「副本」等临时拷贝（含「xxx - 副本.json」） ──
+*副本*
+
+# ── 备份与补丁杂项 ──
+*.rs.bk
+*.orig
+*.rej
+
+# 顶层草稿目录（勿提交）
+drafts/
+# DAG 版本数据（已迁移到数据库，目录已清理）
+
+
+# ── 运行时数据目录（整体忽略） ──
+data/
+!data/.gitkeep
+
+# Publisher signing secrets remain local.
+*.private.key
+
+
+
+# TaleWeft distribution and local build outputs
+TaleWeft*.exe
+taleweft.spec
+taleweft.exe
+/tools/taleweft/
+
+# Private local audits and release working material.
+/analysis/
+/aitext.lock
+/.cache/
+/frontend/*.tsbuildinfo
+/frontend/src-tauri/tauri.verification*.json
+/tools/python-*.zip
+/THIRD_PARTY_NOTICES_NEXT/
+/examples/sample-data/

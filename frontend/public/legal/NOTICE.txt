@@ -1,0 +1,28 @@
+叙织 · TaleWeft — Independent modified distribution
+Branding revision: 2026-10-22
+
+This distribution is based on PlotPilot v4.6.0:
+https://github.com/shenminglinyi/PlotPilot
+Upstream commit: 1c481237b6fa32ef5f85d7f8da4cb16f366cd4f0
+
+Original attribution: PlotPilot Team.
+Original desktop copyright notice:
+© 2025 PlotPilot Team. All rights reserved.
+Original contributor credits are retained in CONTRIBUTORS.md.
+Thanks to 梦幻AI动漫 for the original deployment design.
+
+The original LICENSE is preserved in full: Apache License 2.0 subject to
+Commons Clause License Condition v1.0. The Commons Clause condition must
+accompany the Apache license and attribution. This is not a plain Apache
+2.0 distribution. Renaming does not remove the Commons Clause restriction.
+
+The TaleWeft name identifies this independent modified distribution; it
+does not imply affiliation with or endorsement by the upstream authors.
+No ownership of upstream code, names or contributor work is claimed.
+
+Modified surfaces include product display strings, launcher and desktop
+metadata, independent default application data identity, app icons,
+download filenames, documentation and packaged license access. Persisted
+schema identifiers, database filenames and legacy environment aliases
+remain for interoperability. See MODIFICATIONS.md for the modification
+record and compatibility boundaries.

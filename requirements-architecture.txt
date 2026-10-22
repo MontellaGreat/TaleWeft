@@ -1,0 +1,2 @@
+# BSD-licensed import graph contracts; development/CI only.
+import-linter==2.15
