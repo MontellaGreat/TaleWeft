@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="710" viewBox="0 0 1320 710" role="img" aria-labelledby="title desc">
+  <title id="title">TaleWeft writing and revision workflow</title>
+  <desc id="desc">Story setup, planning, writing and review, and manuscript commit are followed by manual edits, saving and invalidation, sequential analysis, and checking before continuing. A successful save does not mean analysis is complete. Reanalysis does not rewrite later prose.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#719585"/></marker></defs>
+  <rect width="1320" height="710" rx="24" fill="#f5f3ec"/>
+  <g font-family="'Segoe UI', Arial, sans-serif">
+    <text x="48" y="50" fill="#50746a" font-size="14" letter-spacing="3">FROM IDEA TO REVISION</text>
+    <text x="48" y="96" fill="#193d38" font-size="32" font-weight="700">Your revisions carry through to story analysis</text>
+    <text x="48" y="128" fill="#586b64" font-size="17">Generation, saving, and analysis have separate statuses. Failures preserve your draft and offer recovery actions.</text>
+    <g fill="#fffef9" stroke="#cbd8ce"><rect x="48" y="167" width="280" height="155" rx="16"/><rect x="362" y="167" width="280" height="155" rx="16"/><rect x="676" y="167" width="280" height="155" rx="16"/><rect x="990" y="167" width="282" height="155" rx="16"/></g>
+    <g fill="none" stroke="#719585" stroke-width="2.5" marker-end="url(#arrow)"><path d="M328 243H356"/><path d="M642 243H670"/><path d="M956 243H984"/><path d="M1131 322V356H188V402"/></g>
+    <g fill="#244d40" font-size="21" font-weight="700"><text x="70" y="206">01  Story setup</text><text x="384" y="206">02  World and plan</text><text x="698" y="206">03  Write and review</text><text x="1012" y="206">04  Commit prose</text></g>
+    <g fill="#50675b" font-size="16">
+      <text x="70" y="245">Premise ≤ 10,000 characters</text><text x="70" y="275">Audience / Genre / Theme</text><text x="70" y="300">Profile and length targets</text>
+      <text x="384" y="245">Characters, places, world</text><text x="384" y="275">Outline, acts, and beats</text><text x="384" y="300">Verify the generated data saved</text>
+      <text x="698" y="245">Generate with your workflow</text><text x="698" y="275">Scan / Candidate / Revalidate</text><text x="698" y="300">Approve or configure auto-use</text>
+      <text x="1012" y="245">Check version / hash</text><text x="1012" y="275">Verify persistence receipt</text><text x="1012" y="300">Track post-chapter tasks</text>
+    </g>
+    <rect x="48" y="340" width="246" height="32" rx="16" fill="#f5f3ec"/>
+    <text x="48" y="363" fill="#8a682c" font-size="16" font-weight="700">Analysis updates after editing</text>
+    <g fill="#eaf0e8" stroke="#bdcebf"><rect x="48" y="409" width="280" height="155" rx="16"/><rect x="362" y="409" width="280" height="155" rx="16"/><rect x="676" y="409" width="280" height="155" rx="16"/><rect x="990" y="409" width="282" height="155" rx="16"/></g>
+    <g fill="none" stroke="#719585" stroke-width="2.5" marker-end="url(#arrow)"><path d="M328 486H356"/><path d="M642 486H670"/><path d="M956 486H984"/></g>
+    <g fill="#244d40" font-size="21" font-weight="700"><text x="70" y="449">05  Manual editing</text><text x="384" y="449">06  Save and invalidate</text><text x="698" y="449">07  Rebuild analysis</text><text x="1012" y="449">08  Check and continue</text></g>
+    <g fill="#50675b" font-size="16">
+      <text x="70" y="488">Edit titles and prose</text><text x="70" y="518">Inspect diffs and history</text><text x="70" y="543">The author has the final say</text>
+      <text x="384" y="488">Receipt confirms the edit saved</text><text x="384" y="518">Mark this and later analysis stale</text><text x="384" y="543">Reject stale task writes</text>
+      <text x="698" y="488">Summaries, memory, state, clues</text><text x="698" y="518">Revoke traced old machine facts</text><text x="698" y="543">Reanalyze in chapter order</text>
+      <text x="1012" y="488">Check chapter / cascade status</text><text x="1012" y="518">Rerun failed analysis</text><text x="1012" y="543">Continue when analysis is ready</text>
+    </g>
+    <rect x="48" y="601" width="1224" height="73" rx="14" fill="#193d38"/>
+    <text x="70" y="631" fill="#f5edda" font-size="17" font-weight="700">Saved manuscript ≠ completed analysis</text>
+    <text x="70" y="657" fill="#c5d7cb" font-size="15">Reanalysis does not rewrite later prose. Authors must check cross-chapter contradictions. Broader live verification is still needed.</text>
+    <text x="48" y="697" fill="#738077" font-size="12">Workflow diagram. Single-chapter DAG and managed flows share version and commit checks; persistent resume at arbitrary nodes is not supported.</text>
+  </g>
+</svg>

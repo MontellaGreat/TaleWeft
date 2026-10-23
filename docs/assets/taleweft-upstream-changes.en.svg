@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="650" viewBox="0 0 1320 650" role="img" aria-labelledby="title desc">
+  <title id="title">TaleWeft changes relative to PlotPilot v4.6.0</title>
+  <desc id="desc">Built on the upstream writing foundation. Three columns show additions, fixes, and safeguards, followed by unfinished capabilities and verification.</desc>
+  <rect width="1320" height="650" rx="24" fill="#f5f3ec"/>
+  <g font-family="'Segoe UI', Arial, sans-serif">
+    <text x="48" y="51" fill="#50746a" font-size="14" letter-spacing="3">BUILT ON THE ORIGINAL · IMPROVED WITH EVIDENCE</text>
+    <text x="48" y="97" fill="#193d38" font-size="32" font-weight="700">Build on the foundation. Strengthen execution and revision.</text>
+    <rect x="48" y="122" width="1224" height="67" rx="14" fill="#193d38"/>
+    <text x="70" y="151" fill="#f5edda" font-size="18" font-weight="700">From upstream: writing workspace · World / characters · Chapter generation · DAG and style reduction</text>
+    <text x="70" y="175" fill="#bdd1c7" font-size="14">Baseline: PlotPilot v4.6.0. The changes below extend and repair existing capabilities; upstream work remains credited.</text>
+    <rect x="48" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <rect x="465" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <rect x="882" y="218" width="390" height="266" rx="16" fill="#fffef9" stroke="#cbd8ce"/>
+    <g font-size="23" font-weight="700"><text x="74" y="262" fill="#376b55">Added / Extended</text><text x="491" y="262" fill="#8d6035">Fixed</text><text x="908" y="262" fill="#46678e">Improved / Protected</text></g>
+    <g fill="#425c52" font-size="17">
+      <text x="74" y="308">Audience → Genre → Theme / Custom</text><text x="74" y="344">Five-dimension profiles and snapshots</text><text x="74" y="380">Separate OpenAI C / R selection</text><text x="74" y="416">Reasoning controls; edit reanalysis</text><text x="74" y="452">TaleWeft brand · 10,000-char premise</text>
+      <text x="491" y="308">DAG nodes reporting false completion</text><text x="491" y="344">Silent style-scan skips; missing receipts</text><text x="491" y="380">Malformed locations; wizard stalls</text><text x="491" y="416">Late overwrites; title synchronization</text><text x="491" y="452">Hidden errors; broken-stream success</text>
+      <text x="908" y="308">Node events and commit receipts</text><text x="908" y="344">Rewrite candidates, diffs, approval</text><text x="908" y="380">Category search, folding, shared config</text><text x="908" y="416">Version checks; backup and restore</text><text x="908" y="452">Credentials, redacted diagnostics, tests</text>
+    </g>
+    <rect x="48" y="515" width="1224" height="94" rx="14" fill="#e9e3d4"/>
+    <text x="70" y="547" fill="#705a32" font-size="18" font-weight="700">Further work</text>
+    <text x="70" y="575" fill="#665e4d" font-size="16">Two chapters using R throughout · More provenance and restore combinations · Auto-rewrite trials · Category-source checks</text>
+    <text x="70" y="597" fill="#665e4d" font-size="14">Arbitrary-node resume, more native protocols, full install / upgrade / rollback checks, and dependency license review remain incomplete.</text>
+    <text x="48" y="633" fill="#738077" font-size="12">Summary of source and existing evidence; not proof for every model, protocol, or environment. See docs/UPSTREAM_CHANGES.md (Chinese).</text>
+  </g>
+</svg>

@@ -1,5 +1,7 @@
 <div align="center">
 
+**简体中文** · [English](README.en.md)
+
 <img src="frontend/public/favicon.png" width="88" alt="叙织 TaleWeft 正式织页书标" />
 
 # 叙织 · TaleWeft

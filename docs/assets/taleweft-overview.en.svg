@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="760" viewBox="0 0 1320 760" role="img" aria-labelledby="title desc">
+  <title id="title">TaleWeft feature map</title>
+  <desc id="desc">An author-led workspace connecting story setup, writing, models and workflows, and editing and memory. Local storage, backups, and human review support the process.</desc>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#d9e4de" stroke-width="0.5"/></pattern>
+  </defs>
+  <rect width="1320" height="760" rx="24" fill="#f5f3ec"/>
+  <rect width="1320" height="760" rx="24" fill="url(#grid)"/>
+  <g font-family="'Segoe UI', Arial, sans-serif">
+    <text x="52" y="54" fill="#50746a" font-size="14" letter-spacing="3">TALEWEFT · PRODUCT MAP</text>
+    <text x="52" y="103" fill="#193d38" font-size="34" font-weight="700">Weave a traceable path through your novel</text>
+    <text x="52" y="136" fill="#586b64" font-size="17">Bring ideas, worldbuilding, chapters, and memory into one writing workspace.</text>
+    <g fill="none" stroke="#7d9d8e" stroke-width="3">
+      <path d="M535 375H470V290H444"/><path d="M785 375H850V290H876"/>
+      <path d="M535 423H470V524H444"/><path d="M785 423H850V524H876"/>
+    </g>
+    <g>
+      <rect x="52" y="198" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="52" y="198" width="7" height="188" rx="3" fill="#467c67"/>
+      <text x="78" y="239" fill="#234e42" font-size="22" font-weight="700">01  Story setup</text>
+      <text x="78" y="277" fill="#425c52" font-size="17">10,000-char premise · Length targets</text>
+      <text x="78" y="310" fill="#425c52" font-size="17">Audience → Genre → Theme</text>
+      <text x="78" y="343" fill="#425c52" font-size="17">21 genres · 104 themes · Custom input</text>
+      <text x="78" y="369" fill="#697a71" font-size="14">Edit and confirm a five-dimension profile</text>
+      <rect x="876" y="198" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="1261" y="198" width="7" height="188" rx="3" fill="#b08b48"/>
+      <text x="902" y="239" fill="#725822" font-size="22" font-weight="700">02  Writing workspace</text>
+      <text x="902" y="277" fill="#425c52" font-size="17">World · Characters · Locations · Items</text>
+      <text x="902" y="310" fill="#425c52" font-size="17">Outline → Acts → Beats → Chapters</text>
+      <text x="902" y="343" fill="#425c52" font-size="17">Draft outlines and prose · Style review</text>
+      <text x="902" y="369" fill="#697a71" font-size="14">Compare rewrite candidates; you decide</text>
+      <rect x="52" y="430" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="52" y="430" width="7" height="188" rx="3" fill="#5b779c"/>
+      <text x="78" y="471" fill="#385677" font-size="22" font-weight="700">03  Models and workflows</text>
+      <text x="78" y="509" fill="#425c52" font-size="17">Separate OpenAI C / R · Multi-protocol</text>
+      <text x="78" y="542" fill="#425c52" font-size="17">Reasoning effort / budget by capability</text>
+      <text x="78" y="575" fill="#425c52" font-size="17">DAG nodes · Status · Errors · Receipts</text>
+      <text x="78" y="601" fill="#697a71" font-size="14">Explicit failures; version checks before commit</text>
+      <rect x="876" y="430" width="392" height="188" rx="18" fill="#fffef9" stroke="#cbd8ce"/>
+      <rect x="1261" y="430" width="7" height="188" rx="3" fill="#9b7583"/>
+      <text x="902" y="471" fill="#795366" font-size="22" font-weight="700">04  Editing and memory</text>
+      <text x="902" y="509" fill="#425c52" font-size="17">Edit prose and titles · Version history</text>
+      <text x="902" y="542" fill="#425c52" font-size="17">Reanalyze edited and later chapters</text>
+      <text x="902" y="575" fill="#425c52" font-size="17">Summaries · Memory · State · Clues</text>
+      <text x="902" y="601" fill="#697a71" font-size="14">Analysis and manuscript saves have separate status</text>
+    </g>
+    <rect x="517" y="303" width="286" height="200" rx="26" fill="#193d38"/>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M626 337Q643 329 660 340Q677 329 694 337V369Q677 362 660 374Q643 362 626 369Z" stroke="#f4edda" stroke-width="3"/>
+      <path d="M660 340V374M640 352L680 359M640 362L680 348" stroke="#d8b266" stroke-width="3"/>
+    </g>
+    <text x="660" y="417" text-anchor="middle" fill="#fff9e9" font-size="30" font-weight="700">TaleWeft</text>
+    <text x="660" y="451" text-anchor="middle" fill="#d8b266" font-size="17">Weave ideas into stories</text>
+    <text x="660" y="479" text-anchor="middle" fill="#bdd1c7" font-size="14">Author-led · AI-assisted</text>
+    <rect x="52" y="657" width="1216" height="60" rx="14" fill="#e6ebe1"/>
+    <text x="78" y="694" fill="#355248" font-size="17">Safeguards</text>
+    <text x="190" y="694" fill="#50665b" font-size="16">Local library</text><text x="359" y="694" fill="#50665b" font-size="16">Backup and restore</text>
+    <text x="594" y="694" fill="#50665b" font-size="16">Import / Export</text><text x="820" y="694" fill="#50665b" font-size="16">Redacted diagnostics</text>
+    <text x="990" y="694" fill="#50665b" font-size="16">Review and version checks</text>
+    <text x="52" y="743" fill="#738077" font-size="12">Feature diagram, not a runtime screenshot. See the README and upstream comparison for compatibility and unfinished work.</text>
+  </g>
+</svg>
