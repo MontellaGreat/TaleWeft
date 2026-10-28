@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useMessage } from 'naive-ui'
 import { bibleApi, type CharacterDTO } from '@/api/bible'
 import { useWorkbenchDeskTickReload } from '@/composables/useWorkbenchNarrativeSync'
@@ -74,6 +74,7 @@ const emit  = defineEmits<{ 'select-character': [characterId: string | null] }>(
 const message    = useMessage()
 const loading    = ref(false)
 const characters = ref<CharacterDTO[]>([])
+let loadRevision = 0
 
 function getRoleColor(role: string): string {
   return getCharacterRoleColor(role, 'var(--app-border)')
@@ -104,22 +105,25 @@ function goToWorldbuilding() {
 
 // ── Data loading ──────────────────────────────────────────────────
 async function loadCharacters() {
-  if (!props.slug) return
+  const request = ++loadRevision, novelId = props.slug
+  if (!novelId) { characters.value = []; loading.value = false; return }
   loading.value = true
   try {
-    const bible = await bibleApi.getBible(props.slug)
+    const bible = await bibleApi.getBible(novelId)
+    if (request !== loadRevision) return
     characters.value = bible.characters ?? []
+    if (props.selectedCharacterId && !characters.value.some(character => character.id === props.selectedCharacterId)) emit('select-character', null)
   } catch (err: unknown) {
+    if (request !== loadRevision) return
     message.error(err instanceof Error ? err.message : '加载角色失败')
-    characters.value = []
   } finally {
-    loading.value = false
+    if (request === loadRevision) loading.value = false
   }
 }
 
 watch(() => props.slug, () => void loadCharacters(), { immediate: true })
-onMounted(() => { void loadCharacters() })
 useWorkbenchDeskTickReload(() => void loadCharacters())
+onBeforeUnmount(() => { ++loadRevision })
 
 defineExpose({ loadCharacters })
 </script>

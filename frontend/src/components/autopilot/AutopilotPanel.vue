@@ -71,7 +71,10 @@
     </n-alert>
 
     <n-alert v-if="controlPending" type="info" :show-icon="true" class="ap-inline-alert">
-      {{ controlPending.command_status === 'unknown' ? '命令提交结果尚未确认，正在查询，请勿重复操作。' : (controlPending.command_type === 'stop' ? '停止请求已提交，等待当前任务退出。' : '启动请求已提交，等待执行器确认。') }}
+      {{ controlPending.control_message || (controlPending.command_status === 'unknown' ? '命令提交结果尚未确认，正在查询，请勿重复操作。' : (controlPending.command_type === 'stop' ? '停止请求已提交，等待当前任务退出。' : '启动请求已提交，等待执行器确认。')) }}
+    </n-alert>
+    <n-alert v-else-if="status?.control_message" type="warning" :show-icon="true" class="ap-inline-alert">
+      {{ status.control_message }}
     </n-alert>
 
     <section v-if="status" class="ap-kpi-grid" aria-label="关键指标">
@@ -205,6 +208,20 @@
     />
     <p v-if="continuationLoadError" role="alert">{{ continuationLoadError }} <n-button text @click="loadContinuationProposals">重试加载续写状态</n-button></p>
 
+    <n-alert v-if="hasStoppedInvocation" type="warning" :show-icon="true" class="ap-inline-alert">
+      <div class="ap-review-alert">
+        <span>{{ status?.invocation_recovery_message || '全托管已停止，已有 AI 请求尚未完成，可检查记录后手动恢复。' }}</span>
+        <n-button size="small" type="warning" @click="openInvocationRecovery">检查并恢复 AI 请求</n-button>
+      </div>
+    </n-alert>
+    <AutopilotInvocationRecovery
+      v-model:show="invocationRecoveryVisible"
+      :novel-id="props.novelId || ''"
+      :session-id="invocationRecoverySessionId"
+      :recovery-message="status?.invocation_recovery_message"
+      @changed="fetchStatus"
+    />
+
     <!-- 审阅等待 -->
     <n-alert v-if="showReviewGate && !awaitingContinuationStructure" :type="reviewGateAlertType" :show-icon="true" class="ap-inline-alert">
       <div class="ap-review-alert">
@@ -308,7 +325,7 @@
     <n-modal v-model:show="showStartModal" title="启动全托管" preset="dialog" positive-text="启动" @positive-click="start">
       <n-space vertical :size="12" style="width: 100%">
         <n-alert type="success" :show-icon="true" style="font-size: 12px">
-          <strong>自动托管</strong>：守护进程已在后端自动启动，配置好参数后点击"启动"即可开始自动写作。
+          <strong>自动托管</strong>：配置好参数后点击"启动"。执行器确认后开始自动写作，可在此查看启动状态与执行进度。
         </n-alert>
         <n-form>
           <n-form-item label="目标章数">
@@ -377,6 +394,7 @@ import StoryPipelineObservability from './StoryPipelineObservability.vue'
 import PipelineResultSummary from './PipelineResultSummary.vue'
 import AuditPipelineObservability from './AuditPipelineObservability.vue'
 import ContinuationStructureReview from './ContinuationStructureReview.vue'
+import AutopilotInvocationRecovery from './AutopilotInvocationRecovery.vue'
 import { chapterApi } from '../../api/chapter'
 import {
   autopilotApi,
@@ -412,6 +430,8 @@ const controlPending = ref(null)
 const heartbeatNow = ref(Date.now())
 const heartbeatClock = setInterval(() => { heartbeatNow.value = Date.now() }, 1000)
 const aiPanelOpening = ref(false)
+const invocationRecoveryVisible = ref(false)
+const invocationRecoverySessionId = ref('')
 const planExpanded = ref(false)
 const showStartModal = ref(false)
 const showContinuationModal = ref(false)
@@ -511,6 +531,20 @@ const isRunning = computed(() => status.value?.autopilot_status === 'running')
 const isTerminalStopped = computed(() =>
   ['stopped', 'completed'].includes(String(status.value?.autopilot_status || ''))
 )
+const hasStoppedInvocation = computed(() => {
+  const s = status.value
+  if (!s || !['stopped', 'error'].includes(String(s.autopilot_status || ''))) return false
+  if (!String(s.active_invocation_session_id || '').trim()) return false
+  const state = String(s.active_invocation_status || '')
+  if (state === 'completed') return false
+  return Boolean(s.invocation_recovery_required || s.requires_ai_review || s.has_active_invocation)
+})
+function openInvocationRecovery() {
+  if (!hasStoppedInvocation.value) return
+  invocationRecoverySessionId.value = String(status.value?.active_invocation_session_id || '')
+  invocationRecoveryVisible.value = true
+}
+defineExpose({ openInvocationRecovery })
 const isCompleted = computed(() =>
   String(status.value?.current_stage || '') === 'completed' ||
   String(status.value?.autopilot_status || '') === 'completed'
@@ -860,6 +894,10 @@ async function fetchStatus() {
       timeoutMs: STATUS_FETCH_TIMEOUT_MS,
     })
     if (seq !== statusFetchSeq || requestNovelId !== props.novelId || statusPollDisposed) return
+    if (!controlPending.value && body.command_id && ['pending', 'applied'].includes(body.command_status)
+        && !body.execution_reservation_expired) {
+      controlPending.value = { ...body }
+    }
     if (controlPending.value?.command_id) {
       let receipt = body
       if (body.command_id !== controlPending.value.command_id) {
@@ -975,6 +1013,9 @@ async function openActiveInvocation(sessionIdArg, options = {}) {
 }
 
 function maybeOpenActiveInvocation(s) {
+  // Opening the store can advance a headless session. A stopped book only
+  // offers the explicit recovery window, whose initial request is read-only.
+  if (s?.autopilot_status !== 'running' || s?.active_invocation_status === 'completed') return
   const sessionId = String(s?.active_invocation_session_id || '')
   if (!sessionId) return
   if (sessionId === lastOpenedInvocationSessionId) return
@@ -1277,6 +1318,8 @@ watch(
     continuationLoadedNovelId.value = ''
     continuationProposal.value = null
     showContinuationModal.value = false
+    invocationRecoveryVisible.value = false
+    invocationRecoverySessionId.value = ''
     toggling.value = false
     statusPollDisabled.value = false
     statusConnectivityFailures.value = 0
@@ -1396,8 +1439,9 @@ function reconcileControlReceipt(body) {
   if (body.command_status === 'completed' && body.execution_confirmed === true) {
     message.success(pending.command_type === 'stop' ? '执行器已确认停止' : '执行器已确认启动')
     controlPending.value = null
-  } else if (['failed', 'superseded'].includes(body.command_status)) {
-    message.warning(body.command_error || (body.command_status === 'superseded' ? '该命令已被后续操作替代' : '执行器未能执行该命令'))
+  } else if (['failed', 'superseded'].includes(body.command_status)
+      || (body.execution_reservation_expired && ['start', 'resume'].includes(pending.command_type))) {
+    message.warning(body.control_message || body.command_error || (body.command_status === 'superseded' ? '该命令已被后续操作替代' : '执行器未能执行该命令，请重试启动'))
     controlPending.value = null
   } else {
     controlPending.value = { ...pending, ...body }

@@ -117,7 +117,8 @@ def _hydrate_pending_invocation_from_db(payload: Dict[str, Any]) -> Dict[str, An
         return payload
     if isinstance(payload.get("autopilot_pending_macro_plan"), dict) or payload.get("macro_structure_ready") is True:
         return payload
-    if str(payload.get("autopilot_status") or "").strip().lower() in {"stopped", "completed"}:
+    autopilot_status = str(payload.get("autopilot_status") or "").strip().lower()
+    if autopilot_status == "completed":
         return payload
 
     novel_id = str(payload.get("novel_id") or "").strip()
@@ -126,25 +127,24 @@ def _hydrate_pending_invocation_from_db(payload: Dict[str, Any]) -> Dict[str, An
 
     stage = str(payload.get("current_stage") or "").strip().lower()
     substep = str(payload.get("writing_substep") or "").strip().lower()
-    if stage not in {"planning", "macro_planning", "act_planning", "paused_for_review", "reviewing"} and not substep:
+    if autopilot_status != "stopped" and stage not in {"planning", "macro_planning", "act_planning", "paused_for_review", "reviewing"} and not substep:
         return payload
 
     try:
         from application.paths import get_db_path
         from infrastructure.persistence.database.connection import get_database
 
-        statuses = tuple(sorted(PENDING_INVOCATION_STATUSES))
-        placeholders = ",".join("?" for _ in statuses)
         rows = get_database(get_db_path()).fetch_all(
-            f"""
+            """
             SELECT id, operation, node_key, policy, status, context_json, metadata_json
               FROM ai_invocation_sessions
              WHERE operation LIKE 'autopilot.%'
-               AND status IN ({placeholders})
-             ORDER BY updated_at DESC, created_at DESC
-             LIMIT 25
+               AND ((CASE WHEN json_valid(context_json) THEN json_extract(context_json,'$.novel_id') END)=?
+                 OR (CASE WHEN json_valid(metadata_json) THEN json_extract(metadata_json,'$.novel_id') END)=?)
+             ORDER BY created_at DESC, rowid DESC
+             LIMIT 1
             """,
-            statuses,
+            (novel_id, novel_id),
         )
         row = next(
             (
@@ -159,7 +159,9 @@ def _hydrate_pending_invocation_from_db(payload: Dict[str, Any]) -> Dict[str, An
         logger.debug("恢复待处理 AI invocation 失败 novel=%s: %s", novel_id, exc)
         return payload
 
-    if not row:
+    # Inspect the latest request, including completed requests. An older failed
+    # request must not reappear after a newer plan was successfully committed.
+    if not row or str(row["status"] or "") not in PENDING_INVOCATION_STATUSES | {"prompt_compiled"}:
         return payload
 
     status_value = str(row["status"] or "")
@@ -172,6 +174,9 @@ def _hydrate_pending_invocation_from_db(payload: Dict[str, Any]) -> Dict[str, An
     payload["has_active_invocation"] = True
     payload["requires_ai_review"] = True
     payload["autopilot_pause_reason"] = (
+        "ai_invocation_interrupted"
+        if status_value == "prompt_compiled"
+        else
         "ai_invocation_retry_required"
         if status_value in INVOCATION_FAILED_STATUSES
         else "awaiting_ai_review"

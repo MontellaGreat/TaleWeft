@@ -29,6 +29,9 @@ def setup(daemon_writer, monkeypatch):
     db.execute("UPDATE novels SET current_stage='completed',autopilot_status='completed',target_chapters=1,auto_approve_mode=1 WHERE id='novel'")
     monkeypatch.setattr(routes, "get_novel_repository", lambda: SqliteNovelRepository(db))
     monkeypatch.setattr(routes, "_get_shared_state_for_novel", lambda nid: None)
+    # This fixture dispatches durable commands itself instead of spawning the
+    # desktop process. Executor availability is a separate API/runtime check.
+    monkeypatch.setattr(routes, "_autopilot_executor_running", lambda: True)
     monkeypatch.setattr(story_structure, "get_database", lambda: db)
     from application.engine.services import novel_stop_signal
     monkeypatch.setattr(novel_stop_signal, "publish_start_signal", lambda *a, **k: False)

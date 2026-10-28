@@ -172,6 +172,16 @@ async def run_act_planning(host: Any, novel: Novel) -> None:
         key=lambda n: n.number,
     )
 
+    # The structure calculator intentionally recommends a normal full-length
+    # act size.  A short book (or the final act of a book) must still honor
+    # the author's total chapter target, otherwise the LLM response is
+    # rejected as "truncated" even when it exactly matches the remaining
+    # chapters.  Compute the remaining budget once and cap this act below.
+    planned_chapter_count = sum(
+        1 for node in all_nodes if getattr(getattr(node, "node_type", None), "value", "") == "chapter"
+    )
+    remaining_target = max(int(target_chapters) - planned_chapter_count, 1)
+
     target_act = next((n for n in act_nodes if n.number == target_act_number), None)
 
     if not target_act:
@@ -259,13 +269,24 @@ async def run_act_planning(host: Any, novel: Novel) -> None:
 
     just_created_chapter_plan = False
     if not confirmed_chapters:
-        chapter_budget = target_act.suggested_chapter_count or rec_chapters_per_act
+        recommended_budget = target_act.suggested_chapter_count or rec_chapters_per_act
+        chapter_budget = min(int(recommended_budget), remaining_target)
         if not target_act.suggested_chapter_count:
             logger.info(
-                "[%s] 幕 %s 无 suggested_chapter_count，使用引擎推荐值 %s",
+                "[%s] 幕 %s 无 suggested_chapter_count，使用引擎推荐值 %s（剩余目标 %s，实际预算 %s）",
                 novel.novel_id,
                 target_act_number,
                 rec_chapters_per_act,
+                remaining_target,
+                chapter_budget,
+            )
+        elif chapter_budget != int(recommended_budget):
+            logger.info(
+                "[%s] 幕 %s 预算由 %s 限制为剩余目标 %s",
+                novel.novel_id,
+                target_act_number,
+                recommended_budget,
+                chapter_budget,
             )
         plan_result: Dict[str, Any] = _consume_pending_act_plan(
             host,

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { NSelect } from 'naive-ui'
 import LLMControlPanel from '../src/components/workbench/LLMControlPanel.vue'
 import { llmControlApi, type LLMControlPanelData, type LLMProfile, type LLMTestResult, type ModelCapabilities, type ModelListResponse } from '../src/api/llmControl'
 
@@ -27,6 +28,9 @@ const Select = defineComponent({ props: ['value', 'options', 'disabled'], emits:
   return () => h('select', { value: props.value ?? '', disabled: props.disabled, onChange: (event: Event) => emit('update:value', (event.target as HTMLSelectElement).value || null) },
     [h('option', { value: '' }, '默认'), ...(props.options ?? []).map((option: { label: string; value: string; disabled?: boolean }) => h('option', { value: option.value, disabled: option.disabled }, option.label))])
 } })
+// happy-dom has no layout measurements for virtual lists; exercise the real
+// select and its filtering/selection with only virtualization disabled.
+const DomSelect = { ...NSelect, props: { ...NSelect.props, virtualScroll: { type: Boolean, default: false } } }
 
 const testResult: LLMTestResult = { ok: true, provider_label: 'A', model: 'model-a', latency_ms: 10, preview: '', error: null,
   requested_parameters: { marker: 'original-request' }, submitted_parameters: { max_tokens: 1024 },
@@ -49,10 +53,10 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 let wrapper: VueWrapper
-async function mounted(data = panel()) {
+async function mounted(data = panel(), realSelect = false) {
   vi.mocked(llmControlApi.getPanel).mockResolvedValue(data)
-  wrapper = mount(LLMControlPanel, { global: { stubs: {
-    NButton: Button, NInput: Input, NAutoComplete: Input, NInputNumber: NumberInput, NSelect: Select,
+  wrapper = mount(LLMControlPanel, { attachTo: document.body, global: { components: { NSelect: DomSelect }, stubs: {
+    NButton: Button, NInput: Input, NAutoComplete: Input, NInputNumber: NumberInput, NSelect: realSelect ? false : Select,
     NCard: Box, NSpace: Box, NTag: Box, NText: Box, NAlert: Box, NCollapse: Box, NCollapseItem: Box, NEmpty: Box, BookModelUsage: true,
   } } })
   await flushPromises()
@@ -78,71 +82,59 @@ beforeEach(() => {
   vi.mocked(llmControlApi.fetchModels).mockResolvedValue({ success: true, items: [{ id: 'remote-model-a', name: '', owned_by: '' }], count: 1 })
   vi.mocked(llmControlApi.saveConfig).mockImplementation(async config => panel(config.profiles))
 })
-afterEach(() => { wrapper?.unmount(); vi.clearAllMocks() })
+afterEach(() => { wrapper?.unmount(); document.body.innerHTML = ''; vi.clearAllMocks() })
 
 describe('LLM control draft and request ownership', () => {
-  it.each(['openai.chat', 'openai.responses'] as const)('exposes %s as a protocol and submits its explicit endpoint', async selection => {
-    await mounted()
+  it.each([
+    ['openai', '模型思考程度'], ['anthropic', '模型思考预算（token）'],
+  ] as const)('presents %s thinking controls immediately after model selection', async (protocol, label) => {
+    await mounted(panel([profile('a', protocol)]))
+    expect(field('模型名').element.nextElementSibling?.querySelector('.llm-label')?.textContent).toBe(label)
+    expect(field(label).classes()).toContain('span-2')
+  })
+
+  it.each([
+    { endpoint_kind: 'chat', use_legacy_chat_completions: false },
+    { endpoint_kind: 'responses', use_legacy_chat_completions: false },
+    { endpoint_kind: undefined, use_legacy_chat_completions: true },
+  ] as const)('migrates the old endpoint choice $endpoint_kind to automatic routing for test and save', async legacy => {
+    await mounted(panel([{ ...profile('a'), ...legacy }]))
     expect(field('协议').get('select').element.value).toBe('openai.auto')
-    expect(field('协议').text()).toContain('兼容旧配置')
-    await select('协议', selection)
-    const endpoint = selection === 'openai.chat' ? 'chat' : 'responses'
-    expect(field('协议').text()).toContain(selection === 'openai.chat' ? '/chat/completions' : '/responses')
+    expect(field('协议').findAll('option').map(option => option.element.value)).toEqual(['', 'openai.auto', 'anthropic', 'gemini'])
     await button('测试连接').trigger('click'); await flushPromises()
     expect(vi.mocked(llmControlApi.testProfile).mock.calls.at(-1)![0]).toMatchObject({
-      protocol: 'openai', endpoint_kind: endpoint, use_legacy_chat_completions: false,
+      protocol: 'openai', endpoint_kind: 'auto', use_legacy_chat_completions: false,
     })
     await button('保存配置').trigger('click'); await flushPromises()
     expect(vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0].profiles[0]).toMatchObject({
-      protocol: 'openai', endpoint_kind: endpoint, use_legacy_chat_completions: false,
+      protocol: 'openai', endpoint_kind: 'auto', use_legacy_chat_completions: false,
     })
-    expect(field('协议').get('select').element.value).toBe(selection)
+    expect(field('协议').get('select').element.value).toBe('openai.auto')
   })
 
-  it('keeps an existing auto choice on save and creates new profiles with explicit C', async () => {
+  it('keeps an existing auto choice on save and creates an empty automatic profile', async () => {
     await mounted(); await button('保存配置').trigger('click'); await flushPromises()
     expect(vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0].profiles[0]?.endpoint_kind).toBe('auto')
     await button('新增').trigger('click')
-    expect(field('协议').get('select').element.value).toBe('openai.chat')
+    expect(field('协议').get('select').element.value).toBe('openai.auto')
+    expect(field('Base URL').get('input').element.value).toBe('')
+    expect(field('模型名').get('input').element.value).toBe('')
   })
 
-  it('imports and applies a Responses preset without silently keeping the prior C endpoint', async () => {
+  it('has no preset import or selector even when the server returns vendor presets', async () => {
     const data = panel()
     data.presets = [{ key: 'responses', label: 'OpenAI R', protocol: 'openai', endpoint_kind: 'responses',
       default_base_url: '', default_model: '', description: '', tags: [] }]
     await mounted(data)
-    await wrapper.get('.llm-preset-card').trigger('click')
-    expect(field('协议').get('select').element.value).toBe('openai.responses')
-    await select('协议', 'openai.chat')
-    await button('应用预设').trigger('click')
-    expect(field('协议').get('select').element.value).toBe('openai.responses')
-  })
-
-  it('keeps an explicit R choice despite a C preset and ignores the previous C capability response', async () => {
-    const old = deferred<ModelCapabilities>()
-    const initial = profile('a')
-    initial.endpoint_kind = 'chat'
-    initial.preset_key = 'custom-c'
-    const data = panel([initial])
-    data.presets = [{ key: 'custom-c', label: 'C 预设', protocol: 'openai', endpoint_kind: 'chat',
-      default_base_url: '', default_model: '', description: '', tags: [] }]
-    vi.mocked(llmControlApi.capabilities).mockReturnValueOnce(old.promise).mockResolvedValue({ ...capability,
-      protocol_id: 'openai.responses', endpoint_kind: 'responses', features: { reasoning_effort: 'configurable' }, reasoning_efforts: ['high'] })
-    await mounted(data)
-    await select('协议', 'openai.responses'); await flushPromises()
-    expect(vi.mocked(llmControlApi.capabilities).mock.calls.at(-1)![0]).toMatchObject({ endpoint_kind: 'responses', preset_key: 'custom-c' })
-    old.resolve({ ...capability, protocol_id: 'openai.chat', endpoint_kind: 'chat', features: { reasoning_effort: 'unavailable' } })
-    await flushPromises()
-    expect(field('模型思考程度').get('select').element.disabled).toBe(false)
-    await button('测试连接').trigger('click'); await button('保存配置').trigger('click'); await flushPromises()
-    expect(vi.mocked(llmControlApi.testProfile).mock.calls.at(-1)![0]).toMatchObject({ endpoint_kind: 'responses', preset_key: 'custom-c' })
-    expect(vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0].profiles[0]).toMatchObject({ endpoint_kind: 'responses', preset_key: 'custom-c' })
-    expect(field('协议').get('select').element.value).toBe('openai.responses')
+    expect(wrapper.text()).not.toContain('导入厂商预设')
+    expect(wrapper.text()).not.toContain('应用预设')
+    expect(wrapper.find('.llm-preset-card').exists()).toBe(false)
+    expect(wrapper.findAll('.llm-label').map(label => label.text())).not.toContain('预设')
   })
 
   it.each([
     ['模型名', 'changed-model', 'input'], ['Base URL', 'https://changed.example/v1', 'input'], ['API Key', 'changed-key', 'input'],
-    ['协议', 'openai.responses', 'select'], ['认证方式', 'none', 'select'], ['模型思考程度', 'low', 'select'],
+    ['协议', 'anthropic', 'select'], ['认证方式', 'none', 'select'], ['模型思考程度', 'low', 'select'],
     ['默认 max_tokens', '1536', 'input'], ['默认 temperature', '0.9', 'input'], ['超时（秒）', '120', 'input'],
     ['默认 top_p', '0.85', 'input'], ['停止序列（JSON 字符串数组）', '["END"]', 'input'],
     ['模型输出上限（未知可留空）', '6000', 'input'], ['模型上下文上限（未知可留空）', '32768', 'input'],
@@ -182,12 +174,12 @@ describe('LLM control draft and request ownership', () => {
     await select('协议', 'anthropic'); expectResultsCleared()
     expect(field('extra_body（JSON）').get('input').element.value).toBe('{}')
     await input('模型思考预算（token）', '2048')
-    await select('协议', 'openai.chat')
+    await select('协议', 'openai.auto')
     await button('测试连接').trigger('click'); await flushPromises()
     const sent = vi.mocked(llmControlApi.testProfile).mock.calls.at(-1)![0]
     expect(sent.reasoning_effort).toBeNull()
     expect(sent.thinking_budget_tokens).toBeNull()
-    expect(sent.endpoint_kind).toBe('chat')
+    expect(sent.endpoint_kind).toBe('auto')
     expect(sent.auth_mode).toBe('api_key')
     expect(sent.use_legacy_chat_completions).toBe(false)
     expect(sent.extra_body).toEqual({})
@@ -199,6 +191,36 @@ describe('LLM control draft and request ownership', () => {
     await button('刷新').trigger('click'); await flushPromises()
     expect(field('模型思考预算（token）').get('input').element.value).toBe('1024')
     expect(field('extra_body（JSON）').get('input').element.value).toContain('saved-value')
+  })
+
+  it('preserves model and advanced drafts entered while a refresh is pending', async () => {
+    await mounted()
+    const refreshing = deferred<LLMControlPanelData>()
+    vi.mocked(llmControlApi.getPanel).mockReturnValue(refreshing.promise)
+    await button('刷新').trigger('click')
+    await input('模型名', 'typed-during-refresh')
+    await input('extra_body（JSON）', '{"draft":"keep-during-refresh"}')
+    refreshing.resolve(panel()); await flushPromises()
+    expect(field('模型名').get('input').element.value).toBe('typed-during-refresh')
+    expect(field('extra_body（JSON）').get('input').element.value).toBe('{"draft":"keep-during-refresh"}')
+    await button('保存配置').trigger('click'); await flushPromises()
+    expect(vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0].profiles[0]).toMatchObject({
+      model: 'typed-during-refresh', extra_body: { draft: 'keep-during-refresh' },
+    })
+  })
+
+  it('keeps the newest refresh when an older refresh completes last', async () => {
+    await mounted()
+    const older = deferred<LLMControlPanelData>(), newer = deferred<LLMControlPanelData>()
+    vi.mocked(llmControlApi.getPanel).mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise)
+    const setup = (wrapper.vm as any).$.setupState
+    void setup.loadPanel()
+    void setup.loadPanel()
+    newer.resolve(panel([{ ...profile('a'), model: 'newest-model' }])); await flushPromises()
+    expect(field('模型名').get('input').element.value).toBe('newest-model')
+    older.resolve(panel([{ ...profile('a'), model: 'obsolete-model' }])); await flushPromises()
+    expect(field('模型名').get('input').element.value).toBe('newest-model')
+    expect(wrapper.emitted('panel-updated')?.at(-1)?.[0]).toMatchObject({ config: { profiles: [{ model: 'newest-model' }] } })
   })
 
   it('ignores late test, capability and model-list responses after changing profiles', async () => {
@@ -426,10 +448,36 @@ describe('LLM control draft and request ownership', () => {
   it('keeps fetched model options while editing the model name and revokes them when its gateway changes', async () => {
     await mounted(); await button('拉取模型').trigger('click'); await flushPromises()
     expect(wrapper.text()).toContain('已拉取 1 个模型')
-    await input('模型名', 'remote-model-a')
+    await select('模型名', 'remote-model-a')
     expect(wrapper.text()).toContain('已拉取 1 个模型')
     await input('Base URL', 'https://other.example/v1')
     expect(wrapper.text()).not.toContain('已拉取 1 个模型')
+  })
+
+  it('opens every fetched model immediately and searches without replacing the current model', async () => {
+    vi.mocked(llmControlApi.fetchModels).mockResolvedValue({ success: true, count: 2, items: [
+      { id: 'remote-model-a', name: '', owned_by: '' }, { id: 'remote-model-b', name: '', owned_by: '' },
+    ] })
+    await mounted(panel(), true)
+    await button('拉取模型').trigger('click'); await flushPromises()
+    const options = () => Array.from(document.querySelectorAll<HTMLElement>('.n-base-select-option'))
+    expect(options().map(option => option.textContent)).toEqual(['remote-model-a', 'remote-model-b'])
+    await field('模型名').get('input').setValue('remote-model-b'); await flushPromises()
+    expect(options().map(option => option.textContent)).toEqual(['remote-model-b'])
+    await button('测试连接').trigger('click'); await flushPromises()
+    expect(vi.mocked(llmControlApi.testProfile).mock.calls.at(-1)![0].model).toBe('model-a')
+    options().find(option => option.textContent === 'remote-model-b')!.click(); await flushPromises()
+    await button('保存配置').trigger('click'); await flushPromises()
+    expect(vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0].profiles[0]?.model).toBe('remote-model-b')
+  })
+
+  it.each(['empty', 'failure'])('keeps a manual model entry when model fetching returns %s', async outcome => {
+    if (outcome === 'empty') vi.mocked(llmControlApi.fetchModels).mockResolvedValue({ success: true, count: 0, items: [] })
+    else vi.mocked(llmControlApi.fetchModels).mockRejectedValue(new Error('upstream unavailable'))
+    await mounted(); await button('拉取模型').trigger('click'); await flushPromises()
+    await input('模型名', 'custom-gateway-model')
+    await button('测试连接').trigger('click'); await flushPromises()
+    expect(vi.mocked(llmControlApi.testProfile).mock.calls.at(-1)![0].model).toBe('custom-gateway-model')
   })
 
   it('fetches models with validated current header and query drafts and rejects stale authentication results', async () => {
@@ -490,16 +538,14 @@ describe('LLM control draft and request ownership', () => {
     expect(button('保存配置').element.disabled).toBe(false)
   })
 
-  it.each(['新增', '导入', '应用'])('preserves advanced drafts before %s changes the selected profile', async action => {
+  it('preserves advanced drafts before adding a profile', async () => {
     const data = panel()
     data.presets = [{ key: 'custom', label: '新预设', protocol: 'openai', default_base_url: '', default_model: '', description: '', tags: [] }]
     await mounted(data)
     await input('extra_body（JSON）', '{"draft":"keep-before-switch"}')
     await input('停止序列（JSON 字符串数组）', '["END"]')
-    if (action === '新增') await button('新增').trigger('click')
-    else if (action === '导入') await wrapper.get('.llm-preset-card').trigger('click')
-    else await button('应用预设').trigger('click')
-    await wrapper.get('.llm-profile-list button' + (action === '导入' ? ':nth-child(2)' : ':first-child')).trigger('click')
+    await button('新增').trigger('click')
+    await wrapper.get('.llm-profile-list button:first-child').trigger('click')
     expect(field('extra_body（JSON）').get('input').element.value).toContain('keep-before-switch')
     expect(field('停止序列（JSON 字符串数组）').get('input').element.value).toContain('END')
   })

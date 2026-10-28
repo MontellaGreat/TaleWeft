@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from domain.ai.services.llm_service import GenerationConfig
 from application.workbench.services.sandbox_dialogue_service import SandboxDialogueService
 from application.workbench.dtos.sandbox_dto import DialogueWhitelistResponse
+from application.onboarding.setup_edit_guard import SetupEditConflict
 from interfaces.api.dependencies import get_sandbox_dialogue_service, get_bible_service, get_llm_service
 
 logger = logging.getLogger(__name__)
@@ -148,6 +149,10 @@ async def patch_character_anchor(
             verbal_tic=request.verbal_tic,
             idle_behavior=request.idle_behavior,
         )
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={
+            "code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc),
+        }) from exc
     except EntityNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 

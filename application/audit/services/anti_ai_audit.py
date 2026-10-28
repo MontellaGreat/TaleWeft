@@ -53,6 +53,8 @@ class AntiAIAuditReport:
     error: Optional[str] = None
     scene_type: str = "default"
     exempted_hits: List[ClicheHit] = field(default_factory=list)
+    effective_rule_count: Optional[int] = None
+    scan_mode: str = "local_rules"
 
 
 def validate_completed_report(report, content: str, *, rule_version: str = "") -> None:
@@ -61,6 +63,8 @@ def validate_completed_report(report, content: str, *, rule_version: str = "") -
         raise RuntimeError("Anti-AI 扫描缺少报告")
     if report.scan_status != "completed" or report.error:
         raise RuntimeError(report.error or "Anti-AI 扫描未完成")
+    if type(report.effective_rule_count) is not int or report.effective_rule_count <= 0:
+        raise RuntimeError("Anti-AI 有效规则覆盖为空或缺失，不能视为审稿通过")
     if report.content_hash != hashlib.sha256(content.encode("utf-8")).hexdigest():
         raise RuntimeError("Anti-AI 扫描正文哈希不匹配")
     if not report.rule_version or (rule_version and report.rule_version != rule_version):
@@ -101,6 +105,12 @@ class AntiAIAuditor:
             'patterns': AI_CLICHE_PATTERNS_ENHANCED,
             'version': hashlib.sha256(json.dumps(AI_CLICHE_PATTERNS_ENHANCED, ensure_ascii=False).encode('utf-8')).hexdigest(),
         }
+        effective_rule_count = len(effective['patterns'])
+        if not effective_rule_count:
+            return AntiAIAuditReport(chapter_id=chapter_id, scan_status="coverage_empty",
+                content_hash=hashlib.sha256(content.encode('utf-8')).hexdigest(),
+                rule_version=self.effective_rule_version(effective), effective_rule_count=0,
+                error="Anti-AI 有效规则数为 0，未执行有效规则检查")
         scanner = ClicheScanner(use_enhanced=True, patterns=effective['patterns'])
         hits = scanner.scan_cliches(content)
         exempted = []
@@ -111,10 +121,10 @@ class AntiAIAuditor:
             allowance = max(0, int(len(content) / 1000 * rule.max_density_per_1000))
             counts, retained = {}, []
             for hit in hits:
-                count = counts.get(hit.pattern,0)
-                if manager.is_allowed(self.scene_type,hit.category,hit.pattern) and count < allowance:
+                exempted_count = counts.get(hit.pattern,0)
+                if manager.is_allowed(self.scene_type,hit.category,hit.pattern) and exempted_count < allowance:
                     exempted.append(hit)
-                    counts[hit.pattern] = count+1
+                    counts[hit.pattern] = exempted_count+1
                 else:
                     retained.append(hit)
             hits = retained
@@ -130,6 +140,7 @@ class AntiAIAuditor:
             rule_version=self.effective_rule_version(effective),
             content_hash=hashlib.sha256(content.encode('utf-8')).hexdigest(),
             scene_type=self.scene_type, exempted_hits=exempted,
+            effective_rule_count=effective_rule_count,
         )
 
     def _calculate_metrics(self, chapter_id: str, hits: List[ClicheHit], content: str) -> AntiAIMetrics:

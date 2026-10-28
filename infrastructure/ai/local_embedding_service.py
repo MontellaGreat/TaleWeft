@@ -45,6 +45,8 @@ class LocalEmbeddingService(EmbeddingService):
         # ════════════════════════════════════════════
         # 懒加载：仅在实例化时才导入重依赖
         # ════════════════════════════════════════════
+        from infrastructure.ai.local_packages import ensure_local_packages_path
+        ensure_local_packages_path()
         try:
             import torch
             from sentence_transformers import SentenceTransformer
@@ -61,47 +63,33 @@ class LocalEmbeddingService(EmbeddingService):
                 f"原始错误: {e}"
             ) from e
 
-        # 解析模型路径：参数优先，否则读环境变量；不在代码中写死具体模型 ID
+        # 参数、环境变量优先；默认使用下载器的运行时数据目录。
         if model_name is None or not str(model_name).strip():
-            model_path = EmbeddingEnvironmentSettings.from_env().model_path
+            env = EmbeddingEnvironmentSettings.from_env()
+            model_path = env.model_path or env.legacy_local_model_path
         else:
             model_path = str(model_name).strip()
-
-        if not model_path:
-            raise ValueError(
-                "未配置本地嵌入模型：请在嵌入设置中填写 model_path，或设置环境变量 EMBEDDING_MODEL_PATH。"
-            )
 
         # 判断是否为 HuggingFace 模型 ID（含 "/" 的短字符串且非本机绝对路径）
         _original_model_name = model_path
         _is_hf_model_id = "/" in model_path and not Path(model_path).is_absolute()
 
         # 将路径转为绝对路径（相对路径基于项目根目录）
-        _resolved = Path(model_path)
-        if not _resolved.is_absolute():
-            _resolved = (Path(__file__).parent.parent.parent / model_path).resolve()
+        from infrastructure.ai.local_model_validation import resolve_local_model_path
+        _resolved = resolve_local_model_path(model_path)
 
         if _resolved.exists():
             model_name = str(_resolved)
             logger.info(f"Using local model path: {model_name}")
+        elif _is_hf_model_id:
+            # Keep explicit model IDs compatible with an existing local HF cache.
+            model_name = _original_model_name
+            logger.info(f"Using HuggingFace model ID (cached): {model_name}")
         else:
-            # 尝试将 HuggingFace model-id 映射到 .models/<basename>
-            _basename = Path(model_path).name  # e.g. "bge-small-zh-v1.5"
-            _fallback = (Path(__file__).parent.parent.parent / ".models" / _basename).resolve()
-            if _fallback.exists():
-                model_name = str(_fallback)
-                logger.info(f"Using local model path (auto-resolved): {model_name}")
-            elif _is_hf_model_id:
-                # 看起来像 HuggingFace 模型 ID，保留原始值让 SentenceTransformer 从缓存加载
-                model_name = _original_model_name
-                logger.info(f"Using HuggingFace model ID (cached): {model_name}")
-            else:
-                raise FileNotFoundError(
-                    f"Local model not found at '{_resolved}' or '{_fallback}'.\n\n"
-                    f"请先下载模型文件到该路径，或运行:\n"
-                    f"  python scripts/utils/download_embedding_model.py\n\n"
-                    f"或者切换到 OpenAI API 模式以跳过本地模型。"
-                )
+            raise FileNotFoundError(
+                f"Local model not found at '{_resolved}'.\n\n"
+                "请在设置中下载本地嵌入模型，或填写已有模型的完整目录路径。"
+            )
 
         # 检测设备
         if use_gpu and torch.cuda.is_available():

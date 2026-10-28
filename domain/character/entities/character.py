@@ -39,6 +39,9 @@ class Character:
     last_updated_chapter: int = 0
     created_at: str = field(default_factory=utcnow_iso)
     updated_at: str = field(default_factory=utcnow_iso)
+    # None lets existing engine producers preserve author-owned extensions;
+    # an explicit dict (including {}) replaces the complete extension payload.
+    voice_profile: Optional[Dict[str, Any]] = None
 
     def update_state(
         self,

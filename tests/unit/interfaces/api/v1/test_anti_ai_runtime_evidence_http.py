@@ -189,6 +189,27 @@ def test_prompt_hooks_are_observed_only_after_real_provider_use(audit_client, mo
     assert disabled['status'] == 'unavailable'
 
 
+@pytest.mark.parametrize('query', ['', '?novel_id=novel'])
+def test_semantic_review_history_does_not_replace_generation_layer_observations(audit_client, query):
+    import json
+    client, db = audit_client
+    for run, evidence in [
+        ('generation', {'layers': {'L1_positive_framing': {'status': 'applied', 'applied': True}}}),
+        ('semantic', {'kind': 'semantic_review', 'prompt': {'system': 'review', 'user': '{}'}}),
+    ]:
+        db.execute('''INSERT INTO anti_ai_prompt_runs
+            (run_id,novel_id,chapter_number,status,prompt_hash,rule_version,evidence_json)
+            VALUES (?,'novel',1,'completed','hash','rules',?)''', (run, json.dumps(evidence)))
+    db.commit()
+    stats = client.get('/api/v1/anti-ai/stats' + query).json()
+    assert stats['observed_prompt_runs'] == 1
+    assert stats['latest_prompt_run']['run_id'] == 'generation'
+    assert stats['layer_states']['L1_positive_framing']['observed']
+    history = client.get('/api/v1/anti-ai/prompt-runs/novel').json()
+    assert [item['run_id'] for item in history] == ['semantic', 'generation']
+    assert history[0]['evidence']['kind'] == 'semantic_review'
+
+
 def test_scan_progress_reconnect_keeps_failed_archival_receipt_when_run_table_unavailable(audit_client):
     from engine.runtime.daemon_host import DaemonHostMixin
     client,db=audit_client

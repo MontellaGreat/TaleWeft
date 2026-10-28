@@ -229,12 +229,20 @@ export interface PromptNode {
   system_preview: string
   user_template_preview: string
   has_user_edit: boolean
+  runtime_usage?: {
+    status: 'runtime' | 'mixed' | 'limited' | 'reference_only' | 'unbound' | 'referenced' | 'available'
+    label: string
+    description: string
+  }
 }
 
 /** 提示词节点详情（含完整内容） */
 export interface PromptNodeDetail extends PromptNode {
   system: string
   user_template: string
+  active_version_id?: string
+  can_delete?: boolean
+  deletion_references?: Array<{ kind: string; label: string; count: number }>
   dag_bindings?: Array<{
     node_id: string
     node_type: string

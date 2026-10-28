@@ -68,7 +68,7 @@ class _SimpleVectorIndexBackend:
 
     @staticmethod
     def read_index(path: str) -> _SimpleFlatL2Index:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
         index = _SimpleFlatL2Index(int(data.get("dimension") or 0))
         index.add(data.get("vectors") or [])
         return index
@@ -76,11 +76,30 @@ class _SimpleVectorIndexBackend:
 
 def _get_vector_index_backend():
     """Return the fastest available vector index backend."""
+    from infrastructure.ai.local_packages import ensure_local_packages_path
+    ensure_local_packages_path()
     try:
         import faiss  # type: ignore
         return faiss
-    except ImportError:
+    except (ImportError, OSError):
         return _SimpleVectorIndexBackend
+
+
+def _read_vector_index(path: Path, index_backend):
+    """Read portable JSON independently of the currently installed backend."""
+    with path.open("rb") as stream:
+        portable = stream.read(64).removeprefix(b"\xef\xbb\xbf").lstrip().startswith(b"{")
+    if portable:
+        index = _SimpleVectorIndexBackend.read_index(str(path))
+        if index_backend is _SimpleVectorIndexBackend:
+            return index
+        converted = index_backend.IndexFlatL2(index.d)
+        if index.ntotal:
+            converted.add(_as_vector_batch(index._vectors))
+        return converted
+    if index_backend is _SimpleVectorIndexBackend:
+        raise RuntimeError("现有 FAISS 二进制索引需要本地扩展依赖；请安装扩展后重试，原索引文件已保留")
+    return index_backend.read_index(str(path))
 
 
 def _as_vector_matrix(vector: List[float]):
@@ -166,7 +185,7 @@ class ChromaDBVectorStore(VectorStore):
                 metadata_path = collection_dir / "metadata.json"
 
                 if index_path.exists() and metadata_path.exists():
-                    index = index_backend.read_index(str(index_path))
+                    index = _read_vector_index(index_path, index_backend)
                     with open(metadata_path, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
                     self.collections[collection_name] = {
@@ -176,12 +195,19 @@ class ChromaDBVectorStore(VectorStore):
 
     def _save_collection(self, collection: str):
         """保存集合到磁盘"""
-        index_backend = _get_vector_index_backend()
+        coll = self.collections[collection]
+        # Existing objects retain their type when optional dependencies change.
+        # A Simple index must never be passed to the native FAISS writer.
+        if isinstance(coll["index"], _SimpleFlatL2Index):
+            index_backend = _SimpleVectorIndexBackend
+        else:
+            index_backend = _get_vector_index_backend()
+            if index_backend is _SimpleVectorIndexBackend:
+                raise RuntimeError("保存 FAISS 二进制索引需要本地扩展依赖；原索引文件已保留")
 
         collection_dir = self.persist_directory / collection
         collection_dir.mkdir(parents=True, exist_ok=True)
 
-        coll = self.collections[collection]
         index_path = collection_dir / "index.faiss"
         metadata_path = collection_dir / "metadata.json"
 

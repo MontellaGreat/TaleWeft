@@ -343,7 +343,7 @@ async def get_macro_plan_generation_progress(novel_id: str):
     """获取精密结构规划的实时进度。"""
     return {
         "success": True,
-        "data": get_macro_plan_progress(novel_id)
+        "data": await asyncio.to_thread(get_macro_plan_progress, novel_id, db=get_database())
     }
 
 
@@ -360,7 +360,7 @@ async def watch_macro_plan_progress_sse(novel_id: str):
       event: node      data: 部/卷/幕 节点（running 时随增量解析推送；completed 时补齐剩余）
       event: done       data: {success}  # 节点序列结束，随后仍会发 terminal
       event: heartbeat data: {tick}
-      event: terminal   data: {status, message}  # status 为 completed | failed | timeout
+      event: terminal   data: {status, message}  # 完成、失败、审阅、暂停、中断或观摩超时
     """
 
     def _sse(event: str, data: dict) -> str:
@@ -385,7 +385,7 @@ async def watch_macro_plan_progress_sse(novel_id: str):
                 break
 
             await asyncio.sleep(runtime_settings.macro_watch_poll_seconds)
-            prog = get_macro_plan_progress(novel_id)
+            prog = await asyncio.to_thread(get_macro_plan_progress, novel_id, db=get_database())
             stream_full = prog.get("llm_stream_text") or ""
             st = prog.get("status") or "idle"
             msg = prog.get("message") or ""
@@ -456,7 +456,9 @@ async def watch_macro_plan_progress_sse(novel_id: str):
                     len(stream_full),
                 )
 
-            if st in ("completed", "failed"):
+            inactive_idle = st == 'idle' and (
+                prog.get('autopilot_status') != 'running' or prog.get('current_stage') != 'macro_planning')
+            if inactive_idle or st in ("completed", "failed", "cancelled", "paused", "awaiting_review", "interrupted"):
                 if len(stream_full) > last_len:
                     tail = stream_full[last_len:]
                     last_len = len(stream_full)

@@ -175,7 +175,7 @@ interface ModelRoleConfig {
 }
 
 const formData = reactive<ModelRoleConfig>({
-  default_model_provider: 'openai.chat',
+  default_model_provider: 'openai.auto',
   default_model_api_key: '',
   default_model_base_url: '',
   default_model: '',
@@ -184,7 +184,7 @@ const formData = reactive<ModelRoleConfig>({
   default_timeout_seconds: 300,
   default_reasoning_effort: null,
   default_thinking_budget: null,
-  cheap_model_provider: 'openai.chat',
+  cheap_model_provider: 'openai.auto',
   cheap_model_api_key: '',
   cheap_model_base_url: '',
   cheap_model: '',
@@ -193,7 +193,7 @@ const formData = reactive<ModelRoleConfig>({
   cheap_timeout_seconds: 300,
   cheap_reasoning_effort: null,
   cheap_thinking_budget: null,
-  knowledge_model_provider: 'openai.chat',
+  knowledge_model_provider: 'openai.auto',
   knowledge_model_api_key: '',
   knowledge_model_base_url: '',
   knowledge_model: '',

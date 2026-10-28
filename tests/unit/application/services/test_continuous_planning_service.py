@@ -203,7 +203,7 @@ def test_act_planning_prompt_passes_locked_contract_variables_to_cpms(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_stream_macro_llm_text_repairs_partial_text_when_stream_breaks():
+async def test_stream_macro_llm_text_retains_partial_preview_when_stream_breaks():
     async def broken_stream(_prompt, _config):
         yield """{
           "parts": [
@@ -227,8 +227,9 @@ async def test_stream_macro_llm_text_repairs_partial_text_when_stream_breaks():
     svc = _make_service()
     svc.llm_service.stream_generate = broken_stream
 
-    raw = await svc._stream_macro_llm_text("novel-1", Mock(), Mock())
-    parsed = svc._parse_llm_response(raw)
+    with pytest.raises(RuntimeError, match="peer closed connection"):
+        await svc._stream_macro_llm_text("novel-1", Mock(), Mock())
+    parsed = {"parts": get_macro_plan_progress("novel-1")["preview_parts"]}
 
     acts = parsed["parts"][0]["volumes"][0]["acts"]
     assert acts[0]["title"] == "第一幕：灰鸦街醒来"

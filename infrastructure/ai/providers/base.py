@@ -7,6 +7,7 @@ from domain.ai.services.llm_service import LLMService
 from infrastructure.ai.config.settings import Settings
 from infrastructure.ai.providers.token_limits import resolve_token_limits
 from infrastructure.ai.providers.capabilities import validate_reasoning_capability
+from infrastructure.ai.providers.generation_constraints import validate_generation_constraints
 from domain.ai.services.token_budget import conservative_token_count
 from application.ai.usage_context import current_usage
 
@@ -75,21 +76,14 @@ class BaseProvider(LLMService, ABC):
         result.request_receipt = dict(receipt if receipt is not None else getattr(self, 'last_request_receipt', {}))
         return result
 
-    def _validate_output_tokens(self, config, model_id: str, *, protocol: str):
+    def _validate_output_tokens(self, config, model_id: str, *, protocol: str, endpoint_kind=None):
         limits = resolve_token_limits(protocol, model_id, self.settings)
-        if limits.max_output_tokens is not None and config.max_tokens > limits.max_output_tokens:
-            raise ValueError(f'max_tokens={config.max_tokens} exceeds model output limit {limits.max_output_tokens}')
-        # Gateway extension parameters must not replace the validated model or
-        # output budget behind the caller/trace's back.
-        extra = self.settings.extra_body or {}
-        if 'model' in extra and extra['model'] != model_id:
-            raise ValueError('extra_body cannot override the resolved model')
-        for name in ('max_tokens', 'max_output_tokens', 'max_completion_tokens'):
-            if name in extra and extra[name] != config.max_tokens:
-                raise ValueError(f'extra_body cannot override {name}')
-        generation = extra.get('generationConfig')
-        if isinstance(generation, dict) and generation.get('maxOutputTokens', config.max_tokens) != config.max_tokens:
-            raise ValueError('extra_body cannot override maxOutputTokens')
+        validate_generation_constraints(
+            protocol, config, model=model_id, base_url=self.settings.base_url,
+            endpoint_kind=endpoint_kind or self.settings.endpoint_kind,
+            legacy_chat=self.settings.use_legacy_chat_completions,
+            extra_body=self.settings.extra_body, token_limit_settings=self.settings,
+        )
         self._validate_reasoning_capability({}, config, model_id, protocol=protocol)
         return limits
 

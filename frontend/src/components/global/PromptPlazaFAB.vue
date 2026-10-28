@@ -168,14 +168,14 @@ onUnmounted(() => {
 <style scoped>
 .plaza-fab-shell {
   position: fixed;
-  z-index: 890; /* 略低于 AI 控制台的 900 */
+  z-index: 890; /* 略低于 模型控制台的 900 */
 }
 
 /* ---- FAB 主按钮 ---- */
 .plaza-fab-main {
   position: fixed;
   bottom: 24px;
-  right: 80px; /* 在 AI 控制台左边 */
+  right: 80px; /* 在 模型控制台左边 */
   width: 52px;
   height: 52px;
   border-radius: 16px;

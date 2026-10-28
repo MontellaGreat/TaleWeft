@@ -178,6 +178,7 @@
                   v-if="showDetailModal && selectedNode"
                   :node-key="selectedNode.node_key"
                   @updated="onNodeUpdated"
+                  @deleted="onNodeDeleted"
                   @close="closeDetail"
                 />
               </template>
@@ -227,6 +228,9 @@
       @positive-click="handleCreate"
       style="max-width: 560px"
     >
+      <n-alert type="info" :show-icon="false" style="margin-bottom: 12px">
+        新建提示词不会自动用于正文生成或审稿；创建后需由对应功能明确引用。
+      </n-alert>
       <n-form ref="createFormRef" :model="createForm" label-placement="left" label-width="auto">
         <n-form-item label="名称" ruleRequired>
           <n-input v-model:value="createForm.name" placeholder="如：我的自定义提取器" />
@@ -269,7 +273,7 @@
 import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch, defineAsyncComponent } from 'vue'
 import {
   NButton, NTag, NInput, NSpin, NEmpty,
-  NModal, NForm, NFormItem, NSelect, NUpload, useMessage,
+  NModal, NForm, NFormItem, NSelect, NUpload, NAlert, useMessage,
 } from 'naive-ui'
 import { promptPlazaApi, type PromptNode, type PromptCategoryInfo, type PromptStats, type PlazaInitResult } from '../../api/llmControl'
 import { formatApiError } from '../../utils/apiError'
@@ -434,6 +438,13 @@ function closeDetail() {
 }
 
 function onNodeUpdated() {
+  loadData()
+}
+
+function onNodeDeleted() {
+  detailEntering.value = false
+  showDetailModal.value = false
+  selectedNode.value = null
   loadData()
 }
 

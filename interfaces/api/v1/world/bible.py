@@ -6,6 +6,7 @@ from typing import Optional, Union
 import logging
 import json
 import asyncio
+from dataclasses import asdict, is_dataclass
 
 from application.world.services.bible_service import BibleService
 from application.world.services.auto_bible_generator import AutoBibleGenerator
@@ -36,11 +37,114 @@ from application.world.bible_generation_state import (
 )
 from application.world.worldbuilding_schema import WORLDBUILDING_DIMENSION_DEFS
 from interfaces.api.v1.world.bible_runtime_settings import get_bible_runtime_settings
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_editable
 
 logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/bible", tags=["bible"])
+
+
+class ManualCharacterEditRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    changes: dict
+    expected_character: dict
+
+
+class ManualCharacterDeleteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_character: dict
+
+
+async def _run_character_derivations(db, job_ids):
+    """Lazily initialize analysis after the author edit has really committed."""
+    if not job_ids:
+        return
+    from interfaces.api.dependencies import get_chapter_aftermath_pipeline, get_knowledge_service
+    from application.core.services.chapter_derivation_jobs import run_chapter_derivation_job
+    try:
+        pipeline = await asyncio.to_thread(get_chapter_aftermath_pipeline)
+        knowledge = await asyncio.to_thread(get_knowledge_service)
+    except Exception:
+        logger.exception("角色编辑后的关联分析初始化失败")
+        for job_id in job_ids:
+            await asyncio.to_thread(db.execute,
+                "UPDATE chapter_derivation_jobs SET status='unavailable',last_error='角色已保存，关联分析服务初始化失败，请重跑关联分析' WHERE job_id=? AND status='pending'",(job_id,))
+        await asyncio.to_thread(db.commit)
+        return
+    for job_id in job_ids:
+        await run_chapter_derivation_job(db,job_id,pipeline,knowledge)
+
+
+def _mutate_character(novel_id, character_id, expected, changes=None, *, delete=False, db=None):
+    from application.world.services.character_manual_mutation import CharacterManualMutation, CharacterEditConflict
+    from infrastructure.persistence.database.connection import get_database
+    db = db or get_database()
+    mutation = CharacterManualMutation(db)
+    try:
+        if not delete:
+            # Validate requested values with the existing public field contract;
+            # omission remains omission, explicit empty values stay editable.
+            validated = CharacterData.model_validate({**expected, **changes, 'id':character_id})
+            changes = {key:validated.model_dump(mode='json')[key] for key in changes}
+        info = mutation.delete(novel_id,character_id,expected) if delete else mutation.update(novel_id,character_id,changes,expected)
+        dto = mutation.bible.get_bible_by_novel(novel_id)
+    except (CharacterEditConflict, SetupEditConflict) as exc:
+        raise HTTPException(409,detail={'code':'CHARACTER_EDIT_CONFLICT','reason':str(exc)}) from exc
+    except LookupError as exc:
+        raise HTTPException(404,detail=str(exc)) from exc
+    except (ValueError,KeyError,TypeError) as exc:
+        raise HTTPException(422,detail=str(exc)) from exc
+    # CastGraph is a TTL read cache. Clear cached instances rather than return
+    # a stale name/roster until its normal expiry after the database commit.
+    from interfaces.api.dependencies import get_cast_service
+    get_cast_service.cache_clear()
+    return {**asdict(dto),'character_mutation':info},db
+
+
+@router.patch('/novels/{novel_id}/bible/characters/{character_id}')
+async def edit_character_profile(novel_id:str,character_id:str,request:ManualCharacterEditRequest,background_tasks:BackgroundTasks):
+    result,db = await asyncio.to_thread(_mutate_character,novel_id,character_id,request.expected_character,request.changes)
+    background_tasks.add_task(_run_character_derivations,db,result['character_mutation'].get('derivation_job_ids',[]))
+    return result
+
+
+@router.delete('/novels/{novel_id}/bible/characters/{character_id}')
+async def delete_character_profile(novel_id:str,character_id:str,request:ManualCharacterDeleteRequest):
+    result,_ = await asyncio.to_thread(_mutate_character,novel_id,character_id,request.expected_character,delete=True)
+    return result
+
+
+def _guard_setup_edit(novel_id: str, stage: str) -> None:
+    try:
+        assert_setup_editable(novel_id, stage)
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
+
+
+def _guard_setup_generation(novel_id: str, stage: str) -> None:
+    for target in (("worldbuilding", "characters", "locations") if stage == "all" else (stage,)):
+        _guard_setup_edit(novel_id, target)
+
+
+def _section_changed(requested: list, current: list, *, preserve_none: bool = False) -> bool:
+    """Compare the effective PUT, including optional character preservation."""
+    def plain(value):
+        if hasattr(value, "model_dump"):
+            return value.model_dump(mode="json")
+        if is_dataclass(value):
+            return asdict(value)
+        return dict(value) if isinstance(value, dict) else vars(value)
+
+    if len(requested) != len(current):
+        return True
+    for incoming, existing in zip(requested, current):
+        new, old = plain(incoming), plain(existing)
+        # BibleService preserves optional character fields when they are None;
+        # absent DTO-only fields therefore do not create a false edit conflict.
+        if any(value != old.get(key) for key, value in new.items() if value is not None or not preserve_none):
+            return True
+    return False
 
 
 def _validate_generation_stage(stage: str) -> None:
@@ -312,6 +416,7 @@ async def generate_bible(
         202 Accepted，表示生成任务已启动；分阶段引导流会改为返回 AI Invocation 审阅会话
     """
     _validate_generation_stage(stage)
+    _guard_setup_generation(novel_id, stage)
     if stage in _BIBLE_SETUP_NODE_BY_STAGE:
         return await _create_bible_setup_invocation_response(
             novel_id=novel_id,
@@ -336,6 +441,7 @@ async def generate_bible(
             premise = strip_v1_structure_black_box_hint(novel.premise if novel.premise else novel.title)
 
             # 生成 Bible（支持分阶段）
+            _guard_setup_generation(novel_id, stage)
             bible_data = await bible_generator.generate_and_save(
                 novel_id,
                 premise,
@@ -498,6 +604,7 @@ async def _create_bible_setup_invocation(
     """Create an AI Invocation session for a setup-guide Bible stage."""
     if stage not in _BIBLE_SETUP_NODE_BY_STAGE:
         raise ValueError(f"unsupported bible setup invocation stage: {stage}")
+    _guard_setup_generation(novel_id, stage)
     stage_definition = get_onboarding_stage_definition(stage)
     register_bible_setup_continuations()
     operation = stage_definition.operation
@@ -603,6 +710,11 @@ async def _sse_bible_generator(
     if stage not in {"all", "worldbuilding", "characters", "locations"}:
         yield _sse_fmt("error", {"message": "unsupported_bible_generation_stage"})
         return
+    try:
+        _guard_setup_generation(novel_id, stage)
+    except HTTPException as exc:
+        yield _sse_fmt("error", {"code": "SETUP_AUDIT_INCOMPLETE", "message": str(exc.detail)})
+        return
     runtime_settings = get_bible_runtime_settings()
 
     # ── 起始 ──
@@ -663,11 +775,13 @@ async def _sse_bible_generator(
 
     # 确保Bible记录存在
     try:
+        _guard_setup_generation(novel_id, stage)
         existing_bible = bible_generator.bible_service.get_bible_by_novel(novel_id)
         if not existing_bible:
             bible_generator.bible_service.create_bible(f"{novel_id}-bible", novel_id)
     except Exception:
         try:
+            _guard_setup_generation(novel_id, stage)
             bible_generator.bible_service.create_bible(f"{novel_id}-bible", novel_id)
         except Exception as e:
             yield _sse_fmt("error", {"message": f"创建 Bible 记录失败: {e}"})
@@ -706,6 +820,7 @@ async def _sse_bible_generator(
                     yield _sse_fmt("data", {"type": "style", "content": style_text})
                     # 保存文风
                     try:
+                        _guard_setup_edit(novel_id, "worldbuilding")
                         bible_generator.bible_service.add_style_note(
                             novel_id=novel_id,
                             note_id=f"{novel_id}-style-1",
@@ -823,6 +938,7 @@ async def _sse_bible_generator(
                         )
                         if saved_dim_snapshots.get(dim_key) != dim_data:
                             try:
+                                _guard_setup_edit(novel_id, "worldbuilding")
                                 await bible_generator._save_worldbuilding(
                                     novel_id, {dim_key: dim_data},
                                 )
@@ -855,6 +971,7 @@ async def _sse_bible_generator(
                 if not dim_data or saved_dim_snapshots.get(dim_key) == dim_data:
                     continue
                 try:
+                    _guard_setup_edit(novel_id, "worldbuilding")
                     await bible_generator._save_worldbuilding(
                         novel_id, {dim_key: dim_data},
                     )
@@ -893,6 +1010,7 @@ async def _sse_bible_generator(
                         character_id = f"{novel_id}-char-{idx+1}-{len(used_char_ids)}"
                     used_char_ids.add(character_id)
                     try:
+                        _guard_setup_edit(novel_id, "characters")
                         bible_generator.bible_service.add_character(
                             novel_id=novel_id,
                             character_id=character_id,
@@ -971,6 +1089,7 @@ async def _sse_bible_generator(
             # item independently reuses loc-1 and drops parents not yet streamed.
             for pd in bible_generator._prepare_locations_for_save(novel_id, locs_payload):
                 try:
+                    _guard_setup_edit(novel_id, "locations")
                     bible_generator.bible_service.add_location(
                         novel_id=novel_id,
                         location_id=pd["location_id"],
@@ -1036,6 +1155,7 @@ async def generate_bible_stream(
     - done / error
     """
     _validate_generation_stage(stage)
+    _guard_setup_generation(novel_id, stage)
     return StreamingResponse(
         _sse_bible_generator(novel_id, stage, bible_generator, knowledge_generator),
         media_type="text/event-stream",
@@ -1063,6 +1183,10 @@ async def create_bible(
     Returns:
         创建的 Bible DTO
     """
+    # Reusing a Bible id replaces its child collections, so this endpoint is
+    # also a canonical edit when a book already has setup material.
+    for stage in ("worldbuilding", "characters", "locations"):
+        _guard_setup_edit(novel_id, stage)
     return service.create_bible(request.bible_id, novel_id)
 
 
@@ -1155,6 +1279,7 @@ async def add_character(
     Raises:
         HTTPException: 如果 Bible 不存在
     """
+    _guard_setup_edit(novel_id, "characters")
     try:
         return service.add_character(
             novel_id=novel_id,
@@ -1185,6 +1310,7 @@ async def add_world_setting(
     Raises:
         HTTPException: 如果 Bible 不存在
     """
+    _guard_setup_edit(novel_id, "worldbuilding")
     try:
         return service.add_world_setting(
             novel_id=novel_id,
@@ -1216,6 +1342,7 @@ async def add_location(
     Raises:
         HTTPException: 如果 Bible 不存在
     """
+    _guard_setup_edit(novel_id, "locations")
     try:
         return service.add_location(
             novel_id=novel_id,
@@ -1279,6 +1406,7 @@ async def add_style_note(
     Raises:
         HTTPException: 如果 Bible 不存在
     """
+    _guard_setup_edit(novel_id, "worldbuilding")
     try:
         return service.add_style_note(
             novel_id=novel_id,
@@ -1309,6 +1437,12 @@ async def bulk_update_bible(
     Raises:
         HTTPException: 如果 Bible 不存在或参数无效
     """
+    current = service.get_bible_by_novel(novel_id)
+    for section, stage in (("characters", "characters"), ("world_settings", "worldbuilding"),
+                           ("locations", "locations"), ("style_notes", "worldbuilding")):
+        if _section_changed(getattr(request, section), getattr(current, section, []) if current else [],
+                            preserve_none=section == "characters"):
+            _guard_setup_edit(novel_id, stage)
     try:
         dto = service.update_bible(
             novel_id=novel_id,

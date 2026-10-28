@@ -9,7 +9,8 @@ import asyncio
 import json
 import logging
 import os
-import re
+import queue
+import shutil
 import subprocess
 import sys
 import threading
@@ -177,6 +178,8 @@ PIP_MIRRORS = [
 
 # 全局安装锁：防止并发执行多个 pip install
 _install_lock = threading.Lock()
+_external_process_lock = threading.Lock()
+_INSTALL_HEARTBEAT_SECONDS = 5
 _install_status: dict = {
     "running": False,
     "started_at": None,
@@ -199,26 +202,127 @@ def _get_project_root() -> Path:
 
 
 def _get_python_executable() -> str:
-    """获取当前 Python 解释器路径"""
-    return sys.executable
+    """Find a real pip-capable Python with the backend's ABI, never its frozen exe."""
+    probe = (
+        "import importlib.util,json,struct,sys;"
+        "print(json.dumps({'abi':sys.implementation.cache_tag,'bits':struct.calcsize('P')*8,"
+        "'pip':importlib.util.find_spec('pip') is not None}))"
+    )
+    import struct
+    for candidate in _python_candidates():
+        if getattr(sys, "frozen", False) and Path(candidate).resolve() == Path(sys.executable).resolve():
+            continue
+        try:
+            proc = _popen_external_python(
+                [candidate, "-c", probe], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                encoding="utf-8", errors="replace", timeout=15,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+            )
+            try:
+                stdout, _ = proc.communicate(timeout=15)
+            except subprocess.TimeoutExpired:
+                _stop_install_process(proc)
+                raise
+            data = json.loads(stdout.strip())
+            if proc.returncode == 0 and data.get("pip") and data.get("abi") == sys.implementation.cache_tag and data.get("bits") == struct.calcsize("P") * 8:
+                return candidate
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            continue
+    raise RuntimeError(
+        f"未找到与后端兼容的 Python {sys.version_info.major}.{sys.version_info.minor}（含 pip）。"
+        "请安装对应版本 Python，并设置 PLOTPILOT_PYTHON_EXE 指向其 python.exe 后重启应用；"
+        "冻结版后端程序不能执行 pip。"
+    )
+
+
+def _python_candidates() -> list[str]:
+    root = _get_project_root()
+    candidates = [os.getenv("PLOTPILOT_PYTHON_EXE", ""), os.getenv("PYTHON314_EXE", "")]
+    if not getattr(sys, "frozen", False):
+        candidates.insert(0, sys.executable)
+    candidates.extend(str(path) for path in (
+        root / ".venv/Scripts/python.exe", root / ".venv/bin/python",
+        root / "tools/python_embed/python.exe",
+        Path(os.getenv("LOCALAPPDATA", "")) / "Programs/Python/Python314/python.exe",
+        Path(os.getenv("LOCALAPPDATA", "")) / "Python/pythoncore-3.14-64/python.exe",
+    ))
+    candidates.extend(shutil.which(name) or "" for name in ("python", "python3", "python3.14"))
+    return list(dict.fromkeys(path.strip('"') for path in candidates if path))
+
+
+@contextmanager
+def _external_python_dll_search():
+    """Temporarily undo the Windows bootloader's inherited DLL directory.
+
+    Follow PyInstaller's external-program guidance. Restore immediately after
+    CreateProcess, before waiting for the child or processing its output.
+    """
+    if not (getattr(sys, "frozen", False) and os.name == "nt"):
+        yield
+        return
+    import ctypes
+    from ctypes import wintypes
+    with _external_process_lock:
+        api = ctypes.WinDLL("kernel32", use_last_error=True)
+        api.GetDllDirectoryW.argtypes = [wintypes.DWORD, wintypes.LPWSTR]
+        api.GetDllDirectoryW.restype = wintypes.DWORD
+        api.SetDllDirectoryW.argtypes = [wintypes.LPCWSTR]
+        api.SetDllDirectoryW.restype = wintypes.BOOL
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = api.GetDllDirectoryW(len(buffer), buffer)
+        if length >= len(buffer):
+            raise OSError("无法安全读取当前 DLL 搜索目录")
+        previous = buffer.value if length else None
+        if not api.SetDllDirectoryW(None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        try:
+            yield
+        finally:
+            if not api.SetDllDirectoryW(previous):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+
+def _popen_external_python(cmd: list[str], **kwargs):
+    """Launch real Python with a sanitized child environment, preserving ours."""
+    env = dict(kwargs.pop("env", os.environ))
+    env.update(PYTHONUTF8="1", PYTHONUNBUFFERED="1")
+    if getattr(sys, "frozen", False):
+        bundle_raw = getattr(sys, "_MEIPASS", "")
+        if bundle_raw:
+            bundle = os.path.normcase(os.path.abspath(bundle_raw))
+            def external_path(path):
+                try:
+                    candidate = os.path.normcase(os.path.abspath(path.strip('"')))
+                    return os.path.commonpath((candidate, bundle)) != bundle
+                except (OSError, ValueError):
+                    return True
+            for name in ("PATH", "DYLD_LIBRARY_PATH"):
+                if name in env:
+                    env[name] = os.pathsep.join(path for path in env[name].split(os.pathsep) if external_path(path))
+        if os.name != "nt" and "LD_LIBRARY_PATH" in env:
+            original = env.get("LD_LIBRARY_PATH_ORIG")
+            if original:
+                env["LD_LIBRARY_PATH"] = original
+            else:
+                env.pop("LD_LIBRARY_PATH", None)
+    kwargs["env"] = env
+    # timeout is consumed by communicate(), never by the Popen constructor.
+    kwargs.pop("timeout", None)
+    proc = None
+    try:
+        with _external_python_dll_search():
+            proc = subprocess.Popen(cmd, **kwargs)
+        return proc
+    except BaseException:
+        if proc is not None:
+            _stop_install_process(proc)
+        raise
 
 
 def _check_extensions_installed() -> dict:
-    """检查扩展依赖是否已安装"""
-    result = {
-        "faiss": False,
-        "numpy": False,
-        "sentence_transformers": False,
-        "all_installed": False,
-    }
-    for pkg in list(result.keys())[:-1]:
-        try:
-            __import__(pkg.replace("-", "_"))
-            result[pkg] = True
-        except ImportError:
-            pass
-    result["all_installed"] = all(result[pkg] for pkg in list(result.keys())[:-1])
-    return result
+    """Check packages visible to this backend without importing torch."""
+    from infrastructure.ai.local_packages import get_local_packages_status
+    return get_local_packages_status()
 
 
 def _tail_log_file_lines(
@@ -338,203 +442,265 @@ async def feedback_log_snapshot(
     return await asyncio.to_thread(_snapshot_feedback_bundle_sync, max_lines, ring_limit)
 
 
-@router.get("/extensions-status")
-async def get_extensions_status(request: Request):
-    """检查本地 AI 扩展包的安装状态"""
-    _assert_localhost(request)
+def _extensions_snapshot() -> dict:
+    from infrastructure.ai.embedding_download import get_model_status
+    from infrastructure.ai.local_model_validation import local_model_is_complete, resolve_local_model_path
+    from application.ai.embedding_config_service import EmbeddingConfigService
     installed = _check_extensions_installed()
+    downloaded = get_model_status()
+    try:
+        config = EmbeddingConfigService().get_config_readonly()
+        selected_path = resolve_local_model_path(config.model_path)
+        model = get_model_status(selected_path)
+        if not (selected_path / ".plotpilot-model.json").exists() and local_model_is_complete(selected_path):
+            model.update(model_ready=True, reason="", download_source=None)
+    except Exception:
+        # A missing/unavailable settings database must not turn this environment
+        # check into a 500 or initialize/migrate a configuration as a side effect.
+        model = downloaded
     return {
-        **installed,
+        **installed, **model,
+        "local_ready": installed["all_installed"] and model["model_ready"],
+        "downloaded_model_ready": downloaded["model_ready"],
+        "downloaded_model_path": downloaded["model_path"],
         "install_running": _install_status["running"],
         "install_progress": _install_status["progress_msg"] if _install_status["running"] else "",
     }
 
 
+@router.get("/extensions-status")
+async def get_extensions_status(request: Request):
+    """Check dependencies and verified model files separately."""
+    _assert_localhost(request)
+    return await asyncio.to_thread(_extensions_snapshot)
+
+
+def _stop_install_process(proc) -> None:
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True, timeout=10,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except (OSError, subprocess.TimeoutExpired):
+            proc.kill()
+    else:
+        proc.kill()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
+class _DependencyFilesInUseError(RuntimeError):
+    pass
+
+
+def _run_install_process(cmd: list[str], cancel: threading.Event, emit, *, timeout: float = 1200) -> int:
+    """Read pip in a separate thread so quiet downloads can be cancelled/timed out."""
+    from infrastructure.ai.embedding_download import DownloadCancelled
+    proc = _popen_external_python(
+        cmd, cwd=str(_get_project_root()), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, encoding="utf-8", errors="replace", bufsize=1,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+    )
+    lines: queue.Queue = queue.Queue()
+    def read_output():
+        try:
+            for line in proc.stdout:
+                lines.put(line.rstrip())
+        finally:
+            lines.put(None)
+    reader = threading.Thread(target=read_output, daemon=True)
+    reader.start()
+    started = time.monotonic()
+    files_in_use = False
+    try:
+        while True:
+            if cancel.is_set():
+                raise DownloadCancelled("本地 AI 准备已取消")
+            if time.monotonic() - started > timeout:
+                raise TimeoutError(f"依赖操作超过 {int(timeout)} 秒，已停止该进程")
+            try:
+                line = lines.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            if line is None:
+                break
+            if line:
+                lowered = line.lower()
+                files_in_use = files_in_use or any(marker in lowered for marker in (
+                    "winerror 32", "winerror 5", "permissionerror", "permission denied",
+                    "being used by another process", "被另一个进程使用",
+                ))
+                # An unsuccessful mirror is recoverable; only the final done
+                # event determines failure for the complete preparation task.
+                emit({"type": "log", "phase": "dependencies", "message": line[:600]})
+        code = proc.wait(timeout=10)
+        if code != 0 and files_in_use:
+            raise _DependencyFilesInUseError("本地 AI 依赖文件被占用或没有写入权限。请完全退出并重启应用后重试；仍失败时请检查数据目录权限。")
+        return code
+    finally:
+        _stop_install_process(proc)
+        reader.join(timeout=2)
+        if proc.stdout:
+            proc.stdout.close()
+
+
+def _prepare_local_engine(emit, cancel: threading.Event) -> dict:
+    from infrastructure.ai.embedding_download import EmbeddingModelDownloader, DownloadCancelled
+    from infrastructure.ai.local_packages import ensure_local_packages_path
+    import importlib
+
+    def wait_for_dependencies():
+        deadline = time.monotonic() + 180
+        while True:
+            status = _check_extensions_installed()
+            if status.get("check_timed_out"):
+                raise RuntimeError(status["dependency_error"])
+            if not status.get("checking"):
+                return status
+            if cancel.wait(0.2):
+                raise DownloadCancelled("本地 AI 准备已取消")
+            if time.monotonic() > deadline:
+                raise RuntimeError("本地 AI 依赖验证超时，请重启应用后重试")
+
+    emit({"type": "info", "phase": "dependencies", "message": "检查本地 AI 运行环境…"})
+    installed = wait_for_dependencies()
+    if not installed["all_installed"]:
+        root = _get_project_root()
+        req_file = root / "requirements-local.txt"
+        if not req_file.is_file() and not getattr(sys, "frozen", False):
+            raise RuntimeError(f"找不到 {req_file.name}，请恢复项目扩展依赖清单后重试")
+        python = _get_python_executable()
+        target = ensure_local_packages_path()
+        target.mkdir(parents=True, exist_ok=True)
+        marker = target / ".plotpilot-packages.json"
+        marker.unlink(missing_ok=True)
+        ensure_local_packages_path()
+        emit({"type": "info", "phase": "dependencies", "message": "开始准备本地 AI 依赖（首次下载可能需要 5–20 分钟）"})
+        # Frozen resources may omit requirements-local.txt. Keep the same small
+        # dependency list in the command; downloads always go to writable data.
+        packages = ["-r", str(req_file)] if req_file.is_file() else ["numpy>=1.21.0", "faiss-cpu>=1.7.4", "sentence-transformers>=2.2.0"]
+        success = False
+        for mirror in PIP_MIRRORS:
+            if cancel.is_set():
+                raise DownloadCancelled("本地 AI 准备已取消")
+            emit({"type": "info", "phase": "dependencies", "message": f"准备依赖 [{mirror['name']}]…"})
+            cmd = [python, "-m", "pip", "install", *packages,
+                   "--target", str(target), "--upgrade", "--no-warn-script-location",
+                   "-i", mirror["url"], "--timeout", "30", "--retries", "1",
+                   "--no-cache-dir", "--progress-bar", "off", "--disable-pip-version-check"]
+            try:
+                if _run_install_process(cmd, cancel, emit) == 0:
+                    success = True
+                    break
+            except DownloadCancelled:
+                raise
+            except (OSError, TimeoutError, subprocess.SubprocessError) as exc:
+                emit({"type": "warn", "phase": "dependencies", "message": f"依赖源 {mirror['name']} 失败: {exc}"})
+            else:
+                emit({"type": "warn", "phase": "dependencies", "message": f"依赖源 {mirror['name']} 安装失败，自动切换来源"})
+        if not success:
+            raise RuntimeError("所有依赖下载源均失败，请检查网络、磁盘空间和 Python 版本后重试")
+        # Verify the installed native wheels using a real, ABI-compatible Python.
+        # Never run the frozen backend executable with -c/-m arguments.
+        verify_code = (
+            "import sys;sys.path.insert(0," + repr(str(target)) + ");"
+            "import numpy,faiss,torch,transformers,tokenizers,safetensors,sentence_transformers"
+        )
+        emit({"type": "info", "phase": "dependencies", "message": "验证本地 AI 依赖能否加载…"})
+        if _run_install_process([python, "-c", verify_code], cancel, emit, timeout=180) != 0:
+            raise RuntimeError("本地 AI 依赖加载失败，请检查上方日志中的 Python 或动态库错误后重试")
+        marker.write_text(json.dumps({"abi": sys.implementation.cache_tag, "verified": True}), encoding="utf-8")
+        ensure_local_packages_path()
+        importlib.invalidate_caches()
+        installed = wait_for_dependencies()
+        if not installed["all_installed"]:
+            raise RuntimeError("安装后的依赖未能被当前后端识别，请重启应用后重试")
+    else:
+        emit({"type": "info", "phase": "dependencies", "message": "本地 AI 依赖已就绪，检查模型文件…"})
+    model = EmbeddingModelDownloader().download(emit, cancel)
+    return {**installed, **model, "local_ready": installed["all_installed"] and model["model_ready"]}
+
+
+class _InstallStreamingResponse(StreamingResponse):
+    """Own worker cancellation even if the network consumer stops at a yield.
+
+    Starlette can exit its send loop with the async generator still suspended:
+    ASGI 2.4 raises on send; older ASGI cancels the send consumer on disconnect.
+    Closing at this outer boundary avoids relying on garbage collection.
+    """
+    def __init__(self, content, *, cancel_event: threading.Event, **kwargs):
+        super().__init__(content, **kwargs)
+        self._cancel_event = cancel_event
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            self._cancel_event.set()
+            await self.body_iterator.aclose()
+
+
 @router.post("/install-extensions")
 async def install_extensions(request: Request):
-    """安装本地 AI 扩展包（SSE 流式返回日志）
-
-    执行 `pip install -r requirements-local.txt`，
-    通过 Server-Sent Events 实时推送安装进度和日志。
-    """
+    """Prepare dependencies and a verified local model, with cancellable SSE."""
     _assert_localhost(request)
+    if not _install_lock.acquire(blocking=False):
+        # Keep POST consistently SSE: JSON here previously looked like a broken
+        # stream to callers that were already expecting an installation result.
+        async def already_running():
+            yield "data: " + json.dumps({"type": "done", "success": False, "message": "安装任务已在运行中，请等待完成"}, ensure_ascii=False) + "\n\n"
+        return StreamingResponse(already_running(), media_type="text/event-stream")
 
-    # 检查是否已在运行
-    if _install_lock.locked() and _install_status["running"]:
-        return InstallExtensionsResponse(
-            status="already_running",
-            message="安装任务已在运行中，请等待完成",
-        )
+    events: queue.Queue = queue.Queue()
+    cancel = threading.Event()
+    _install_status.update(running=True, started_at=time.time(), progress_msg="准备本地 AI…")
 
-    def _generate_events():
-        """生成 SSE 事件流（就地更新模块级 _install_status 字典，无需 global）"""
+    def emit(event):
+        if event.get("message"):
+            _install_status["progress_msg"] = event["message"]
+        events.put(event)
 
-        # 加锁
-        acquired = _install_lock.acquire(timeout=0.1)
-        if not acquired:
-            yield f"data: {json.dumps({'type': 'error', 'message': '安装任务已在运行中'}, ensure_ascii=False)}\n\n"
-            return
-
+    def worker():
         try:
-            _install_status["running"] = True
-            _install_status["started_at"] = time.time()
-            _install_status["progress_msg"] = "准备安装..."
-
-            project_root = _get_project_root()
-            python_exe = _get_python_executable()
-            req_file = project_root / "requirements-local.txt"
-
-            # ── 检查 requirements 文件 ──
-            if not req_file.exists():
-                yield f"data: {json.dumps({'type': 'error', 'message': f'找不到 {req_file.name}'}, ensure_ascii=False)}\n\n"
-                return
-
-            yield f"data: {json.dumps({'type': 'info', 'message': f'📦 开始安装本地 AI 扩展包...'}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'type': 'info', 'message': f'📄 文件: {req_file.name} (~2GB)'}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'type': 'info', 'message': f'🐍 Python: {python_exe}'}, ensure_ascii=False)}\n\n"
-            _install_status["progress_msg"] = "正在升级 pip..."
-
-            # ── 升级 pip ──
-            mirror = PIP_MIRRORS[0]
-            upgrade_cmd = [
-                python_exe, "-m", "pip", "install",
-                "--upgrade", "pip", "setuptools", "wheel",
-                "-i", mirror["url"],
-                "--trusted-host", mirror["host"],
-                "--no-cache-dir",
-                "-q",
-            ]
-            try:
-                proc = subprocess.Popen(
-                    upgrade_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    bufsize=1,
-                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
-                )
-                proc.communicate(timeout=300)
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'warn', 'message': f'pip 升级跳过: {e}'}, ensure_ascii=False)}\n\n"
-
-            _install_status["progress_msg"] = "正在下载扩展包..."
-
-            # ── 安装扩展依赖（多镜像 fallback）──
-            max_mirrors = len(PIP_MIRRORS)
-            success = False
-
-            for attempt in range(max_mirrors):
-                m = PIP_MIRRORS[attempt]
-                if attempt > 0:
-                    mirror_name = m["name"]
-                    yield f"data: {json.dumps({'type': 'warn', 'message': f'🔄 切换镜像源 [{mirror_name}] ({attempt+1}/{max_mirrors})'}, ensure_ascii=False)}\n\n"
-
-                cmd = [
-                    python_exe, "-m", "pip", "install", "-r", str(req_file),
-                    "-i", m["url"],
-                    "--trusted-host", m["host"],
-                    "--timeout", "600",
-                    "--retries", "1",
-                    "--no-cache-dir",
-                    "--progress-bar", "off",
-                    "--disable-pip-version-check",
-                ]
-
-                _install_status["progress_msg"] = f"正在下载 [{m['name']}]..."
-
-                try:
-                    proc = subprocess.Popen(
-                        cmd,
-                        cwd=str(project_root),
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        encoding="utf-8",
-                        errors="replace",
-                        bufsize=1,
-                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
-                    )
-
-                    collecting_count = 0
-                    current_pkg = ""
-
-                    for line in proc.stdout:
-                        line = line.rstrip()
-                        if not line:
-                            continue
-
-                        # 解析关键行
-                        if "Successfully installed" in line:
-                            yield f"data: {json.dumps({'type': 'success', 'message': f'✅ {line.strip()}'}, ensure_ascii=False)}\n\n"
-                        elif ("error" in line.lower() and "ERROR" in line) or line.startswith("ERROR"):
-                            yield f"data: {json.dumps({'type': 'error', 'message': line[:200]}, ensure_ascii=False)}\n\n"
-                        elif "warning" in line.lower() or line.startswith("WARNING"):
-                            # 过滤掉过多噪音 warning
-                            if "version" not in line.lower() and "deprecated" not in line.lower():
-                                yield f"data: {json.dumps({'type': 'warn', 'message': line[:150]}, ensure_ascii=False)}\n\n"
-                        elif line.startswith("Collecting"):
-                            collecting_count += 1
-                            pkg = line.replace("Collecting", "").strip().split(" ")[0]
-                            current_pkg = pkg
-                            pct = min(collecting_count * 4, 80)
-                            _install_status["progress_msg"] = f"正在获取: {pkg}"
-                            yield f"data: {json.dumps({'type': 'progress', 'message': f'⏳ 获取: {pkg}', 'percent': pct}, ensure_ascii=False)}\n\n"
-                        elif line.startswith("Downloading"):
-                            fname_match = re.search(r'/([^/]+\.(?:whl|tar\.gz|zip))', line)
-                            pkg_name = fname_match.group(1) if fname_match else line.strip()[11:60]
-                            current_pkg = pkg_name
-                            _install_status["progress_msg"] = f"正在下载: {pkg_name}"
-                            yield f"data: {json.dumps({'type': 'progress', 'message': f'📥 下载: {pkg_name}', 'percent': -1}, ensure_ascii=False)}\n\n"
-                        elif "Installing collected packages" in line:
-                            _install_status["progress_msg"] = "正在写入文件..."
-                            yield f"data: {json.dumps({'type': 'info', 'message': '⏳ 正在写入文件...（此过程可能需要 1~5 分钟）'}, ensure_ascii=False)}\n\n"
-                            yield f"data: {json.dumps({'type': 'progress', 'message': '写入中...', 'percent': 88}, ensure_ascii=False)}\n\n"
-                        else:
-                            # 其他信息行（限制频率）
-                            if len(line) < 200:
-                                yield f"data: {json.dumps({'type': 'log', 'message': line}, ensure_ascii=False)}\n\n"
-
-                    proc.wait()
-
-                    if proc.returncode == 0:
-                        success = True
-                        break
-                    else:
-                        fail_mirror = m["name"]
-                        yield f"data: {json.dumps({'type': 'warn', 'message': f'❌ 镜像 [{fail_mirror}] 失败 (code={proc.returncode})'}, ensure_ascii=False)}\n\n"
-
-                except subprocess.TimeoutExpired:
-                    yield f"data: {json.dumps({'type': 'error', 'message': '⏰ 安装超时（>10分钟）'}, ensure_ascii=False)}\n\n"
-                    if 'proc' in locals():
-                        proc.kill()
-                except Exception as e:
-                    yield f"data: {json.dumps({'type': 'error', 'message': f'异常: {e}'}, ensure_ascii=False)}\n\n"
-
-            # ── 最终结果 ──
-            _install_status["progress_msg"] = "完成" if success else "失败"
-
-            if success:
-                # 验证安装结果
-                verify = _check_extensions_installed()
-                yield f"data: {json.dumps({'type': 'done', 'success': True, 'message': '🎉 本地 AI 引擎安装完成！', 'installed': verify}, ensure_ascii=False)}\n\n"
-            else:
-                yield f"data: {json.dumps({'type': 'done', 'success': False, 'message': '❌ 所有镜像源均失败，请检查网络后重试'}, ensure_ascii=False)}\n\n"
-
-        except Exception as e:
-            logger.error(f"安装扩展包异常: {e}", exc_info=True)
-            yield f"data: {json.dumps({'type': 'error', 'message': f'安装异常: {e}'}, ensure_ascii=False)}\n\n"
+            result = _prepare_local_engine(emit, cancel)
+            terminal = {"type": "done", "success": True, "message": "本地 AI 依赖和模型已准备完成", "installed": result, **result}
+        except Exception as exc:
+            logger.warning("Local AI preparation failed: %s", exc)
+            emit({"type": "error", "message": str(exc)})
+            terminal = {"type": "done", "success": False, "message": str(exc)}
         finally:
-            _install_status["running"] = False
-            _install_status["progress_msg"] = ""
+            _install_status.update(running=False, progress_msg="")
+            _install_lock.release()
+        events.put(terminal)
 
-    return StreamingResponse(
-        _generate_events(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # 禁止 nginx 缓冲
-            "Connection": "keep-alive",
-        },
+    threading.Thread(target=worker, name="local-ai-preparation", daemon=True).start()
+
+    async def generate_events():
+        last_event = time.monotonic()
+        try:
+            while True:
+                try:
+                    event = events.get_nowait()
+                except queue.Empty:
+                    if time.monotonic() - last_event >= _INSTALL_HEARTBEAT_SECONDS:
+                        yield ": keep-alive\n\n"
+                        last_event = time.monotonic()
+                    await asyncio.sleep(0.1)
+                    continue
+                yield "data: " + json.dumps(event, ensure_ascii=False) + "\n\n"
+                last_event = time.monotonic()
+                if event.get("type") == "done":
+                    break
+        finally:
+            # StreamingResponse closes this iterator on client disconnect.
+            # Both pip and the HTTP downloader observe this cancellation token.
+            cancel.set()
+
+    return _InstallStreamingResponse(
+        generate_events(), cancel_event=cancel, media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )

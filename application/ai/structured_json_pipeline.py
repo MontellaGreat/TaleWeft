@@ -14,7 +14,7 @@ from json_repair import repair_json
 from pydantic import BaseModel, ValidationError
 
 from application.ai.llm_output_sanitize import strip_reasoning_artifacts
-from application.ai.llm_retry_policy import LLM_MAX_TOTAL_ATTEMPTS, is_retryable_llm_error
+from application.ai.llm_retry_policy import LLM_MAX_TOTAL_ATTEMPTS, is_retryable_llm_error, llm_retry_delay_seconds
 from application.ai.structured_json_settings import (
     StructuredJSONSettings,
     get_structured_json_settings,
@@ -173,7 +173,9 @@ async def structured_json_generate_with_status(
                 },
             )
             if attempt < total_attempts - 1 and is_retryable_llm_error(exc):
-                delay = _retry_delay_seconds(attempt, settings)
+                delay = max(_retry_delay_seconds(attempt, settings), llm_retry_delay_seconds(exc, attempt))
+                if delay > 120:
+                    return StructuredJSONGenerateResult(payload=None, failure_stage='llm_generate', errors=tuple(last_errors))
                 logger.info(
                     "结构化 JSON 管线遇到可重试错误，%.1f 秒后重试 (attempt=%d/%d)",
                     delay,

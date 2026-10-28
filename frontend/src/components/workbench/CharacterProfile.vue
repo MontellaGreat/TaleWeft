@@ -20,19 +20,24 @@
         <span v-else class="cp-id-placeholder">角色档案</span>
       </div>
       <div class="cp-topbar-btns">
+        <n-button v-if="bibleChar" size="tiny" secondary :disabled="loading || extracting" @click="editorOpen = true">编辑档案</n-button>
         <n-tooltip v-if="selectedCharacterId" trigger="hover" :delay="500">
           <template #trigger>
-            <n-button size="tiny" quaternary :loading="extracting" @click="doExtract">
+            <n-button size="tiny" quaternary :loading="extracting" :disabled="editorOpen || loading" @click="doExtract">
               <template #icon><n-icon size="12"><SyncOutline /></n-icon></template>
             </n-button>
           </template>
           从角色描述启发式提取，填充空 Bible 锚点
         </n-tooltip>
-        <n-button size="tiny" quaternary :loading="loading" @click="loadCharacterData">
+        <n-button size="tiny" quaternary :loading="loading" :disabled="editorOpen || extracting" aria-label="刷新角色档案" @click="loadCharacterData">
           <template #icon><n-icon size="12"><RefreshOutline /></n-icon></template>
         </n-button>
       </div>
     </div>
+
+    <n-alert v-if="loadError" type="error" :show-icon="false" role="alert">{{ loadError }}</n-alert>
+    <CharacterProfileEditor ref="editorRef" v-model:show="editorOpen" :slug="slug" :character="bibleChar"
+      @saved="onProfileSaved" @deleted="onProfileDeleted" />
 
     <!-- ── Empty state ────────────────────────────────────────────── -->
     <div v-if="!selectedCharacterId" class="cp-empty">
@@ -215,6 +220,23 @@
         <!-- ④ 档案 ────────────────────────────────────────────────── -->
         <n-tab-pane name="file" tab="档案" class="cp-pane">
 
+          <div v-if="bibleChar" class="cp-card">
+            <div class="cp-card-hd"><span class="cp-card-lbl">基础档案</span></div>
+            <div class="cp-card-bd">
+              <div v-for="field in basicProfileFields" :key="field.label" class="cp-basic-field">
+                <span class="cp-habit-k">{{ field.label }}</span>
+                <p class="cp-prose">{{ field.value }}</p>
+              </div>
+              <div v-if="bibleChar.relationships?.length" class="cp-basic-field">
+                <span class="cp-habit-k">人物关系</span>
+                <p v-for="(relationship, index) in bibleChar.relationships" :key="index" class="cp-prose">
+                  {{ typeof relationship === 'string' ? relationship : [relationship.target, relationship.relation, relationship.description].filter(Boolean).join(' · ') }}
+                </p>
+              </div>
+              <p v-if="!basicProfileFields.length && !bibleChar.relationships?.length" class="cp-empty-note">暂无基础档案，可点击「编辑档案」完善</p>
+            </div>
+          </div>
+
           <!-- 人设两面 -->
           <div v-if="hasProfiles" class="cp-card">
             <div class="cp-card-hd">
@@ -296,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onBeforeUnmount } from 'vue'
 import { useMessage } from 'naive-ui'
 import { RefreshOutline, SyncOutline } from '@vicons/ionicons5'
 import {
@@ -304,8 +326,12 @@ import {
   type CharacterPsycheDetailDTO,
 } from '@/api/engineCore'
 import { bibleApi, type CharacterDTO } from '@/api/bible'
+import type { CharacterMutationResult } from '@/api/characterProfiles'
 import { memoryApi, type CharacterProjection, type MemoryAtom } from '@/api/memory'
 import { useWorkbenchDeskTickReload } from '@/composables/useWorkbenchNarrativeSync'
+import { useWorkbenchRefreshStore } from '@/stores/workbenchRefreshStore'
+import { WORKBENCH_CHAPTER_DESK_CHANGE_EVENT } from '@/workbench/deskEvents'
+import { formatApiError } from '@/utils/apiError'
 import {
   classifyCharacterMentalState,
   getCharacterFieldNarrativeLabel,
@@ -317,6 +343,7 @@ import {
   normalizeCharacterRole,
 } from '@/domain/character'
 import DialogueCorpus from './DialogueCorpus.vue'
+import CharacterProfileEditor from './CharacterProfileEditor.vue'
 
 interface Props {
   slug: string
@@ -329,8 +356,41 @@ const props = withDefaults(defineProps<Props>(), {
   currentChapterNumber: null,
   deskChapterNumber: null,
 })
+const emit = defineEmits<{ deleted: [characterId: string] }>()
 
 const message = useMessage()
+const refreshStore = useWorkbenchRefreshStore()
+const editorRef = ref<InstanceType<typeof CharacterProfileEditor> | null>(null)
+const editorOpen = ref(false)
+const loadError = ref('')
+let loadRevision = 0
+async function canLeave() {
+  const allowed = await (editorRef.value?.canLeave() ?? Promise.resolve(true))
+  if (allowed) editorOpen.value = false
+  return allowed
+}
+function broadcastMutation() {
+  refreshStore.bumpAfterChapterDeskChange()
+  window.dispatchEvent(new CustomEvent(WORKBENCH_CHAPTER_DESK_CHANGE_EVENT))
+}
+function onProfileSaved(result: CharacterMutationResult, characterId: string) {
+  if (props.selectedCharacterId === characterId) {
+    bibleChar.value = result.characters.find(character => character.id === characterId) ?? null
+    characterName.value = bibleChar.value?.name ?? ''
+    psycheDetail.value = null
+    projection.value = null
+  }
+  broadcastMutation()
+}
+function onProfileDeleted(_result: CharacterMutationResult, characterId: string) {
+  if (props.selectedCharacterId === characterId) {
+    ++loadRevision
+    bibleChar.value = null; characterName.value = ''; psycheDetail.value = null; projection.value = null
+  }
+  emit('deleted', characterId)
+  broadcastMutation()
+}
+defineExpose({ canLeave })
 
 // ── State ─────────────────────────────────────────────────────────
 const loading    = ref(false)
@@ -391,6 +451,16 @@ const hasHabits = computed(() =>
 const hasProfiles = computed(() =>
   !!(bibleChar.value?.public_profile?.trim() || bibleChar.value?.hidden_profile?.trim()),
 )
+const basicProfileFields = computed(() => {
+  const character = bibleChar.value
+  if (!character) return []
+  const fields: Array<{ key: keyof CharacterDTO; label: string }> = [
+    { key: 'description', label: '角色简介' }, { key: 'gender', label: '性别' }, { key: 'age', label: '年龄' },
+    { key: 'appearance', label: '外貌' }, { key: 'personality', label: '性格' }, { key: 'background', label: '背景经历' },
+    { key: 'core_motivation', label: '核心动机' }, { key: 'inner_lack', label: '内在缺失' },
+  ]
+  return fields.map(field => ({ label: field.label, value: String(character[field.key] ?? '').trim() })).filter(field => field.value)
+})
 const isHiddenLocked = computed(() => {
   const rc = bibleChar.value?.reveal_chapter
   const ch = props.currentChapterNumber
@@ -524,28 +594,34 @@ const injectPreviewBody = computed(() => {
 
 // ── Actions ───────────────────────────────────────────────────────
 async function loadCharacterData() {
-  if (!props.selectedCharacterId) {
+  const request = ++loadRevision, novelId = props.slug, characterId = props.selectedCharacterId
+  loadError.value = ''
+  if (!characterId || !novelId) {
     bibleChar.value = null; psycheDetail.value = null; projection.value = null; characterName.value = ''
+    loading.value = false
     return
   }
   loading.value = true
   try {
-    const bible = await bibleApi.getBible(props.slug)
-    const char  = bible.characters?.find(x => x.id === props.selectedCharacterId) ?? null
+    const bible = await bibleApi.getBible(novelId)
+    if (request !== loadRevision) return
+    const char  = bible.characters?.find(x => x.id === characterId) ?? null
     bibleChar.value     = char
     characterName.value = char?.name ?? ''
     const [psyche, proj] = await Promise.all([
       characterName.value
-        ? characterPsycheApi.get(props.slug, characterName.value).catch(() => null)
+        ? characterPsycheApi.get(novelId, characterName.value).catch(() => null)
         : Promise.resolve(null),
-      memoryApi.getCharacterProjection(props.slug, props.selectedCharacterId).catch(() => null),
+      memoryApi.getCharacterProjection(novelId, characterId).catch(() => null),
     ])
+    if (request !== loadRevision) return
     psycheDetail.value = psyche
     projection.value = proj
   } catch (err: unknown) {
-    message.error(err instanceof Error ? err.message : '加载角色数据失败')
+    if (request !== loadRevision) return
+    loadError.value = formatApiError(err, '加载角色数据失败，请刷新重试')
   } finally {
-    loading.value = false
+    if (request === loadRevision) loading.value = false
   }
 }
 
@@ -593,14 +669,16 @@ async function doExtract() {
   }
 }
 
-watch(() => props.selectedCharacterId, () => {
+watch(() => [props.slug, props.selectedCharacterId], () => {
   activeTab.value = 'write'
+  bibleChar.value = null; psycheDetail.value = null; projection.value = null; characterName.value = ''
   void loadCharacterData()
 }, { immediate: true })
 
 useWorkbenchDeskTickReload(() => {
   if (props.selectedCharacterId) void loadCharacterData()
 })
+onBeforeUnmount(() => { ++loadRevision })
 </script>
 
 <style scoped>
@@ -614,6 +692,8 @@ useWorkbenchDeskTickReload(() => {
   overflow: hidden;
   background: var(--app-surface);
 }
+.cp-basic-field + .cp-basic-field { margin-top: 12px; }
+.cp-basic-field .cp-prose { margin-top: 4px; }
 
 /* ── Topbar ──────────────────────────────────────────────────────── */
 

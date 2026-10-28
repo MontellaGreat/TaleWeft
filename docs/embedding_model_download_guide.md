@@ -1,93 +1,52 @@
-# 手动下载本地向量模型指南
+# 嵌入模型配置与国内下载
 
-由于网络问题无法直接从 HuggingFace 下载，提供以下手动下载方案：
+从 `0.1.0-preview.3` 起，新配置默认使用本地开源模型 `BAAI/bge-small-zh-v1.5`，生成 512 维向量。已有云端配置继续保留，不自动覆盖密钥、服务地址或模型路径。
 
-## 方案 1：使用 ModelScope（推荐）
+## 在软件内准备本地模型
 
-ModelScope 是阿里云提供的国内模型托管平台，速度快且稳定。
+1. 打开首页或工作台的 **模型控制台 → 嵌入模型**。
+2. 保持 **本地模型**，点击 **下载并准备本地模型**。
+3. 等待依赖安装和验证、模型源检测、权重下载与完整性校验。界面显示当前动作、下载源、进度和错误。
+4. 默认下载路径已与默认配置对齐。如果此前使用自备模型目录，点击 **填入已下载模型路径**，再点 **保存嵌入配置**。
+5. 确认“依赖与模型文件均已检查”的就绪提示，再新建书目。
 
-### 安装 ModelScope
-```bash
-pip install modelscope
-```
+权重约 96 MB；首次准备的 PyTorch 等依赖体积更大，可能需要 5–20 分钟。实际耗时取决于网络和设备。下载完成后，本地嵌入推理不需要联网；小说正文使用的语言模型仍按其单独配置调用。
 
-### 下载模型
-```python
-from modelscope import snapshot_download
+### 网络来源
 
-# 下载到默认缓存目录
-model_dir = snapshot_download('AI-ModelScope/bge-small-zh-v1.5')
-print(f"模型已下载到: {model_dir}")
-```
+模型下载依次尝试：
 
-### 使用下载的模型
-在 `.env` 中配置：
-```bash
+1. [ModelScope 魔搭](https://modelscope.cn/models/AI-ModelScope/bge-small-zh-v1.5)
+2. [HF 国内镜像](https://hf-mirror.com/BAAI/bge-small-zh-v1.5)
+3. [Hugging Face 官方](https://huggingface.co/BAAI/bge-small-zh-v1.5)
+
+选择来源前先探测元数据、配置和实际权重端点。来源不可达、下载失败或校验不一致时自动尝试下一来源，保留 HTTPS 验证。Python 依赖使用阿里云、清华等国内 PyPI 源并在失败后切换，不要求先连通 Hugging Face。
+
+### 存储与运行环境
+
+- 桌面默认权重目录：`%APPDATA%\com.taleweft.desktop\data\models\bge-small-zh-v1.5`。
+- 依赖目录：同一数据目录下的 `local-python-packages`。明确设置 `TALEWEFT_PROD_DATA_DIR` 时随该目录变化。
+- 本地依赖安装使用与后端 ABI、位数相符且带 pip 的真实 Python。当前 Windows 构建需要 **Python 3.14 x64**；后端冻结 exe 自身不能执行 pip。
+- 未自动发现兼容 Python 时，安装对应解释器后重启；也可设置 `PLOTPILOT_PYTHON_EXE` 为其 `python.exe` 的完整路径。
+- 准备失败会保留具体错误；取消会终止本次安装与下载，之后可以重试，不再永久占用安装锁。
+
+## 使用已有本地模型
+
+在模型路径中填写**完整目录路径**，保存后重新检测。目录应包含模型配置、tokenizer、完整 safetensors 或 PyTorch 权重及模型所需的 Pooling 等配置。仅创建空目录或复制配置文件不会显示就绪。
+
+软件自身下载的模型会保存校验清单，并按文件长度和哈希检查。自备目录按配置和权重结构检查；结构完整不等同于已验证全部自定义架构，最终以实际离线加载结果为准。
+
+源码环境也可在 `.env` 中明确设置：
+
+```dotenv
 EMBEDDING_SERVICE=local
-EMBEDDING_MODEL_PATH=/path/to/downloaded/model
+EMBEDDING_MODEL_PATH=F:/your-data/models/bge-small-zh-v1.5
 ```
 
-## 方案 2：使用 HF-Mirror（国内镜像）
+已有的 `./.models/bge-small-zh-v1.5` 路径继续兼容。软件内保存的配置优先于环境默认值。
 
-### 设置环境变量
-```bash
-# Windows CMD
-set HF_ENDPOINT=https://hf-mirror.com
+## 使用云端嵌入
 
-# Windows PowerShell
-$env:HF_ENDPOINT="https://hf-mirror.com"
+切换 **云端模型**，填写嵌入服务专用 Base URL、API Key 和模型 ID，保存配置。嵌入接口需要返回向量；正文生成模型不能直接替代嵌入模型。新建书目前检查配置完整性，实际可用性仍取决于上游服务。
 
-# Linux/Mac
-export HF_ENDPOINT=https://hf-mirror.com
-```
-
-### 下载模型
-```bash
-python scripts/utils/download_embedding_model.py
-```
-
-## 方案 3：手动下载文件
-
-访问以下链接手动下载模型文件：
-- https://hf-mirror.com/BAAI/bge-small-zh-v1.5
-
-需要下载的文件：
-- config.json
-- pytorch_model.bin
-- tokenizer_config.json
-- vocab.txt
-- special_tokens_map.json
-
-将文件放到：`./.models/bge-small-zh-v1.5/`（与根目录 `.env.example` 中 `EMBEDDING_MODEL_PATH` 默认值一致；亦可使用任意绝对路径）
-
-然后配置：
-```bash
-EMBEDDING_MODEL_PATH=./.models/bge-small-zh-v1.5
-```
-
-## 方案 4：暂时使用 OpenAI API
-
-如果急需使用，可以先配置云端嵌入（与 `.env.example` 一致，二选一或都填由实现回退）：
-```bash
-EMBEDDING_SERVICE=openai
-EMBEDDING_API_KEY=your_key_here
-# 可选：OPENAI_API_KEY=your_key_here
-```
-
-## 当前状态
-
-- 本地 embedding 与 OpenAI 兼容云端模式由 `EMBEDDING_SERVICE` 切换（见 `.env.example`）。
-- 模型文件需按上文下载到 `EMBEDDING_MODEL_PATH` 所指目录后启动后端。
-
-## 验证模型是否可用
-
-运行下载/校验脚本：
-```bash
-python scripts/utils/download_embedding_model.py
-```
-
-如果成功，会显示：
-```
-✓ 模型下载成功！
-✓ 生成向量维度: (3, 512)
-```
+每本书的向量索引与使用的模型维度绑定。已有作品切换嵌入模型前应备份并通过现有索引重建操作更新向量；仅修改全局配置不会自动让旧索引适配不同维度。

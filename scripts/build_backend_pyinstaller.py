@@ -11,6 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 PACKAGES = ('application', 'domain', 'infrastructure', 'interfaces', 'engine')
+# Local AI wheels are installed after release, so PyInstaller cannot discover
+# their standard-library imports while analyzing this lightweight environment.
+# Keep these runtime modules available without bundling torch/model weights.
+LOCAL_AI_STDLIB = ('filecmp', 'pickletools', 'cProfile', 'pstats', 'fileinput',
+                   'trace', 'wave', 'cmath')
 
 
 def build_command():
@@ -22,6 +27,8 @@ def build_command():
                '--distpath', str(ROOT / 'out' / 'tauri'),
                '--workpath', str(ROOT / 'out' / 'pyinstaller' / 'work'),
                '--specpath', str(ROOT / 'out' / 'pyinstaller')]
+    for module in LOCAL_AI_STDLIB:
+        command += ['--hidden-import', module]
     # PyInstaller's own package discovery handles dynamic composition-root imports.
     # Collect only source packages and explicitly allowlisted runtime resources.
     for package in PACKAGES:

@@ -406,7 +406,8 @@ def register_autopilot_continuations() -> None:
             "quality_metrics": {},
             "generation_time": 0,
         }
-        if novel_id and ctx.session.policy != InvocationPolicy.DIRECT:
+        deferred_apply = bool(ctx.session.metadata.get('manual_stop_recovery'))
+        if novel_id and ctx.session.policy != InvocationPolicy.DIRECT and not deferred_apply:
             _clear_invocation_state(
                 novel_id,
                 autopilot_status="running",
@@ -422,6 +423,7 @@ def register_autopilot_continuations() -> None:
             "parts": parts,
             "macro_plan": result,
             "target_chapters": target_chapters,
+            "deferred_apply": deferred_apply,
         }
 
     def _act_plan(ctx: ContinuationContext) -> Mapping[str, Any]:

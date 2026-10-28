@@ -59,10 +59,12 @@
             </template>
             <div class="character-profile-slot">
               <CharacterProfile
+                ref="profileRef"
                 :slug="slug"
                 :selected-character-id="selectedCharacterId"
                 :current-chapter-number="currentChapterNumber"
                 :desk-chapter-number="currentChapterNumber"
+                @deleted="onCharacterDeleted"
               />
             </div>
           </n-tab-pane>
@@ -97,12 +99,17 @@ function openStoryEvolution() {
 
 const selectedCharacterId = ref<string | null>(null)
 const activeDetailTab = ref<'chapter-cast' | 'profile'>('chapter-cast')
+const profileRef = ref<InstanceType<typeof CharacterProfile> | null>(null)
 
-function onSelectCharacter(characterId: string | null) {
+async function onSelectCharacter(characterId: string | null) {
+  if (selectedCharacterId.value !== characterId && !await (profileRef.value?.canLeave() ?? Promise.resolve(true))) return
   selectedCharacterId.value = characterId
   if (characterId) {
     activeDetailTab.value = 'profile'
   }
+}
+function onCharacterDeleted(characterId: string) {
+  if (selectedCharacterId.value === characterId) selectedCharacterId.value = null
 }
 </script>
 

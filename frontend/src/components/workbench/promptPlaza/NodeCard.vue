@@ -22,6 +22,11 @@
 
     <!-- 描述 -->
     <div class="card-desc">{{ node.description || '暂无描述' }}</div>
+    <n-tag v-if="node.runtime_usage" size="tiny" :bordered="false"
+      :type="node.runtime_usage.status === 'runtime' ? 'success' : 'default'"
+      :title="node.runtime_usage.description">
+      {{ node.runtime_usage.label }}
+    </n-tag>
 
     <!-- 变量标签 -->
     <div class="card-vars" v-if="node.variable_names.length">

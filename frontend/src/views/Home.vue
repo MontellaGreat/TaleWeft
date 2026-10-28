@@ -13,14 +13,14 @@
         <header class="library-topbar">
           <div class="library-brand"><img src="/taleweft-mark.svg" alt="" /><span>{{ BRAND.displayName }}</span></div>
           <nav class="library-global-actions" aria-label="全局工具">
-            <GlobalLLMEntryButton /><PromptPlazaEntryButton />
+            <GlobalLLMEntryButton ref="modelConsoleRef" /><PromptPlazaEntryButton />
             <n-button quaternary @click="showLibraryTools = true">统计与工具</n-button>
             <n-button quaternary @click="appSettingsShell.open()"><template #icon><n-icon :component="IconThemeSettings" /></template>应用设置</n-button>
           </nav>
         </header>
         <header class="header">
           <div class="header-content"><h1 class="title">我的书库</h1><p class="subtitle">从这里继续，把故事写下去。</p></div>
-          <n-button type="primary" size="large" @click="focusCreateInput">＋ 新建书目</n-button>
+          <n-button type="primary" size="large" :loading="checkingModels" @click="focusCreateInput">＋ 新建书目</n-button>
         </header>
 
         <!-- Create Card -->
@@ -125,7 +125,7 @@
                 size="large"
                 round
                 :loading="creating"
-                :disabled="!newBook.premise.trim() || !marketSelectionReady"
+                :disabled="!newBook.premise.trim() || !marketSelectionReady || checkingModels"
                 @click="handleCreate"
               >
                 <template #icon>
@@ -187,7 +187,7 @@
             </div>
             <h3 class="empty-title">还没有书目</h3>
             <p class="empty-desc">新建一本书，写下梗概与创作规则。模型与备份恢复可在应用设置中管理。</p>
-            <n-button type="primary" size="large" round @click="focusCreateInput">
+            <n-button type="primary" size="large" round :loading="checkingModels" @click="focusCreateInput">
               <template #icon>
                 <n-icon><IconSpark /></n-icon>
               </template>
@@ -297,6 +297,20 @@
         <BrandFooter />
       </div>
     </div>
+
+    <n-modal v-model:show="showModelRequired" preset="card" title="请先配置好模型" :style="{ width: 'min(480px, 94vw)' }">
+      <p>创建书目前，请在模型控制台中配置并保存语言模型与嵌入模型。</p>
+      <div v-for="issue in modelReadinessIssues" :key="issue.label" class="model-readiness-issues">
+        <strong>{{ issue.label }}</strong>
+        <ul><li v-for="reason in issue.reasons" :key="reason">{{ reason }}</li></ul>
+      </div>
+      <template #action>
+        <n-space justify="end">
+          <n-button @click="showModelRequired = false">取消</n-button>
+          <n-button type="primary" @click="openRequiredModelPanel">打开模型控制台</n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
     <!-- Batch Delete Confirm Modal -->
     <n-modal v-model:show="showBatchDeleteConfirm" preset="confirm" type="error" title="确认批量删除">
@@ -417,6 +431,7 @@ import { defineAsyncComponent, h, ref, onMounted, computed, nextTick, watch } fr
 import { useRouter } from 'vue-router'
 import { useMessage, NIcon } from 'naive-ui'
 import { novelApi, type NovelDTO } from '../api/novel'
+import { modelReadinessApi } from '@/api/modelReadiness'
 import { isWizardCompleted } from '@/utils/wizardStageCache'
 import BrandFooter from '@/components/brand/BrandFooter.vue'
 import { BRAND } from '@/constants/brand'
@@ -497,6 +512,11 @@ watch(libraryView, value => writeStorageString('taleweft-library-view', value))
 const createInputRef = ref<any>(null)
 const showAdvanced = ref(false)
 const creating = ref(false)
+const checkingModels = ref(false)
+const showModelRequired = ref(false)
+const requiredModelTab = ref<'llm' | 'embedding'>('llm')
+const modelReadinessIssues = ref<{ label: string; reasons: string[] }[]>([])
+const modelConsoleRef = ref<{ openPanel: (tab?: 'llm' | 'embedding') => void } | null>(null)
 const loading = ref(false)
 
 const sidebarCollapsed = ref(readStorageBoolean(storageKeys.statsSidebarCollapsed))
@@ -640,6 +660,7 @@ const formatWordCount = (count: number): string => {
 }
 
 const handleCreate = async () => {
+  if (creating.value || checkingModels.value || showModelRequired.value) return
   if (!newBook.value.premise.trim()) {
     message.warning('请输入核心梗概')
     return
@@ -663,6 +684,7 @@ const handleCreate = async () => {
 
   creating.value = true
   try {
+    if (!await ensureModelsReady()) return
     const title = newBook.value.title || newBook.value.premise.substring(0, 20)
     const novelId = `novel-${Date.now()}`
 
@@ -798,7 +820,46 @@ const handleBatchDelete = async () => {
   }
 }
 
-const focusCreateInput = () => {
+async function ensureModelsReady(): Promise<boolean> {
+  checkingModels.value = true
+  try {
+    const readiness = await modelReadinessApi.get()
+    if (typeof readiness?.ready !== 'boolean'
+      || typeof readiness.llm?.ready !== 'boolean'
+      || typeof readiness.embedding?.ready !== 'boolean') {
+      throw new Error('模型配置检查结果不完整')
+    }
+    if (readiness.ready && readiness.llm.ready && readiness.embedding.ready) return true
+    modelReadinessIssues.value = [
+      { label: '语言模型', ...readiness.llm },
+      { label: '嵌入模型', ...readiness.embedding },
+    ].filter(model => !model.ready).map(model => ({
+      label: model.label,
+      reasons: [...new Set((Array.isArray(model.reasons) ? model.reasons : [])
+        .filter((reason): reason is string => typeof reason === 'string' && Boolean(reason.trim()))
+        .map(reason => reason.trim()))],
+    }))
+    requiredModelTab.value = readiness.llm.ready ? 'embedding' : 'llm'
+    showModelRequired.value = true
+    return false
+  } catch (error: unknown) {
+    message.error(formatApiError(error, '无法检查模型配置，请稍后重试'))
+    return false
+  } finally {
+    checkingModels.value = false
+  }
+}
+
+const openRequiredModelPanel = () => {
+  showModelRequired.value = false
+  showCreate.value = false
+  showLibraryTools.value = false
+  modelConsoleRef.value?.openPanel(requiredModelTab.value)
+}
+
+const focusCreateInput = async () => {
+  if (creating.value || checkingModels.value || showModelRequired.value) return
+  if (!await ensureModelsReady()) return
   showLibraryTools.value = false
   showCreate.value = true
   createStep.value = 1
@@ -847,7 +908,7 @@ onMounted(() => {
   margin-left: 52px;
 }
 
-/* 顶栏：与 StatsTopBar 同款渐变，AI 控制台 / 提示词广场 / 设置 */
+/* 顶栏：与 StatsTopBar 同款渐变，模型控制台 / 提示词广场 / 设置 */
 
 .home-bg {
   position: absolute;

@@ -1,4 +1,5 @@
 """Bible 应用服务"""
+from copy import copy
 from typing import TYPE_CHECKING, Optional, Protocol
 
 from domain.bible.entities.bible import Bible
@@ -15,6 +16,7 @@ from domain.novel.repositories.novel_repository import NovelRepository
 from domain.novel.repositories.chapter_repository import ChapterRepository
 from domain.shared.exceptions import EntityNotFoundError, InvalidOperationError
 from application.world.dtos.bible_dto import BibleDTO, CharacterDTO
+from application.world.services.generated_character_normalization import normalize_character_voice_profile
 
 if TYPE_CHECKING:
     from application.world.services.bible_location_triple_sync import BibleLocationTripleSyncService
@@ -59,6 +61,22 @@ class BibleService:
         self._location_triple_sync = location_triple_sync
         self._unified_char_repo = unified_character_repository
 
+    def _assert_setup_write(self, novel_id: str, stage: str) -> None:
+        from application.onboarding.setup_edit_guard import assert_setup_editable
+
+        # Use the same database that owns the canonical material and its lease.
+        repository_state = vars(self.bible_repository)
+        db = repository_state.get("db") or repository_state.get("_db")
+        assert_setup_editable(novel_id, stage, db=db)
+
+    def _assert_setup_changes(self, novel_id: str, before: BibleDTO, after: BibleDTO) -> None:
+        if before.characters != after.characters:
+            self._assert_setup_write(novel_id, "characters")
+        if before.world_settings != after.world_settings or before.style_notes != after.style_notes:
+            self._assert_setup_write(novel_id, "worldbuilding")
+        if before.locations != after.locations:
+            self._assert_setup_write(novel_id, "locations")
+
     def _validate_locations_forest(self, locations: list) -> None:
         from domain.bible.bible_location_tree import validate_location_forest
 
@@ -89,6 +107,8 @@ class BibleService:
         Returns:
             BibleDTO
         """
+        for stage in ("worldbuilding", "characters", "locations"):
+            self._assert_setup_write(novel_id, stage)
         # 兼容：部分入口可能先写 chapters/story_nodes，但 novels 主表尚未创建，导致 Bible 外键失败。
         # 这里兜底确保 novels(id) 存在，避免 500。
         if self._novel_repository is not None:
@@ -161,6 +181,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
+        self._assert_setup_write(novel_id, "characters")
         character = Character(
             id=CharacterId(character_id),
             name=name,
@@ -219,6 +240,7 @@ class BibleService:
         active_wounds: list = None,
     ) -> BibleDTO:
         """添加或更新人物，供可重放的 AI Invocation 提交使用。"""
+        self._assert_setup_write(novel_id, "characters")
         bible = self.bible_repository.get_by_novel_id(NovelId(novel_id))
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
@@ -270,7 +292,8 @@ class BibleService:
         character.idle_behavior = idle_behavior or ""
         character.core_belief = core_belief or ""
         character.moral_taboos = list(moral_taboos or [])
-        character.voice_profile = dict(voice_profile or {})
+        if voice_profile is not None:
+            character.voice_profile = dict(voice_profile)
         character.active_wounds = list(active_wounds or [])
 
         self.bible_repository.save(bible)
@@ -293,6 +316,7 @@ class BibleService:
         Bible 与 Character 存在，避免把运行时能力差异以未实现异常暴露给
         API 层。
         """
+        self._assert_setup_write(novel_id, "characters")
         repo = self.bible_repository
         normalized_mental_state = mental_state or "NORMAL"
         normalized_verbal_tic = verbal_tic or ""
@@ -380,6 +404,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
+        self._assert_setup_write(novel_id, "worldbuilding")
         setting = WorldSetting(
             id=setting_id,
             name=name,
@@ -421,6 +446,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
+        self._assert_setup_write(novel_id, "locations")
         pid = parent_id.strip() if isinstance(parent_id, str) and parent_id.strip() else None
         location = Location(
             id=location_id,
@@ -504,6 +530,7 @@ class BibleService:
         if bible is None:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
+        self._assert_setup_write(novel_id, "worldbuilding")
         note = StyleNote(
             id=note_id,
             category=category,
@@ -551,7 +578,8 @@ class BibleService:
         world_settings: list,
         locations: list,
         timeline_notes: list,
-        style_notes: list
+        style_notes: list,
+        *, replace_characters: bool = False,
     ) -> BibleDTO:
         """批量更新 Bible 的所有数据
 
@@ -574,6 +602,11 @@ class BibleService:
             raise EntityNotFoundError("Bible", f"for novel {novel_id}")
 
         self._validate_locations_forest(locations)
+
+        before = BibleDTO.from_domain(bible)
+        # Build the complete effective replacement without mutating a repository's
+        # cached aggregate before all changed audited sections have been allowed.
+        bible = copy(bible)
 
         # 记录改名前的 id→name 映射，用于 save 后同步刷新 story_nodes
         prev_name_by_id = {c.character_id.value: c.name for c in bible.characters}
@@ -667,7 +700,7 @@ class BibleService:
                 hid = getattr(prev, "hidden_profile", None) or ""
             else:
                 hid = ""
-            if getattr(char_data, "reveal_chapter", None) is not None:
+            if replace_characters or getattr(char_data, "reveal_chapter", None) is not None:
                 rev = char_data.reveal_chapter
             elif prev is not None:
                 rev = getattr(prev, "reveal_chapter", None)
@@ -718,7 +751,7 @@ class BibleService:
                 idle_behavior=ib,
                 core_belief=cb,
                 moral_taboos=mt,
-                voice_profile=vp,
+                voice_profile=normalize_character_voice_profile(vp, preserve_extra=True),
                 active_wounds=aw,
             )
             bible._characters.append(character)
@@ -765,6 +798,7 @@ class BibleService:
             )
             bible._style_notes.append(note)
 
+        self._assert_setup_changes(novel_id, before, BibleDTO.from_domain(bible))
         self.bible_repository.save(bible)
         self._sync_location_triples(novel_id, bible)
         self._sync_to_unified_characters(novel_id, bible)
@@ -773,6 +807,13 @@ class BibleService:
         self._propagate_character_renames(novel_id, prev_name_by_id, characters)
 
         return BibleDTO.from_domain(bible)
+
+    def restore_missing_generated_character_voices(self, novel_id, before, wanted, *, run_id, validate_basis):
+        """Restore a proven historical projection under the current setup owner."""
+        from application.onboarding.setup_edit_guard import assert_setup_editable
+        assert_setup_editable(novel_id, 'characters')
+        self.bible_repository.restore_missing_character_voices(
+            novel_id, before, wanted, run_id=run_id, validate_basis=validate_basis)
 
     def _sync_to_unified_characters(self, novel_id: str, bible: Bible) -> None:
         """将 Bible 角色同步到 unified_characters，并保留章后动态状态。
@@ -805,6 +846,7 @@ class BibleService:
                             return getattr(existing, field, default)
                         return default
 
+                    voice = normalize_character_voice_profile(getattr(char, 'voice_profile', None), preserve_extra=True)
                     unified = UnifiedCharacter(
                         id=UCId(char_id),
                         novel_id=novel_id,
@@ -826,6 +868,10 @@ class BibleService:
                         idle_behavior=getattr(char, "idle_behavior", "") or "",
                         core_belief=getattr(char, "core_belief", "") or "",
                         moral_taboos=list(getattr(char, "moral_taboos", None) or []),
+                        voice_style=voice.get('style', ''),
+                        sentence_pattern=voice.get('sentence_pattern', ''),
+                        speech_tempo=voice.get('speech_tempo', ''),
+                        voice_profile=voice,
                         active_wounds=_value("active_wounds", list(getattr(char, "active_wounds", None) or [])),
                         mental_state=_value("mental_state", getattr(char, "mental_state", "NORMAL")) or "NORMAL",
                         mental_state_reason=_value("mental_state_reason", getattr(char, "mental_state_reason", "")) or "",

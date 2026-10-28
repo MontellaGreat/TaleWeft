@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool
 
 from application.engine.dag.models import (
     DAGDefinition,
@@ -108,6 +108,8 @@ def get_execution_manager() -> DAGExecutionManager:
 
 
 async def shutdown_dag_jobs():
+    from interfaces.api.v1.engine.setup_dag_routes import shutdown_setup_jobs
+    await shutdown_setup_jobs()
     if _execution_manager is not None:
         await _execution_manager.shutdown()
 
@@ -185,6 +187,7 @@ async def list_node_types():
         "types": {
             node_type: meta.model_dump(mode="json")
             for node_type, meta in metas.items()
+            if node_type != 'setup_step'  # Wizard-only adapter, not a chapter palette node.
         }
     }
 
@@ -488,6 +491,7 @@ async def update_node_config(novel_id: str, node_id: str, request: UpdateNodeCon
 class RunDAGRequest(BaseModel):
     chapter_number: Optional[int] = Field(default=None, ge=1)
     resume_run_id: Optional[str] = None
+    is_final_chapter: Optional[StrictBool] = None
 
 
 class StopDAGRequest(BaseModel):
@@ -498,7 +502,9 @@ class StopDAGRequest(BaseModel):
 async def run_dag(novel_id: str, request: Optional[RunDAGRequest] = None):
     try:
         request = request or RunDAGRequest()
-        return await get_execution_manager().start(novel_id, request.chapter_number, resume_run_id=request.resume_run_id)
+        overrides = {} if request.is_final_chapter is None else {'is_final_chapter': request.is_final_chapter}
+        return await get_execution_manager().start(novel_id, request.chapter_number,
+            resume_run_id=request.resume_run_id, **overrides)
     except Exception as exc:
         raise _runtime_http_error(exc) from exc
 

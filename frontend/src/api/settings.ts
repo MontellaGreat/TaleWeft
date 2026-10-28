@@ -1,5 +1,6 @@
 import { readJsonSse } from './jsonSseReader'
 import { apiClient, authenticatedFetch, resolveHttpUrl } from './config'
+import { formatApiError } from '@/utils/apiError'
 
 export interface LLMConfigProfile {
   id: string
@@ -60,6 +61,14 @@ export interface ExtensionsStatus {
   all_installed: boolean
   install_running: boolean
   install_progress: string
+  model_ready: boolean
+  local_ready: boolean
+  model_path: string
+  download_source?: string | null
+  downloaded_model_ready?: boolean
+  downloaded_model_path?: string
+  checking?: boolean
+  dependency_error?: string
 }
 
 export interface InstallEvent {
@@ -68,6 +77,10 @@ export interface InstallEvent {
   percent?: number
   success?: boolean
   installed?: ExtensionsStatus
+  phase?: string
+  model_ready?: boolean
+  model_path?: string
+  download_source?: string
 }
 
 function tracePrivacyPath(suffix: string, novelId?: string) {
@@ -141,8 +154,9 @@ export const settingsApi = {
           },
         })
 
-        if (!res.ok || !res.body) {
-          const err = new Error(`HTTP ${res.status}`)
+        if (!res.ok || !res.body || res.headers.get('content-type')?.includes('application/json')) {
+          const body: unknown = await res.json().catch(() => null)
+          const err = new Error(formatApiError({ response: { data: body } }, `安装服务返回 HTTP ${res.status}，未启动下载。`))
           handlers.onError?.(err)
           return
         }

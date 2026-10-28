@@ -126,3 +126,178 @@ async def test_invalid_market_profile_blocks_legacy_sse_before_mutation(market_d
     assert 'event: error' in events
     assert 'event: done' not in events
     assert not generator.mock_calls
+
+
+@pytest.fixture
+def setup_market_steps(market_db, monkeypatch):
+    from application.onboarding.setup_generation import SetupInvocationSteps
+    from application.world.services.bible_service import BibleService
+    from application.world.services.worldbuilding_service import WorldbuildingService
+    from infrastructure.persistence.database.sqlite_bible_repository import SqliteBibleRepository
+    from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
+    from interfaces.api.v1.engine import ai_invocation_routes as inv
+    monkeypatch.setattr(inv, 'get_database', lambda: market_db)
+    steps = SetupInvocationSteps('book', 'worldbuilding')
+    steps.unit = 'style'
+    steps.novel = SimpleNamespace(premise='A bridge keeper investigates a tidal signal.')
+    steps.base_context = steps._base()
+    steps.session = InvocationSession('setup-market', 'bible.setup.worldbuilding', 'planning',
+                                     InvocationPolicy.REVIEW_BEFORE_CALL, context={'novel_id': 'book'})
+    InvocationSessionService().attach_prompt(steps.session, prompt_snapshot(), None)
+    steps.repos = inv._repositories()
+    bible = BibleService(SqliteBibleRepository(market_db))
+    bible.create_bible('setup-market-bible', 'book')
+    steps.generator = SimpleNamespace(llm_service=None, bible_service=bible,
+        worldbuilding_service=WorldbuildingService(WorldbuildingRepository(market_db.db_path)))
+    steps._config = lambda: None
+    steps._install_candidate({'style': 'Use physical clues and short dialogue.'}, purpose='fixture')
+    return steps
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fails', [False, True])
+async def test_setup_audit_uses_own_frozen_prompt_without_corrupting_generation_evidence(setup_market_steps, fails):
+    from copy import deepcopy
+    steps = setup_market_steps
+    original_snapshot = steps.session.prompt_snapshot
+    original_metadata = deepcopy(steps.session.metadata)
+    sent = []
+
+    class Provider:
+        async def generate(self, prompt, _config):
+            sent.append(prompt)
+            for key in PROFILE_DIMENSIONS:
+                assert f'初版确认的{key}' in prompt.system
+            if fails:
+                # Isolate prompt/metadata ownership from the separately tested retry policy.
+                error = RuntimeError('temporary provider outage')
+                error.body = {'retryable': False}
+                raise error
+            return GenerationResult('{"review":"complete"}', None)
+
+        async def stream_generate(self, prompt, config):
+            yield (await self.generate(prompt, config)).content
+
+    steps.generator.llm_service = Provider()
+    if fails:
+        with pytest.raises(RuntimeError, match='provider outage'):
+            await steps._model_json(Prompt(system='Independent audit', user='Inspect the candidate'), 'deviation_review')
+    else:
+        result, attempt_id = await steps._model_json(
+            Prompt(system='Independent audit', user='Inspect the candidate'), 'deviation_review')
+        assert result == {'review': 'complete'}
+        attempt = steps.repos['attempt'].get(attempt_id)
+        from application.core.taxonomy.market_prompt import MarketPromptHooks
+        MarketPromptHooks().validate_frozen(attempt.prompt_snapshot.prompt, steps.session.context,
+                                            attempt.accounting['market_profile_prompt'])
+    assert len(sent) == 1
+    assert steps.session.prompt_snapshot == original_snapshot
+    assert steps.session.metadata == original_metadata
+    persisted = steps.repos['session'].get(steps.session.id)
+    assert persisted.prompt_snapshot == original_snapshot
+    assert persisted.metadata == original_metadata
+
+
+@pytest.mark.asyncio
+async def test_setup_repair_reaudits_with_structured_market_profile(setup_market_steps):
+    steps = setup_market_steps
+    tasks = []
+
+    class Provider:
+        async def generate(self, prompt, _config):
+            for key in PROFILE_DIMENSIONS:
+                assert f'初版确认的{key}' in prompt.system
+            request = json.loads(prompt.user)
+            tasks.append(request['task'])
+            if request['task'] == 'repair_setup_candidate':
+                payload = {'style': 'Ground the bridge mystery in physical clues and economical dialogue.'}
+            else:
+                passed = len(tasks) > 1
+                payload = {'passed': passed, 'input_hash': request['input_hash'],
+                           'issues': [] if passed else [{'description': 'Keep the bridge mystery.'}],
+                           'checks': {key: passed for key in ('synopsis', 'genre', 'requirements', 'predecessors')}}
+            return GenerationResult(json.dumps(payload), None)
+
+        async def stream_generate(self, prompt, config):
+            yield (await self.generate(prompt, config)).content
+
+    steps.generator.llm_service = Provider()
+    await steps.deviation()
+    assert tasks == ['review_deviation', 'repair_setup_candidate', 'review_deviation']
+    assert steps._record()['audits']['deviation']['passed'] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('action', ['audit', 'resume', 'commit'])
+async def test_setup_rejects_changed_profile_even_when_base_fields_are_unchanged(setup_market_steps, market_db, action):
+    steps = setup_market_steps
+    before = steps._base()
+    market_db.execute('UPDATE novels SET generation_prefs_json=? WHERE id=?',
+                     (json.dumps(confirmed_preferences('变更后'), ensure_ascii=False), 'book'))
+    market_db.commit()
+    assert steps._base() == before
+    if action == 'resume':
+        steps._ensure_services = lambda: None
+        assert await steps.validate_resume() is False
+    else:
+        if action == 'commit':
+            # Candidate audits are independently covered; isolate the later market guard.
+            steps._assert_audited = lambda: None
+            steps._ensure_services = lambda: None
+        with pytest.raises(ValueError, match='市场画像'):
+            if action == 'audit':
+                await steps._model_json(Prompt(system='Audit', user='Inspect'), 'deviation_review')
+            else:
+                await steps._commit_audited()
+
+
+@pytest.mark.parametrize('change', ['none', 'legacy_style_contract', 'source', 'prompt', 'evidence', 'snapshot'])
+def test_only_known_legacy_setup_transform_can_refresh_market_evidence(setup_market_steps, change):
+    from dataclasses import replace
+    from application.ai_invocation.dtos import stable_hash
+    from application.core.taxonomy.market_prompt import MarketPromptHooks
+    steps = setup_market_steps
+    original = steps.session.prompt_snapshot.prompt
+    steps.session.metadata = {**steps.session.metadata, 'setup_prompt_source': {
+        'system': original.system, 'user': original.user}}
+    steps.session.prompt_snapshot = steps._snapshot(steps._generation_prompt(
+        legacy_style_contract=change == 'legacy_style_contract'))
+    marker = {'unit': 'style', 'base_hash': stable_hash(steps.base_context),
+              'prompt_hash': prompt_hash(steps.session.prompt_snapshot.prompt),
+              'output_bindings': steps.session.prompt_snapshot.output_binding_set_id}
+    steps.session.metadata = {**steps.session.metadata, 'setup_prepared': marker}
+    if change == 'source':
+        steps.session.metadata['setup_prompt_source']['user'] += ' Unreviewed change.'
+    elif change == 'prompt':
+        prompt = steps.session.prompt_snapshot.prompt
+        steps.session.prompt_snapshot = replace(steps.session.prompt_snapshot,
+            prompt=Prompt(system=prompt.system, user=prompt.user + ' Unknown transform.'))
+        marker['prompt_hash'] = prompt_hash(steps.session.prompt_snapshot.prompt)
+    elif change == 'evidence':
+        steps.session.metadata = {**steps.session.metadata, 'market_profile_prompt': {}}
+    elif change == 'snapshot':
+        steps.session.prompt_snapshot = None
+    if change in {'none', 'legacy_style_contract'}:
+        steps._ensure_market_generation_prompt()
+        MarketPromptHooks().validate_frozen(steps.session.prompt_snapshot.prompt, steps.session.context,
+                                            steps.session.metadata['market_profile_prompt'])
+        assert '初版确认的writing_style' in steps.session.prompt_snapshot.prompt.system
+        # Migration is idempotent and does not compound composition hashes.
+        migrated = steps.session.prompt_snapshot
+        steps._ensure_market_generation_prompt()
+        assert steps.session.prompt_snapshot == migrated
+    else:
+        with pytest.raises(ValueError):
+            steps._ensure_market_generation_prompt()
+
+
+@pytest.mark.asyncio
+async def test_setup_new_unit_still_checks_previous_units_market_anchor(setup_market_steps, market_db):
+    steps = setup_market_steps
+    steps._capture()
+    steps.session = None
+    market_db.execute('UPDATE novels SET generation_prefs_json=? WHERE id=?',
+                     (json.dumps(confirmed_preferences('变更后'), ensure_ascii=False), 'book'))
+    market_db.commit()
+    with pytest.raises(ValueError, match='市场画像'):
+        await steps._prepare_unit()

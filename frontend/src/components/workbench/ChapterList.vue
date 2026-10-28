@@ -78,6 +78,7 @@
           @select-chapter="handleChapterClick"
           @plan-act="handlePlanAct"
           @open-plan-modal="showMacroPlan = true"
+          @open-runtime="emit('openRuntime')"
           @tree-loaded="handleTreeLoaded"
         />
       </div>
@@ -138,6 +139,7 @@ const emit = defineEmits<{
   back: []
   refresh: []
   planAct: [actId: string, actTitle: string]
+  openRuntime: []
 }>()
 
 const viewMode = ref('tree')

@@ -187,6 +187,8 @@ class AutopilotRecoveryPolicy:
         if operation == "autopilot.act.plan":
             return NovelStage.ACT_PLANNING.value
         if operation == "autopilot.macro.plan":
+            if self._has_unapplied_manual_macro_result(latest, novel_id):
+                return NovelStage.MACRO_PLANNING.value
             if self._macro_structure_exists(novel_id):
                 return NovelStage.ACT_PLANNING.value
             return NovelStage.MACRO_PLANNING.value
@@ -451,6 +453,8 @@ class AutopilotRecoveryPolicy:
             session_id = str(row.get("id") or "")
             if not session_id:
                 continue
+            if self._has_unapplied_manual_macro_result(row, decision.novel_id):
+                continue
             metadata = {}
             try:
                 metadata = json.loads(row.get("metadata_json") or "{}")
@@ -487,6 +491,47 @@ class AutopilotRecoveryPolicy:
             len(session_ids),
         )
         return len(session_ids)
+
+    def _has_unapplied_manual_macro_result(self, session: dict[str, Any], novel_id: str) -> bool:
+        """Keep a verified deferred commit for the macro delegate to apply."""
+        if session.get("operation") != "autopilot.macro.plan" or session.get("status") != "completed":
+            return False
+        try:
+            metadata = json.loads(session.get("metadata_json") or "{}")
+            context = json.loads(session.get("context_json") or "{}")
+            if (not isinstance(metadata, dict) or not isinstance(context, dict)
+                    or context.get("novel_id") != novel_id
+                    or metadata.get("manual_stop_recovery") is not True
+                    or metadata.get("macro_plan_applied")):
+                return False
+            commit = self._get_db().fetch_one(
+                """
+                SELECT c.result_json, d.accepted_content, a.status AS attempt_status
+                FROM ai_adoption_commits c
+                JOIN ai_adoption_decisions d ON d.id = c.decision_id AND d.session_id = c.session_id
+                JOIN ai_invocation_attempts a ON a.id = d.attempt_id AND a.session_id = c.session_id
+                WHERE c.session_id = ? AND c.status = 'succeeded' AND d.decision = 'accepted'
+                ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1
+                """,
+                (session["id"],),
+            )
+            if not commit or commit["attempt_status"] != "succeeded":
+                return False
+            continuation = json.loads(commit["result_json"]).get("continuation")
+            if not isinstance(continuation, dict) or continuation.get("deferred_apply") is not True:
+                return False
+            from application.ai_invocation.autopilot.continuations import _load_json_value
+
+            accepted = _load_json_value(commit["accepted_content"], "invalid_recovered_macro_structure")
+            parts = accepted if isinstance(accepted, list) else (
+                accepted.get("parts") or accepted.get("structure") if isinstance(accepted, dict) else None
+            )
+            result = continuation.get("macro_plan")
+            return (isinstance(parts, list) and bool(parts) and isinstance(result, dict)
+                    and result.get("success") is True and result.get("structure") == parts)
+        except Exception as exc:
+            logger.debug("manual macro commit verification skipped session=%s: %s", session.get("id"), exc)
+            return False
 
     @staticmethod
     def _transient_operations_for_stage(stage: str) -> set[str]:

@@ -106,7 +106,8 @@ def _enqueue_following_chapters(db, novel_id, chapter_number):
         with db.transaction() as conn:
             conn.execute("INSERT INTO chapter_derivation_jobs(job_id,chapter_id,novel_id,chapter_number,revision,payload_json) "
                          "SELECT ?,id,novel_id,number,revision,? FROM chapters WHERE id=? AND revision=? AND content IS ? "
-                         "ON CONFLICT(chapter_id,revision) DO UPDATE SET status='pending',payload_json=excluded.payload_json,last_error='',updated_at=CURRENT_TIMESTAMP "
+                         "ON CONFLICT(chapter_id,revision) DO UPDATE SET status='pending',payload_json=excluded.payload_json,last_error='',"
+                         "cascade_status='not_requested',cascade_error='',updated_at=CURRENT_TIMESTAMP "
                          "WHERE chapter_derivation_jobs.status<>'running'",
                          (uuid4().hex, json.dumps({'content': row['content'], 'operation': 'retry_aftermath'}, ensure_ascii=False),
                           row['id'], row['revision'], row['content']))
@@ -238,7 +239,8 @@ async def _run_chapter_derivation_job(db, job_id, pipeline, knowledge_service):
         return status
 
 
-async def recover_chapter_derivation_jobs(db, pipeline, knowledge_service, *, startup=False, limit=50):
+async def recover_chapter_derivation_jobs(db, pipeline=None, knowledge_service=None, *, startup=False, limit=50,
+                                        pipeline_factory=None, knowledge_service_factory=None):
     """Replay pending jobs after the writer is ready; models remain injectable.
 
     Only startup resets interrupted running jobs.  Normal retry never steals a
@@ -254,6 +256,15 @@ async def recover_chapter_derivation_jobs(db, pipeline, knowledge_service, *, st
         "(status='completed' AND cascade_status='unavailable') ORDER BY created_at LIMIT ?",
         (max(1, min(500, limit)),),
     )
+    if not jobs:
+        return []
+    # Local embedding initialization can import large native libraries and load
+    # weights. An empty recovery queue must never do that, and a nonempty queue
+    # must not prevent the API event loop from serving startup/health requests.
+    if pipeline is None and pipeline_factory is not None:
+        pipeline = await asyncio.to_thread(pipeline_factory)
+    if knowledge_service is None and knowledge_service_factory is not None:
+        knowledge_service = await asyncio.to_thread(knowledge_service_factory)
     outcomes = []
     for job in jobs:
         outcomes.append(await run_chapter_derivation_job(db, job["job_id"], pipeline, knowledge_service))

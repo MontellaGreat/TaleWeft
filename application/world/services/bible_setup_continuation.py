@@ -11,7 +11,11 @@ from application.ai_invocation.output_binding_resolution import (
 )
 from application.world.dtos.bible_dto import CharacterDTO, LocationDTO, StyleNoteDTO
 from application.world.services.generated_location_normalization import prepare_generated_locations
+from application.world.services.generated_character_normalization import (
+    prepare_generated_characters, _parse_jsonish_value, _as_list, _as_dict, _as_str, _compose_character_description,
+)
 from application.world.worldbuilding_schema import validate_complete_dimension_fields
+from application.onboarding.setup_edit_guard import assert_setup_editable
 
 
 WORLDBUILDING_DIMENSION_KEYS = ("core_rules", "geography", "society", "culture", "daily_life")
@@ -25,38 +29,6 @@ def _context_value(context: Mapping[str, Any], key: str, default: Any = None) ->
 def _parse_content(raw: str) -> dict[str, Any]:
     data, _ = parse_llm_json_to_any(raw)
     return data if isinstance(data, dict) else {}
-
-
-def _parse_jsonish_value(value: Any) -> Any:
-    if not isinstance(value, str):
-        return value
-    text = value.strip()
-    if not text or text[0] not in "[{":
-        return value
-    parsed, _ = parse_llm_json_to_any(text)
-    return parsed if parsed is not None else value
-
-
-def _as_list(value: Any) -> list[Any]:
-    value = _parse_jsonish_value(value)
-    if isinstance(value, list):
-        return value
-    if isinstance(value, tuple):
-        return list(value)
-    if isinstance(value, str) and value.strip():
-        return [value.strip()]
-    return []
-
-
-def _as_dict(value: Any) -> dict[str, Any]:
-    value = _parse_jsonish_value(value)
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _as_str(value: Any, default: str = "") -> str:
-    if value is None:
-        return default
-    return str(value)
 
 
 def _coerce_worldbuilding_dimension(dim_key: str, value: Any) -> dict[str, Any]:
@@ -116,22 +88,11 @@ def _refresh_shared_state(novel_id: str) -> None:
         pass
 
 
-def _compose_character_description(role: str, description: str) -> str:
-    role_text = str(role or "").strip()
-    desc_text = str(description or "").strip()
-    if not role_text:
-        return desc_text
-    if not desc_text:
-        return role_text
-    if desc_text.startswith(f"{role_text} - "):
-        return desc_text
-    return f"{role_text} - {desc_text}"
-
-
 def bible_worldbuilding_handler(context: ContinuationContext) -> Mapping[str, Any]:
     novel_id = str(_context_value(context.session.context, "novel_id", ""))
     if not novel_id:
         return {}
+    assert_setup_editable(novel_id, "worldbuilding")
     data = _parse_content(context.decision.accepted_content)
     by_variable_key = _bound_value_map(context, data)
     style = str(by_variable_key.get("worldbuilding.style") or data.get("style") or "").strip()
@@ -202,29 +163,11 @@ def bible_characters_handler(context: ContinuationContext) -> Mapping[str, Any]:
     novel_id = str(_context_value(context.session.context, "novel_id", ""))
     if not novel_id:
         return {}
+    assert_setup_editable(novel_id, "characters")
     data, _ = parse_llm_json_to_any(context.decision.accepted_content)
     by_variable_key = _bound_value_map(context, data)
     characters = _as_list(by_variable_key.get("characters.list")) or _extract_records(data, "characters")
-    saved: list[dict[str, Any]] = []
-    used_ids: set[str] = set()
-
-    for idx, char_data in enumerate(characters):
-        if not isinstance(char_data, Mapping):
-            continue
-        name = str(char_data.get("name") or "").strip()
-        if not name:
-            continue
-        character_id = str(char_data.get("id") or f"{novel_id}-char-{idx + 1}")
-        if character_id in used_ids:
-            character_id = f"{novel_id}-char-{idx + 1}-{len(used_ids)}"
-        used_ids.add(character_id)
-        row = dict(char_data)
-        row["id"] = character_id
-        row["relationships"] = _as_list(row.get("relationships"))
-        row["moral_taboos"] = _as_list(row.get("moral_taboos"))
-        row["voice_profile"] = _as_dict(row.get("voice_profile"))
-        row["active_wounds"] = _as_list(row.get("active_wounds"))
-        saved.append(row)
+    saved, characters = prepare_generated_characters(novel_id, characters)
 
     if not saved:
         raise ValueError("人物生成结果中没有有效人物，请重试")
@@ -232,37 +175,6 @@ def bible_characters_handler(context: ContinuationContext) -> Mapping[str, Any]:
     protagonist = saved[0]
     bible_service, _ = _get_services(context)
     bible = bible_service.ensure_bible_for_novel(novel_id)
-    characters = [
-        CharacterDTO(
-            id=str(row.get("id") or f"{novel_id}-char-{idx + 1}"),
-            name=str(row.get("name") or "").strip(),
-            description=_compose_character_description(
-                str(row.get("role") or ""),
-                str(row.get("description") or ""),
-            ),
-            relationships=_as_list(row.get("relationships")),
-            gender=_as_str(row.get("gender")),
-            age=_as_str(row.get("age")),
-            appearance=_as_str(row.get("appearance")),
-            personality=_as_str(row.get("personality") or row.get("flaw")),
-            background=_as_str(row.get("background") or row.get("ghost")),
-            core_motivation=_as_str(row.get("core_motivation") or row.get("want")),
-            inner_lack=_as_str(row.get("inner_lack") or row.get("need")),
-            public_profile=_as_str(row.get("public_profile")),
-            hidden_profile=_as_str(row.get("hidden_profile")),
-            reveal_chapter=row.get("reveal_chapter"),
-            mental_state=_as_str(row.get("mental_state"), "NORMAL") or "NORMAL",
-            mental_state_reason=_as_str(row.get("mental_state_reason")),
-            verbal_tic=_as_str(row.get("verbal_tic")),
-            idle_behavior=_as_str(row.get("idle_behavior")),
-            core_belief=_as_str(row.get("core_belief")),
-            moral_taboos=_as_list(row.get("moral_taboos")),
-            voice_profile=_as_dict(row.get("voice_profile")),
-            active_wounds=_as_list(row.get("active_wounds")),
-        )
-        for idx, row in enumerate(saved)
-        if str(row.get("name") or "").strip()
-    ]
     bible_service.update_bible(
         novel_id=novel_id,
         characters=characters,
@@ -270,6 +182,7 @@ def bible_characters_handler(context: ContinuationContext) -> Mapping[str, Any]:
         locations=bible.locations,
         timeline_notes=bible.timeline_notes,
         style_notes=bible.style_notes,
+        replace_characters=True,
     )
     _refresh_shared_state(novel_id)
     return {"novel_id": novel_id, "characters": saved, "protagonist": protagonist, "existing_characters": saved}
@@ -279,6 +192,7 @@ def bible_locations_handler(context: ContinuationContext) -> Mapping[str, Any]:
     novel_id = str(_context_value(context.session.context, "novel_id", ""))
     if not novel_id:
         return {}
+    assert_setup_editable(novel_id, "locations")
     data, _ = parse_llm_json_to_any(context.decision.accepted_content)
     by_variable_key = _bound_value_map(context, data)
     locations = _as_list(by_variable_key.get("locations.list")) or _extract_records(data, "locations")

@@ -10,7 +10,7 @@
 
 An AI writing workspace for long-form fiction, connecting ideas, worldbuilding, chapters, and story memory in one place.
 
-[Download](https://github.com/MontellaGreat/TaleWeft/releases) · [User guide (Chinese)](docs/USER_GUIDE.md) · [Features](#features) · [Changes from upstream](#changes) · [Documentation (Chinese)](docs/README.md)
+[Download](https://github.com/MontellaGreat/TaleWeft/releases) · [User guide (Chinese)](docs/USER_GUIDE.md) · [Features](#features) · [Changes from upstream](#changes) · [Changelog (Chinese)](更新日志.md) · [Documentation (Chinese)](docs/README.md)
 
 Local manuscript library · Guided genre selection · Multiple model protocols · Traceable workflows
 
@@ -18,7 +18,7 @@ Local manuscript library · Guided genre selection · Multiple model protocols �
 
 TaleWeft helps authors maintain fictional worlds, character relationships, and continuity across chapters. Set the direction of your story, plan and generate it, edit whenever you need to, and track the analysis triggered by your changes. You make the creative decisions; AI helps organize, develop, and review the story.
 
-This project is independently modified and maintained from [PlotPilot v4.6.0](https://github.com/shenminglinyi/PlotPilot/tree/v4.6.0), under a separate brand, with no affiliation with or endorsement from the original team. The current independent release is **0.1.0-preview.1**. See the [release notes (Chinese)](docs/RELEASE_0.1.0-preview.1.md) for the distributed assets and verification scope.
+This project is independently modified and maintained from [PlotPilot v4.6.0](https://github.com/shenminglinyi/PlotPilot/tree/v4.6.0), under a separate brand, with no affiliation with or endorsement from the original team. This source update targets **0.2.0**, bringing together updates since the first GitHub release: automatic model protocols, local embeddings, setup reviews and recovery, story-support editing, and prompt management. See the [0.2.0 release notes (Chinese)](docs/RELEASE_0.2.0.md) and [historical issue recheck (Chinese)](docs/RECHECK_2026-10-26.md) for changes and verification limits. Build receipts and Release attachments establish installer availability.
 
 This is the English README. The screenshot below shows the current Chinese interface; the linked detailed guides are in Chinese unless otherwise marked.
 
@@ -40,7 +40,9 @@ This is an actual browser screenshot of the author's desk, showing a sample stor
 | Chapter writing | Generate chapter outlines and prose through fully managed or DAG workflows; inspect stages, node results, and failure reasons |
 | Style review | Scan only, generate rewrite candidates for approval, or automatically adopt candidates that pass revalidation when configured; compare the original with the proposed rewrite |
 | Manual editing | Edit chapter titles and prose, inspect version history, and track recalculation tasks for the edited chapter and later chapters after saving |
-| Model configuration | Select OpenAI C / Chat Completions and OpenAI R / Responses separately, or use Anthropic Messages and Gemini generateContent; configure reasoning parameters according to model capabilities |
+| Story support | Edit the full creation contract, style notes, and premise lock; edit, rename, or delete character profiles and track submitted analysis jobs |
+| Prompt management | Inspect actual template usage, delete unreferenced custom prompts, and edit supplementary style rules for the shared semantic review |
+| Model configuration | Choose OpenAI Auto, Anthropic Messages, or Gemini generateContent; select directly from fetched models and configure supported reasoning parameters |
 | Data management | Back up and restore the database, migrate JSON manuscripts, and export Markdown / DOCX / EPUB / PDF; manage credentials and export redacted diagnostics |
 
 <a id="quick-start"></a>
@@ -49,11 +51,13 @@ This is an actual browser screenshot of the author's desk, showing a sample stor
 
 ### Windows installer
 
-Open the [v0.1.0-preview.1 download page](https://github.com/MontellaGreat/TaleWeft/releases/tag/v0.1.0-preview.1), download `TaleWeft-0.1.0-preview.1-x64-setup.exe`, and verify its SHA-256 against `SHA256SUMS.txt`. GitHub's automatically generated Source code archives contain the source.
+**Current version: 0.2.0**. Get `TaleWeft-0.2.0-x64-setup.exe` from the [v0.2.0 download page](https://github.com/MontellaGreat/TaleWeft/releases/tag/v0.2.0) and verify it against `SHA256SUMS.txt` on the same page. Installer size, SHA-256, test results, and verification scope are documented in the [0.2.0 release notes (Chinese)](docs/RELEASE_0.2.0.md). A source ZIP, complete changelog, and public build-verification record are separate assets. GitHub's automatically generated Source code archives also contain the source.
+
+The historical published installer remains available on the [v0.1.0-preview.1 download page](https://github.com/MontellaGreat/TaleWeft/releases/tag/v0.1.0-preview.1); verify it against that Release's `SHA256SUMS.txt`. The verified historical local installer `TaleWeft-0.1.0-preview.16-x64-setup.exe` and its `.sha256` and `.verification.json` records are retained in the [preview.16 release notes (Chinese)](docs/RELEASE_0.1.0-preview.16.md). They do not replace 0.2.0 verification.
 
 The installer includes no model credentials or private manuscript library from the development machine. Configure your own model service after installation, then try the sample book or a new test project. Full instructions are in the [Chinese user guide](docs/USER_GUIDE.md).
 
-To try editing and manuscript import first, download the public [six-chapter sample manuscript](examples/fog-harbor.taleweft.json). In the application, open the manuscript JSON import dialog (稿件 JSON 导入), preview it, and confirm. This requires neither Python nor an API key. It contains two chapters of sample prose and four empty chapters. The Release also includes a complete sample library and an isolated launcher, with characters, locations, items, foreshadowing, and story structure. See the [sample instructions (Chinese)](examples/README.md) for launch steps and importing from source.
+To try editing and manuscript import first, download the public [six-chapter sample manuscript](examples/fog-harbor.taleweft.json). In the application, open the manuscript JSON import dialog (稿件 JSON 导入), preview it, and confirm. This requires neither Python nor an API key. It contains two chapters of sample prose and four empty chapters. The historical [preview.1 Release](https://github.com/MontellaGreat/TaleWeft/releases/tag/v0.1.0-preview.1) also includes a complete sample library and an isolated launcher, with characters, locations, items, foreshadowing, and story structure. See the [sample instructions (Chinese)](examples/README.md) for launch steps and importing from source.
 
 ### Run from source
 
@@ -108,9 +112,21 @@ Each theme includes a five-dimension profile for the author to edit and confirm.
 
 ### Where to adjust reasoning effort
 
-Open **Settings → Model engine → the relevant model role → Reasoning effort and reasoning parameters** (设置 → 模型引擎 → 对应模型角色 → 思考程度与推理参数) and expand the section. The primary, economy, and knowledge-graph roles save their own parameters. Full settings are also available under **AI console → LLM settings → Select configuration profile** (AI 控制台 → LLM 设置 → 选择配置档案).
+Open **Model console → LLM settings → Select configuration profile** (模型控制台 → LLM 设置 → 选择配置档案). Reasoning effort or thinking budget appears **directly below the model name**. You can also use **Settings → Model engine → the relevant model role → Reasoning effort and reasoning parameters** (设置 → 模型引擎 → 对应模型角色 → 思考程度与推理参数). The primary, economy, and knowledge-graph roles save their own parameters.
 
-The OpenAI adapters expose reasoning effort; the Anthropic and Gemini adapters expose thinking budgets where supported. Leave a setting empty to use the model default. Available levels and parameter combinations differ by model and gateway. Unsupported configurations produce a warning or rejection. C and R call `/chat/completions` and `/responses` respectively. Explicitly selecting R does not silently fall back to C.
+Creating a book checks both language-model and embedding configuration first; if either is incomplete, the prompt opens the Model console. Embeddings default to local BGE. **Download and prepare local model** installs dependencies and downloads verified weights, trying ModelScope in China first, then HF Mirror and Hugging Face. Existing cloud embedding settings are preserved. See the [embedding setup guide](docs/embedding_model_download_guide.md) for details.
+
+The OpenAI adapters expose reasoning effort; the Anthropic and Gemini adapters expose thinking budgets where supported. Leave a setting empty to use the model default. Available levels and parameter combinations differ by model and gateway. Unsupported configurations produce a warning or rejection. The current source combines C / R into **OpenAI Auto**: it prefers Responses and tries Chat Completions only when the endpoint is unsupported and no output has been emitted. Authentication failures, rate limits, HTTP 502, and timeouts retain their original errors. Provider-preset import and profile preset selectors have been removed.
+
+### Setup progress and DAGs
+
+Style / worldbuilding → characters → locations → plot outline. Worldbuilding generates **core rules → geography and ecology → social structure → history and culture → immersive details** one unit at a time, carrying approved predecessors into later prompts. Style and every unit pass schema validation, deviation review and repair, Anti-AI scanning and repair, commit, and readback. A final review checks the complete world. Worldbuilding has 48 nodes; each other stage has seven.
+
+The wizard shows completed-node progress, the current action, elapsed time, and failures. **View DAG workflow** (查看 DAG 工作流) uses the writing page's canvas. All four stages offer clickable nodes and audit reports. Current workflow definitions and historical execution graphs are shown separately; older records explicitly indicate missing audits without claiming they passed. **Continue generation** (继续生成) resumes persisted candidates and successful steps after a failure or restart; starting over requires confirmation. Materials stay read-only until all reviews, commits, and readbacks finish. Editing and confirmation then remain available, and saved edits enter subsequent prompts. Closing the wizard pauses observation; **Stop generation** cancels the task. Progress does not estimate remaining time. See the [resumable workflow](docs/RELEASE_0.1.0-preview.4.md) and [audit visibility and inspection fixes (Chinese)](docs/RELEASE_0.1.0-preview.5.md).
+
+Preview.6 fixes false prompt-validation failures with structured market profiles. Generation, deviation reviews, and repairs each freeze their actual prompt with matching evidence. Tasks affected by the known older failure can use **Continue generation**. Actual market-profile changes still require restarting the stage so stale reviews cannot be reused. See the [market-profile validation fix (Chinese)](docs/RELEASE_0.1.0-preview.6.md).
+
+Preview.7 accepts structured style guides without misreporting them as empty. Objects, lists, and JSON style content become readable prose; older failed tasks can resume and rerun both reviews. Audit reports and provider error envelopes remain rejected. See the [style normalization and recovery notes (Chinese)](docs/RELEASE_0.1.0-preview.7.md).
 
 ### How AI-style reduction works
 
@@ -124,13 +140,31 @@ Here, “AI-style reduction” means scanning prose against style rules and prop
 
 “No rewrite needed” should have a scan result and a reason. A failed scan, a scan that never ran, an unavailable scan, or a missing execution receipt must not count as successful completion. See [manuscript protection and troubleshooting (Chinese)](docs/RECOVERY_AND_SUPPORT.md) for diagnosis and recovery.
 
+Current review and relevant repair prompts use the author's paragraph rule: actual line breaks define paragraphs, each paragraph contains at most one Chinese full stop, and a required full stop closes the paragraph. Facts, causality, negation, and dialogue must remain intact; punctuation must not be mechanically replaced or meaning split into fragments. Titles, names, and paragraphs ending in a question or exclamation mark need no added full stop. This is a prompt and review rule, without a separate punctuation-counting hard gate. See the [0.2.0 release notes (Chinese)](docs/RELEASE_0.2.0.md) for the remaining older automatic-writing format path.
+
 ### What updates after an edit
 
 After you save a chapter title and prose, the system invalidates the relevant analysis for that chapter and later chapters, then recalculates machine-derived summaries, memory, character state, foreshadowing, and related material in chapter order. Manuscript saving, analysis of the edited chapter, and the cascade through later chapters have separate statuses. The version-history panel provides an action to rerun post-chapter analysis (重跑章后关联分析).
 
-In the browser test recorded for this release, a title and prose edit to Chapter 1 persisted after refresh, appeared in history, and triggered sequential recalculation for Chapters 1 and 2. The new warehouse identifier entered memory, and the registered brass key's holder changed to Zhou Du. Chapter 3 was generated through R with 1,223 characters, saved, and read back after refresh; its post-chapter analysis subsequently completed through C.
+In a previously recorded isolated browser test, a title and prose edit to Chapter 1 persisted after refresh, appeared in history, and triggered sequential recalculation for Chapters 1 and 2. The new warehouse identifier entered memory, and the registered brass key's holder changed to Zhou Du. Chapter 3 was generated through R with 1,223 characters, saved, and read back after refresh; its post-chapter analysis subsequently completed through C. This historical record is not a new 0.2.0 validation with a live model.
 
 **Recalculating related analysis does not automatically rewrite later chapters' prose.** For example, if you change an item identifier in Chapter 1 while Chapter 2 still uses the old identifier, you must check the contradiction in the manuscript. Automatic cleanup is also not guaranteed for historical data without known provenance. This test does not establish that every relationship type and multi-chapter combination has been verified. See [verification evidence and limits (Chinese)](docs/UPSTREAM_CHANGES.md#limits).
+
+### Editing story support and characters
+
+**Story support → Creation contract** (作品支撑 → 创作契约) exposes complete text fields, with scrolling and accessible footer actions in short windows. Genre, the five-dimension profile, target length, full style notes, and the premise lock save together and are read back. Structured profile changes require renewed confirmation. Active generation, incomplete setup audits, or running post-chapter analysis prevent conflicting writes; a stale version keeps the draft and asks you to reload.
+
+The character page edits profiles, relationships, and voice details. Renaming synchronizes the book's current chapters and current related materials, preserving historical manuscript versions and original audit evidence. Saving creates durable post-chapter analysis jobs; chapter history shows their progress and retry action. Confirmed deletion removes the profile, appearances, relationships, and current character memory, retains written chapter prose, and prevents old memory from recreating the deleted profile. Saving and completion of related analysis have separate outcomes; model-dependent analysis can still fail.
+
+### When a prompt takes effect
+
+The Prompt Plaza shows whether a template has a runtime caller, only documents a relationship, or applies on specific paths. New and imported prompts require an explicit business, invocation, or workflow reference. A DAG association alone does not establish execution. Unreferenced custom prompts can be deleted after confirmation; built-ins and prompts referenced by workflows, variables, invocation specifications, or historical calls remain protected, with the reason shown.
+
+The shared `semantic-style-v4` review for setup materials and prose reads the active `anti-ai-chapter-audit` version as supplementary style rules and freezes it into the request. The fixed core still requires five-dimension review, complete coverage, source evidence, and valid JSON. Historical v1/v2/v3 reviews use their original snapshots. `cliche-scan` uses these shared rules and does not execute its own independent model request. See the [preview.16 release notes (Chinese)](docs/RELEASE_0.1.0-preview.16.md).
+
+### A story structure that keeps showing generation in progress
+
+Preview.16 fixes status reporting and failure receipts for managed macro planning. In the observed failure, a gateway HTTP 502 left a compiled request without a persisted failure receipt. The executor kept waiting for that request, while the sidebar misread a review pause as active generation. The sidebar now reconciles durable requests and runtime state, distinguishes generation, review, failure, stop, and interruption, and keeps checking after an observation stream closes. Received previews remain visible; the sidebar reports generation complete only after reading the saved structure. **Open runtime center** leads to **Inspect and recover AI request** (检查并恢复 AI 请求), where retrying, continuing, and confirming persistence require explicit actions. Opening the panel or retaining a stopped state does not start another model request. Recovery results confirmed while stopped are saved durably and applied to the structure tree when the author explicitly starts managed writing again.
 
 <a id="changes"></a>
 
@@ -144,7 +178,7 @@ The upstream project already included a fiction workspace, worldbuilding managem
 | --- | --- |
 | DAG execution | Stronger cycle and port validation, actual single-chapter execution, and node events; failures, cancellations, skipped downstream nodes, and commit results are shown separately |
 | AI-style reduction | Connects pre-generation rules, prose scanning, post-chapter audits, and rewrite candidates; binds evidence to manuscript versions and fixes silent bypasses and false success reports |
-| Model engine | Separate C / R selection; reasoning effort and budgets, sampling controls, and capability checks wired through the stack; SDK and URL compatibility fixes |
+| Model engine | OpenAI Auto protocol with Anthropic / Gemini retained; reasoning effort and budgets, sampling controls, and capability checks wired through the stack; SDK and URL compatibility fixes |
 | Market categories | Audience channel → genre → theme, custom entries, search, and collapsible lists; editable five-dimension profiles with confirmation and version snapshots |
 | Setup wizard | Normalizes malformed location trees while preserving hierarchy; explicit feedback for empty results, interrupted streams, failed saves, and polling failures, with retry support |
 | Editing and related analysis | Synchronized chapter titles, version history, conflict and late-write protection, and save receipts; invalidation and recalculation for the edited chapter and later chapters |
@@ -154,7 +188,7 @@ The upstream project already included a fiction workspace, worldbuilding managem
 
 For the detailed “original issue → change → current behavior → verification limits” comparison, see [UPSTREAM_CHANGES.md (Chinese)](docs/UPSTREAM_CHANGES.md). For branding and compatibility identifiers, see [MODIFICATIONS.md (Chinese)](MODIFICATIONS.md).
 
-Further work includes a complete two-chapter flow using R throughout, more relationship types and data-provenance combinations, sources for some website categories, persistent resume from arbitrary workflow nodes, more native provider protocols, and further installation, upgrade, and rollback acceptance testing. The style prompts and scanning have evidence of actual execution; the optional automatic rewrite path was not part of this live test. Literary results and whole-book semantic consistency require human evaluation.
+Further work includes a complete two-chapter flow using Responses throughout, more relationship types and data-provenance combinations, sources for some website categories, persistent resume from arbitrary workflow nodes, more native provider protocols, and further installation, upgrade, and rollback acceptance testing. The style prompts and scanning have historical evidence of actual execution; existing live tests do not cover every optional automatic rewrite path. Literary results and whole-book semantic consistency require human evaluation.
 
 ## Data and migration
 
@@ -194,6 +228,8 @@ The detailed documents below are currently in Chinese.
 | Document | Contents |
 | --- | --- |
 | [User guide](docs/USER_GUIDE.md) | Installation, book creation, model parameters, editing and related analysis, workflows, backups, and feedback |
+| [v0.2.0 release notes](docs/RELEASE_0.2.0.md) | Cumulative updates since the first GitHub release, upgrade and recovery guidance, current build verification status |
+| [v0.1.0-preview.16 release notes](docs/RELEASE_0.1.0-preview.16.md) | Story-support editing, character synchronization, prompt usage and deletion protection, shared review v4 |
 | [v0.1.0-preview.1 release notes](docs/RELEASE_0.1.0-preview.1.md) | Features, actual test records, and known limits |
 | [Architecture](docs/ARCHITECTURE.md) | Layers, execution core, and data flow |
 | [Upstream comparison](docs/UPSTREAM_CHANGES.md) | Additions, fixes, improvements, and areas awaiting verification |

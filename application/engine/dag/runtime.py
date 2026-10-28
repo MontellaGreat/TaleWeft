@@ -93,6 +93,8 @@ class DAGExecutionManager:
     @classmethod
     def validate_production(cls, dag):
         errors = DAGEngine().validate(dag)
+        if any(node.type == 'setup_step' for node in dag.nodes):
+            errors.append('新书设置节点仅可由开书向导执行，不能加入章节 DAG')
         required = {}
         for kind in sorted(cls.REQUIRED):
             nodes = [node for node in dag.nodes if node.type == kind and node.enabled]
@@ -146,7 +148,29 @@ class DAGExecutionManager:
             raise LookupError("小说不存在")
         existing = self.versions.get_latest(novel_id)
         if existing and existing.get_node("exec_commit"):
-            return existing
+            # Upgrade only a missing pre-generation finale slot. A user-owned
+            # finale node (including a disabled one) keeps its exact config and
+            # edges; custom writer IDs are resolved by type.
+            writers = [node for node in existing.nodes if node.type == "exec_writer" and node.enabled]
+            if any(node.type == "anti_ai_finale" for node in existing.nodes) or len(writers) != 1:
+                return existing
+            from application.engine.dag.models import NodeDefinition, EdgeDefinition
+            ids = {node.id for node in existing.nodes}
+            finale_id = "anti_ai_finale"
+            while finale_id in ids:
+                finale_id += "_slot"
+            edge_ids = {edge.id for edge in existing.edges}
+            edge_id = "edge_finale_writer"
+            while edge_id in edge_ids:
+                edge_id += "_slot"
+            existing.nodes.append(NodeDefinition(id=finale_id, type="anti_ai_finale", label="终章增强",
+                position={"x": 600.0, "y": 680.0}))
+            existing.edges.append(EdgeDefinition(id=edge_id, source=finale_id, target=writers[0].id))
+            self.versions.save(novel_id, existing)
+            saved = self.versions.get_latest(novel_id)
+            if saved is None or saved.fingerprint() != existing.fingerprint():
+                raise RuntimeError("终章节点升级提交后回读不一致")
+            return saved
         # Prior persisted definitions were display-only. Preserve applicable
         # settings while adopting the validated production commit topology.
         dag = get_default_dag()
@@ -189,7 +213,9 @@ class DAGExecutionManager:
                 raise RuntimeError("配置提交后没有得到一致回读")
             return saved
 
-    def _chapter(self, novel_id, chapter_number=None):
+    def _chapter(self, novel_id, chapter_number=None, *, is_final_chapter=None):
+        if is_final_chapter is not None and type(is_final_chapter) is not bool:
+            raise ValueError("作者确认的终章状态必须是布尔值")
         novel = self.db.fetch_one("SELECT * FROM novels WHERE id=?", (novel_id,))
         if novel is None:
             raise LookupError("小说不存在")
@@ -208,18 +234,31 @@ class DAGExecutionManager:
         previous = self.db.fetch_one("SELECT tension_score FROM chapters WHERE novel_id=? AND number<? ORDER BY number DESC LIMIT 1", (novel_id, chapter["number"]))
         return chapter, {"novel_id": novel_id, "chapter_id": chapter["id"], "chapter_number": chapter["number"],
             "outline": chapter["outline"], "chapter_before": chapter,
+            "target_chapters": novel["target_chapters"],
+            "is_final_chapter": chapter["number"] == novel["target_chapters"] if is_final_chapter is None else is_final_chapter,
+            "final_chapter_source": "chapter_plan" if is_final_chapter is None else "author_confirmation",
             "market_profile_snapshot": snapshot, "genre_profile_block": profile_block,
             "target_chapter_words": novel.get("target_words_per_chapter") or 2500,
             "prev_tension": previous["tension_score"] if previous else 50, "attempt": 0}
 
-    async def start(self, novel_id, chapter_number=None, *, resume_run_id=None):
+    async def start(self, novel_id, chapter_number=None, *, resume_run_id=None, is_final_chapter=None):
         async with self._lock:
             run_id = f"dag_{uuid.uuid4().hex}"
             if novel_id in self.tasks and not self.tasks[novel_id].done():
                 raise DAGRuntimeConflict("本小说已有 DAG 任务正在运行")
             claimed = await asyncio.to_thread(claim_execution_lease, novel_id, "dag", run_id, self.lease_seconds, self.db)
             if not claimed:
-                raise DAGRuntimeConflict("本小说正在由 DAG 或全托管执行，不能并发启动")
+                lease = await asyncio.to_thread(get_execution_lease, novel_id, self.db)
+                if lease and lease["owner"] == "autopilot":
+                    from application.engine.services.autopilot_control import get_command
+                    command = await asyncio.to_thread(get_command, lease["job_id"], self.db)
+                    if command and command["state"] == "pending":
+                        raise DAGRuntimeConflict(
+                            f"全托管启动命令等待执行器确认，暂时保留执行租约（命令 {lease['job_id']}）；"
+                            "请先停止该请求并等待确认，或等待租约到期后重试"
+                        )
+                owner = lease["owner"] if lease else "其他执行器"
+                raise DAGRuntimeConflict(f"本小说已有有效执行租约（{owner}），不能并发启动")
             try:
                 dag = await asyncio.to_thread(self.load_dag, novel_id)
                 errors = self.validate_production(dag)
@@ -242,7 +281,7 @@ class DAGExecutionManager:
                     if chapter_number is not None and chapter_number != previous["chapter_number"]:
                         raise DAGRuntimeConflict("恢复任务与指定章节不一致")
                     chapter_number = previous["chapter_number"]
-                chapter, initial = await asyncio.to_thread(self._chapter, novel_id, chapter_number)
+                chapter, initial = await asyncio.to_thread(self._chapter, novel_id, chapter_number, is_final_chapter=is_final_chapter)
                 if previous is not None:
                     original = json.loads(previous["initial_json"])["chapter_before"]
                     if any(chapter.get(key) != original.get(key) for key in ("id", "content", "outline", "status", "revision", "content_hash")):

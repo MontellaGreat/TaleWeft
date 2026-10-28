@@ -5,11 +5,12 @@
       <div class="structure-tree-inner">
         <div v-if="isMacroPreviewTree" class="macro-preview-ribbon">
           <div class="macro-preview-ribbon__row">
-            <span class="macro-preview-ribbon__pulse" aria-hidden="true" />
+            <span v-if="macroPlanLoadingMore" class="macro-preview-ribbon__pulse" aria-hidden="true" />
             <span class="macro-preview-ribbon__text">
-              预览中：部 / 卷 / 幕逐条载入；写入完成后切换为正式结构树
+              {{ macroWatchError || (macroPlanLoadingMore ? '预览中：部 / 卷 / 幕逐条载入；写入完成后切换为正式结构树' : macroLiveMessage || '结构预览已保留，等待确认写入') }}
             </span>
           </div>
+          <n-button v-if="!macroPlanLoadingMore" size="small" @click="emit('openRuntime')">打开运行中心处理</n-button>
         </div>
         <n-tree
           :data="displayTreeData"
@@ -40,7 +41,7 @@
     <div v-else class="structure-empty-wrap">
       <!-- 宏观规划：流未结束前始终有 loading；无节点时空态骨架，有节点时树下方骨架表示仍可能还有下一条 -->
       <div
-        v-if="autopilotEmptyMode === 'planning'"
+        v-if="autopilotEmptyMode"
         class="macro-planning-card"
         role="status"
         aria-live="polite"
@@ -57,6 +58,11 @@
             生成进行中。结构节点将逐条出现，未完成前下方会显示加载占位。
           </p>
           <p v-if="macroWatchError" class="macro-live-error">{{ macroWatchError }}</p>
+          <n-space v-if="!macroPlanLoadingMore || macroConnectionNotice" :size="6">
+            <n-button size="small" @click="emit('openRuntime')">打开运行中心处理</n-button>
+            <n-button size="small" @click="loadTree()">重新查询状态</n-button>
+          </n-space>
+          <p v-if="macroConnectionNotice" class="macro-planning-card__hint">{{ macroConnectionNotice }}</p>
           <div
             v-if="showMacroPlanningSkeleton"
             class="macro-planning-placeholder"
@@ -126,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, h, onUnmounted, watch } from 'vue'
 import { NTree, NEmpty, NSpin, NTag, NSpace, NDropdown, NModal, NInput, useMessage, useDialog } from 'naive-ui'
 import { structureApi, type StoryNode } from '@/api/structure'
 import { dataProtectionApi } from '@/api/dataProtection'
@@ -136,7 +142,7 @@ import { autopilotApi, isAutopilotHttpError } from '@/api/autopilot'
 import type { GenerationPrefsDTO } from '@/api/novel'
 import { narrativeTreeChapterLine } from '@/utils/narrativeUnitLabel'
 import { formatApiError } from '@/utils/apiError'
-import { watchMacroPlanProgress, planningApi, type MacroProgressWatchTerminalEvent, type MacroStreamNodeEvent, type StoryNode as PlanningStoryNode } from '@/api/planning'
+import { watchMacroPlanProgress, planningApi, type MacroPartNode, type MacroProgressWatchTerminalEvent, type MacroStreamNodeEvent, type StoryNode as PlanningStoryNode } from '@/api/planning'
 import { runtimePerformance } from '@/config/performance'
 import { useAdaptivePolling } from '@/composables/useAdaptivePolling'
 
@@ -157,6 +163,7 @@ const emit = defineEmits<{
   selectChapter: [id: number, title: string]
   planAct: [actId: string, actTitle: string]
   openPlanModal: []
+  openRuntime: []
   treeLoaded: [hasData: boolean]
 }>()
 
@@ -204,11 +211,20 @@ function buildChapterFallbackTree() {
 }
 
 /** 全托管时空侧栏提示：引导用户使用全托管 */
-const autopilotEmptyMode = ref<null | 'planning' | 'review'>(null)
+type MacroEmptyMode = null | 'planning' | 'review' | 'stopped' | 'failed'
+const autopilotEmptyMode = ref<MacroEmptyMode>(null)
 
 let macroPlanWatchCtrl: AbortController | null = null
 /** SSE 不可用时仍轮询 GET macro/progress，避免界面永远停在「骨架」态 */
 let macroProgressPollSlug = ''
+let macroObservationEpoch = 0
+let macroObservationDisposed = false
+let macroPersistPending = false
+let macroMissingPersist = false
+
+function isCurrentMacroObservation(slug: string, epoch: number) {
+  return !macroObservationDisposed && props.slug === slug && macroObservationEpoch === epoch
+}
 
 function clearMacroProgressPoll() {
   macroProgressPollSlug = ''
@@ -216,6 +232,7 @@ function clearMacroProgressPoll() {
 }
 
 const macroWatchError = ref('')
+const macroConnectionNotice = ref('')
 const macroLiveMessage = ref('')
 const macroPreviewRoots = ref<PlanningStoryNode[]>([])
 /** 流式/SSE 未宣告结束：空态与预览树尾部持续 loading + 骨架 */
@@ -223,6 +240,8 @@ const macroPlanLoadingMore = ref(false)
 
 const macroLiveHeadline = computed(() => {
   if (macroWatchError.value) return '规划未完成'
+  if (autopilotEmptyMode.value === 'review') return '等待 AI 请求处理或审阅确认'
+  if (autopilotEmptyMode.value === 'stopped') return '叙事结构规划已停止'
   if (macroPreviewRoots.value.length > 0) return '预览结构加载中'
   return '正在生成叙事结构'
 })
@@ -349,52 +368,151 @@ function mergeMacroPreviewNode(ev: MacroStreamNodeEvent) {
   macroPreviewRoots.value = snapshotMacroPreviewRoots(roots)
 }
 
-async function loadTreeAfterMacroPersist() {
-  const attempts = runtimePerformance.workbench.storyTreeMacroPersistRetryAttempts
-  for (let i = 0; i < attempts; i++) {
-    await loadTree()
-    if (treeData.value.length > 0) {
-      macroPreviewRoots.value = []
-      return
-    }
-    await new Promise((r) => setTimeout(r, runtimePerformance.workbench.storyTreeMacroPersistRetryDelayMs))
+function setMacroView(mode: MacroEmptyMode, hint = '', error = '') {
+  const previous = autopilotEmptyMode.value
+  autopilotEmptyMode.value = mode
+  macroPlanLoadingMore.value = mode === 'planning' && !macroPersistPending
+  macroWatchError.value = error
+  if (hint) macroLiveMessage.value = hint
+  else if (mode === 'planning' && previous !== 'planning') macroLiveMessage.value = ''
+  if (mode === 'planning' || mode === 'review') {
+    if (macroProgressPollSlug !== props.slug) startMacroProgressPoll(props.slug)
+    if (mode === 'planning' && !macroPersistPending && !macroMissingPersist) startMacroPlanWatch()
+    else stopMacroPlanWatch()
+  } else {
+    stopMacroPlanWatch()
+    clearMacroProgressPoll()
   }
-  macroPreviewRoots.value = []
+}
+
+async function loadTreeAfterMacroPersist(slug: string, epoch: number) {
+  if (macroPersistPending) return
+  macroPersistPending = true
+  macroPlanLoadingMore.value = false
+  stopMacroPlanWatch()
+  try {
+    const attempts = runtimePerformance.workbench.storyTreeMacroPersistRetryAttempts
+    for (let i = 0; i < attempts; i++) {
+      await loadTree({ syncAutopilot: false })
+      if (!isCurrentMacroObservation(slug, epoch)) return
+      if (treeData.value.length > 0) {
+        macroPreviewRoots.value = []
+        macroMissingPersist = false
+        setMacroView(null)
+        return
+      }
+      if (i + 1 < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, runtimePerformance.workbench.storyTreeMacroPersistRetryDelayMs))
+      }
+      if (!isCurrentMacroObservation(slug, epoch)) return
+    }
+    macroMissingPersist = true
+    setMacroView('review', '规划输出已结束，尚未读取到正式结构，请到运行中心核对请求和写入结果。',
+      '尚未读取到正式结构，已接收的预览仍保留。')
+  } finally {
+    if (isCurrentMacroObservation(slug, epoch)) macroPersistPending = false
+  }
+}
+
+async function handleMacroTerminal(t: MacroProgressWatchTerminalEvent, slug: string, epoch: number) {
+  if (!isCurrentMacroObservation(slug, epoch)) return
+  stopMacroPlanWatch()
+  if (t.status === 'completed') {
+    await loadTreeAfterMacroPersist(slug, epoch)
+  } else if (t.status === 'failed') {
+    setMacroView('failed', '', t.message || '宏观规划失败，请到运行中心查看原因')
+  } else if (t.status === 'awaiting_review' || t.status === 'interrupted') {
+    setMacroView('review', t.message || 'AI 请求等待处理，请在运行中心核对后继续。')
+  } else if (t.status === 'paused' || t.status === 'cancelled') {
+    setMacroView('stopped', t.message || '规划已暂停或取消，已接收的预览仍保留。')
+  } else {
+    // A watcher timeout/close is not a generation timeout. Keep the durable
+    // status poll alive; it can discover review, failure, stop or saved data.
+    macroConnectionNotice.value = `${t.message || '输出流已关闭'}；继续通过接口轮询核对任务状态。`
+  }
+}
+
+function restoreMacroPreviewParts(parts: MacroPartNode[] | undefined) {
+  parts?.forEach((part, pi) => {
+    mergeMacroPreviewNode({ type: 'part', part_index: pi, title: part.title, description: part.description })
+    part.volumes?.forEach((volume, vi) => {
+      mergeMacroPreviewNode({ type: 'volume', part_index: pi, volume_index: vi, title: volume.title, description: volume.description })
+      volume.acts?.forEach((act, ai) => {
+        mergeMacroPreviewNode({ type: 'act', part_index: pi, volume_index: vi, act_index: ai, title: act.title, description: act.description })
+      })
+    })
+  })
+}
+
+function startMacroPlanWatch() {
+  if (macroPlanWatchCtrl || !props.slug || macroObservationDisposed) return
+  const slug = props.slug
+  const epoch = macroObservationEpoch
+  let controller: AbortController | null = null
+  const current = () => isCurrentMacroObservation(slug, epoch) && autopilotEmptyMode.value === 'planning' && macroPlanWatchCtrl === controller
+  controller = watchMacroPlanProgress(slug, {
+    onStatus: (event) => {
+      if (current() && event.message) macroLiveMessage.value = event.message
+    },
+    onNode: (node) => { if (current()) mergeMacroPreviewNode(node) },
+    onTerminal: (terminal) => { if (current()) void handleMacroTerminal(terminal, slug, epoch) },
+    onError: (error) => {
+      if (!current()) return
+      stopMacroPlanWatch()
+      macroConnectionNotice.value = `输出流异常：${error}；继续通过接口轮询核对任务状态。`
+    },
+  })
+  macroPlanWatchCtrl = controller
 }
 
 const macroProgressPoller = useAdaptivePolling(
   async () => {
     const slug = macroProgressPollSlug
+    const epoch = macroObservationEpoch
     if (!slug) return
-    if (autopilotEmptyMode.value !== 'planning') {
-      clearMacroProgressPoll()
-      return
-    }
-    try {
-      const res = await planningApi.getMacroProgress(slug)
-      const prog = res.data
-      if (!prog) return
-      if (prog.message?.trim()) {
-        macroLiveMessage.value = prog.message.trim()
-      }
-      if (prog.status === 'completed') {
-        macroPlanLoadingMore.value = false
-        await loadTreeAfterMacroPersist()
-        clearMacroProgressPoll()
+    const [progress, status] = await Promise.allSettled([
+      planningApi.getMacroProgress(slug), autopilotApi.getStatus(slug, { timeoutMs: runtimePerformance.network.shortTaskTimeoutMs }),
+    ])
+    if (!isCurrentMacroObservation(slug, epoch) || macroProgressPollSlug !== slug) return
+    let prog = progress.status === 'fulfilled' ? progress.value.data : undefined
+    if (prog?.invocation_session_id && status.status === 'fulfilled' && status.value.active_invocation_session_id &&
+      prog.invocation_session_id !== status.value.active_invocation_session_id) prog = undefined
+    if (prog) restoreMacroPreviewParts(prog.preview_parts)
+    if (status.status === 'fulfilled') {
+      applyAutopilotEmptyStatus(status.value, treeData.value.length > 0)
+      if (autopilotEmptyMode.value !== 'planning') {
+        // The current invocation/review gate outranks the legacy process-local
+        // progress store, which is not populated by the invocation path.
+        if (autopilotEmptyMode.value === 'review' && prog &&
+          ['completed', 'failed', 'awaiting_review', 'paused', 'cancelled', 'interrupted'].includes(prog.status)) {
+          await handleMacroTerminal(prog, slug, epoch)
+        } else if (autopilotEmptyMode.value === 'review' && macroMissingPersist) {
+          await loadTree({ syncAutopilot: false })
+          if (isCurrentMacroObservation(slug, epoch) && treeData.value.length) {
+            macroPreviewRoots.value = []
+            setMacroView(null)
+          }
+        }
         return
       }
-      if (prog.status === 'failed') {
-        macroPlanLoadingMore.value = false
-        macroWatchError.value = prog.message || '宏观规划失败'
-        clearMacroProgressPoll()
-      }
-    } catch {
-      /* 轮询失败不打断 SSE */
+    }
+    if (progress.status === 'rejected') {
+      macroConnectionNotice.value = status.status === 'rejected'
+        ? '无法查询生成进度和运行状态；任务是否完成尚未确认，请检查连接或到运行中心核对。'
+        : '进度连接暂不可用，已根据运行中心状态继续核对。'
+      return
+    }
+    if (!prog) return
+    if (prog.message?.trim()) macroLiveMessage.value = prog.message.trim()
+    if (['completed', 'failed', 'awaiting_review', 'paused', 'cancelled', 'interrupted'].includes(prog.status)) {
+      await handleMacroTerminal(prog, slug, epoch)
+    } else if (prog.status === 'idle') {
+      macroConnectionNotice.value = '旁观接口暂无实时输出；正在核对持久化请求和运行状态，请到运行中心查看详情。'
     }
   },
   () => runtimePerformance.workbench.storyTreeMacroProgressPollMs,
   {
-    shouldContinue: () => autopilotEmptyMode.value === 'planning' && !!macroProgressPollSlug,
+    shouldContinue: () => ['planning', 'review'].includes(autopilotEmptyMode.value || '') && !!macroProgressPollSlug,
     onError: () => undefined,
   },
 )
@@ -404,49 +522,6 @@ function startMacroProgressPoll(slug: string) {
   macroProgressPollSlug = slug
   macroProgressPoller.start()
 }
-
-watch(
-  () => autopilotEmptyMode.value === 'planning',
-  (planning) => {
-    stopMacroPlanWatch()
-    clearMacroProgressPoll()
-    macroWatchError.value = ''
-    macroLiveMessage.value = ''
-    macroPreviewRoots.value = []
-    macroPlanLoadingMore.value = false
-    if (!planning || !props.slug) return
-    macroPlanLoadingMore.value = true
-    startMacroProgressPoll(props.slug)
-    macroLiveMessage.value = '正在连接宏观规划 SSE…'
-    macroPlanWatchCtrl = watchMacroPlanProgress(props.slug, {
-      onStatus: (e) => {
-        if (e.message) macroLiveMessage.value = e.message
-      },
-      onNode: (n) => {
-        mergeMacroPreviewNode(n)
-      },
-      onTerminal: async (t: MacroProgressWatchTerminalEvent) => {
-        macroPlanLoadingMore.value = false
-        stopMacroPlanWatch()
-        clearMacroProgressPoll()
-        if (t.status === 'completed') {
-          await loadTreeAfterMacroPersist()
-        } else if (t.status === 'failed') {
-          macroWatchError.value = t.message || '宏观规划失败'
-        }
-      },
-      onError: (m) => {
-        stopMacroPlanWatch()
-        macroLiveMessage.value = `输出流异常：${m}（已改用接口轮询进度）`
-        /* 不塞 macroWatchError，以便轮询在 completed 时仍能拉树 */
-      },
-      onStreamClosed: () => {
-        /* 连接关闭不代表流结束，以 terminal / 轮询 completed 为准 */
-      },
-    })
-  },
-  { immediate: true },
-)
 
 const structureEmptyDescription = computed(() => {
   if (loading.value && autopilotEmptyMode.value == null) {
@@ -614,60 +689,73 @@ function isAutopilotMacroPlanningStage(s: Record<string, unknown>): boolean {
   )
 }
 
-async function syncAutopilotEmptyHint(hasTreeData: boolean) {
+function applyAutopilotEmptyStatus(s: Record<string, any>, hasTreeData: boolean) {
   if (hasTreeData) {
-    autopilotEmptyMode.value = null
+    setMacroView(null)
     return
   }
-  try {
-    const s = await autopilotApi.getStatus(props.slug)
-    if (s.autopilot_status !== 'running') {
-      autopilotEmptyMode.value = null
-      return
-    }
-    if (isAutopilotMacroPlanningStage(s)) {
-      autopilotEmptyMode.value = 'planning'
-    } else if (s.needs_review === true || String(s.current_stage ?? '').toLowerCase() === 'paused_for_review') {
-      autopilotEmptyMode.value = 'review'
-    } else {
-      autopilotEmptyMode.value = null
-    }
-  } catch (err) {
-    if (isAutopilotHttpError(err)) {
-      autopilotEmptyMode.value = null
-      return
-    }
-    /* 网络抖动时不清空已有提示，避免按钮/文案来回闪 */
+  const stage = String(s.current_stage || '').toLowerCase()
+  const status = String(s.autopilot_status || '').toLowerCase()
+  const invocation = String(s.active_invocation_status || '').toLowerCase()
+  const gate = s.review_gate || {}
+  const failure = String(gate.message || s.pipeline_error || s.autopilot_pause_reason || s.autopilot_recovery_reason || '')
+  if (status === 'error' || gate.status === 'failed' || ['failed', 'generation_failed'].includes(invocation)) {
+    setMacroView('failed', '', failure || '上次 AI 请求未完成，请到运行中心查看并处理。')
+  } else if (s.needs_review === true || s.requires_ai_review === true ||
+    ['paused_for_review', 'reviewing'].includes(stage) ||
+    (s.active_invocation_session_id && invocation === 'prompt_compiled')) {
+    const hint = invocation === 'prompt_compiled'
+      ? 'AI 请求已编译，等待处理或恢复；旧版缺少调用回执时，请在运行中心核对上次调用情况。'
+      : String(gate.message || s.autopilot_pause_reason || '请在运行中心核对 AI 请求和结构，确认后继续。')
+    setMacroView('review', hint)
+  } else if (['stopped', 'completed', 'paused', 'cancelled'].includes(status)) {
+    setMacroView(autopilotEmptyMode.value ? 'stopped' : null,
+      s.autopilot_pause_reason || '规划当前未运行，请到运行中心查看记录或处理未完成请求。')
+  } else if (status === 'running' && isAutopilotMacroPlanningStage(s)) {
+    if (macroMissingPersist) setMacroView('review', '尚未读取到正式结构，请在运行中心核对写入结果。')
+    else setMacroView('planning')
+  } else {
+    setMacroView(null)
   }
 }
 
-const loadTree = async () => {
+async function syncAutopilotEmptyHint(hasTreeData: boolean, slug: string, reqId: number) {
+  if (hasTreeData) {
+    setMacroView(null)
+    return
+  }
+  try {
+    const status = await autopilotApi.getStatus(slug, { timeoutMs: runtimePerformance.network.shortTaskTimeoutMs })
+    if (slug !== props.slug || reqId !== loadTreeRequestId || macroObservationDisposed) return
+    applyAutopilotEmptyStatus(status, false)
+  } catch (error) {
+    if (slug !== props.slug || reqId !== loadTreeRequestId || macroObservationDisposed) return
+    macroConnectionNotice.value = '无法确认运行状态，请重新查询或到运行中心查看。'
+    if (isAutopilotHttpError(error) && !autopilotEmptyMode.value) message.error(formatApiError(error, '查询运行状态失败'))
+  }
+}
+
+const loadTree = async (options: { syncAutopilot?: boolean } = {}) => {
   const reqId = ++loadTreeRequestId
+  const slug = props.slug
   loadTreeDepth++
   loading.value = true
   try {
-    const res = await structureApi.getTree(props.slug)
-    if (reqId !== loadTreeRequestId) {
-      return
-    }
+    const res = await structureApi.getTree(slug)
+    if (reqId !== loadTreeRequestId || slug !== props.slug || macroObservationDisposed) return
     const nodes = Array.isArray(res.tree) ? res.tree : (res.tree?.nodes ?? [])
     treeData.value = nodes.length > 0 ? nodes.map(convertToTreeNode) : buildChapterFallbackTree()
-
     const hasData = treeData.value.length > 0
     emit('treeLoaded', hasData)
-    await syncAutopilotEmptyHint(hasData)
-  } catch (e: any) {
-    if (reqId !== loadTreeRequestId) {
-      return
-    }
-    message.error(formatApiError(e, '加载结构失败'))
+    if (options.syncAutopilot !== false) await syncAutopilotEmptyHint(hasData, slug, reqId)
+  } catch (error) {
+    if (reqId !== loadTreeRequestId || slug !== props.slug || macroObservationDisposed) return
+    message.error(formatApiError(error, '加载结构失败'))
     emit('treeLoaded', false)
-    autopilotEmptyMode.value = null
+    macroConnectionNotice.value = '结构读取失败，已有预览保留，请重新查询状态。'
   } finally {
     loadTreeDepth--
-    if (loadTreeDepth === 0) {
-      loading.value = false
-    }
+    if (loadTreeDepth === 0) loading.value = false
   }
 }
 
@@ -992,9 +1080,26 @@ const nodeProps = ({ option }: { option: any }) => {
   }
 }
 
-onMounted(() => { loadTree() })
+watch(() => props.slug, () => {
+  macroObservationEpoch++
+  stopMacroPlanWatch()
+  clearMacroProgressPoll()
+  macroPersistPending = false
+  macroMissingPersist = false
+  autopilotEmptyMode.value = null
+  macroPlanLoadingMore.value = false
+  macroPreviewRoots.value = []
+  macroWatchError.value = ''
+  macroLiveMessage.value = ''
+  macroConnectionNotice.value = ''
+  treeData.value = []
+  void loadTree()
+}, { immediate: true })
 
 onUnmounted(() => {
+  macroObservationDisposed = true
+  macroObservationEpoch++
+  loadTreeRequestId++
   clearMacroProgressPoll()
   stopMacroPlanWatch()
 })

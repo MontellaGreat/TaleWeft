@@ -178,7 +178,7 @@ class TensionNode(BaseNode):
 
 @NodeRegistry.register("val_anti_ai")
 class AntiAINode(BaseNode):
-    """Anti-AI 审计 — cliche_scanner (L7)"""
+    """Anti-AI 审计 — 本地规则、尾段专项及模型语义文风复审。"""
 
     meta = NodeMeta(
         node_type="val_anti_ai",
@@ -197,15 +197,19 @@ class AntiAINode(BaseNode):
         prompt_variables=["content"],
         is_configurable=True,
         can_disable=True,
-        default_timeout_seconds=60,
+        default_timeout_seconds=300,
         cpms_node_key=CLICHE_SCAN,
-        description="ClicheScanner AI 模式检测与审计",
+        description="本地规则与尾段扫描后，模型逐维语义文风审稿；三项均有独立回执",
         default_edges=["gw_circuit"],
     )
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> NodeResult:
-        from application.engine.dag.anti_ai_scan import scan_chapter
-        return scan_chapter(inputs.get("content"), context)
+        from application.engine.dag.anti_ai_scan import review_chapter
+        from domain.ai.services.llm_service import GenerationConfig
+        config = GenerationConfig(model=self._config.model_override or "",
+            max_tokens=self._config.max_tokens or 4000,
+            temperature=self._config.temperature if self._config.temperature is not None else 0.1)
+        return await review_chapter(inputs.get("content"), context, config=config)
 
     def validate_inputs(self, inputs: Dict[str, Any]) -> bool:
         content = inputs.get("content")

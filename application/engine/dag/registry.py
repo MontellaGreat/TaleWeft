@@ -251,6 +251,10 @@ class BaseNode(ABC):
             return self._config.max_retries
         return base
 
+    async def await_execution(self, operation, context):
+        """Default nodes retain a single wall-clock execution deadline."""
+        return await asyncio.wait_for(operation, timeout=self.get_timeout())
+
 
 # ─── 节点注册表 ───
 
@@ -406,7 +410,7 @@ class NodeRegistry:
                         started_at=started_at, inputs=inputs, reason="执行器开始运行")))
                 services = context["services"]
                 operation = services.execute_node(instance, inputs, context) if services is not None and services.handles(node_type) else instance.execute(inputs, context)
-                result = await asyncio.wait_for(operation, timeout=instance.get_timeout())
+                result = await instance.await_execution(operation, context)
                 if not isinstance(result, NodeResult):
                     raise TypeError(f"节点 {node_id} 必须返回 NodeResult")
                 if result.status not in {NodeStatus.SUCCESS, NodeStatus.WARNING, NodeStatus.ERROR, NodeStatus.BYPASSED, NodeStatus.DISABLED, NodeStatus.COMPLETED}:

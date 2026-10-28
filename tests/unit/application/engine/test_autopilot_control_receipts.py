@@ -46,6 +46,14 @@ def test_api_submission_does_not_claim_executor_running(db):
     assert db.fetch_one("SELECT autopilot_status FROM novels WHERE id='book'")["autopilot_status"] == "running"
 
 
+def test_start_reservation_covers_slow_provider_connectors(db):
+    command = control.submit_command("book", "start", payload(), db=db)
+    lease = leases.get_execution_lease("book", db=db)
+    assert lease["expires_at"] >= command["requested_at"] + control.AUTOPILOT_LEASE_TTL_SECONDS - 1
+
+
+
+
 def test_stop_only_acknowledged_after_processing_exits(db):
     start = control.submit_command("book", "start", payload(), db=db)
     control.process_pending_commands(db=db)
@@ -80,14 +88,15 @@ def test_identical_command_id_is_idempotent(db):
     assert len(db.fetch_all("SELECT * FROM autopilot_commands")) == 1
 
 
-def test_dag_owner_blocks_control_without_epoch_or_command(db):
-    assert leases.claim_execution_lease("book", "dag", "run", db=db)
+@pytest.mark.parametrize("owner", ["dag", "setup"])
+def test_other_engine_owner_blocks_control_without_epoch_or_command(db, owner):
+    assert leases.claim_execution_lease("book", owner, "run", db=db)
     for kind in ["start", "resume", "stop"]:
         with pytest.raises(ValueError):
             control.submit_command("book", kind, payload(), db=db)
     assert db.fetch_one("SELECT autopilot_run_epoch FROM novels WHERE id='book'")["autopilot_run_epoch"] == 0
     assert not db.fetch_all("SELECT * FROM autopilot_commands")
-    assert leases.get_execution_lease("book", db=db)["owner"] == "dag"
+    assert leases.get_execution_lease("book", db=db)["owner"] == owner
 
 
 def test_missing_book_does_not_leave_lease(db):
@@ -168,3 +177,27 @@ def test_concurrent_dag_and_autopilot_have_one_atomic_owner(db):
     owner = leases.get_execution_lease("book", db=db)["owner"]
     commands = db.fetch_all("SELECT * FROM autopilot_commands")
     assert bool(commands) == (owner == "autopilot")
+
+
+def test_expired_pending_start_fails_without_resurrecting_execution(db):
+    command = control.submit_command("book", "start", payload(), db=db)
+    db.execute("UPDATE novel_execution_leases SET expires_at=0")
+    db.commit()
+    assert control.process_pending_commands(db=db) == []
+    receipt = control.get_command(command["command_id"], db=db)
+    assert receipt["state"] == "failed"
+    assert "expired" in receipt["error"]
+    assert leases.get_execution_lease("book", db=db) is None
+    assert db.fetch_one("SELECT 1 FROM novel_execution_leases WHERE novel_id='book'") is None
+    assert db.fetch_one("SELECT autopilot_status FROM novels WHERE id='book'")["autopilot_status"] == "stopped"
+
+
+@pytest.mark.parametrize("owner", ["dag", "setup"])
+def test_expired_pending_start_cannot_displace_new_engine_owner(db, owner):
+    command = control.submit_command("book", "start", payload(), db=db)
+    db.execute("UPDATE novel_execution_leases SET expires_at=0")
+    db.commit()
+    assert leases.claim_execution_lease("book", owner, "successor", db=db)
+    assert control.process_pending_commands(db=db) == []
+    assert control.get_command(command["command_id"], db=db)["state"] == "failed"
+    assert leases.get_execution_lease("book", db=db)["job_id"] == "successor"

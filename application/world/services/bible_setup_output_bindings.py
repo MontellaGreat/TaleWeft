@@ -135,10 +135,9 @@ def ensure_bible_setup_output_bindings(repo: Any, node_key: str | None = None) -
         bindings = bible_setup_output_bindings(str(key))
         existing = []
         if binding_set_id and hasattr(repo, "get_output_bindings"):
-            try:
-                existing = repo.get_output_bindings(binding_set_id, str(key)) or []
-            except Exception:
-                existing = []
+            # A failed read does not prove bindings are absent. Propagate it
+            # rather than overwriting a customized set with built-in defaults.
+            existing = repo.get_output_bindings(binding_set_id, str(key)) or []
         if binding_set_id and bindings:
             repo.set_bindings(
                 binding_set_id,

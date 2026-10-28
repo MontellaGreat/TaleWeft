@@ -6,6 +6,15 @@
 .env
 .env.*
 !.env.example
+.credentials/
+credentials/
+secrets/
+credentials.json
+secrets.json
+*.pem
+*.pfx
+*.p12
+*.key
 
 # ── Python ──
 __pycache__/

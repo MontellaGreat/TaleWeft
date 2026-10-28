@@ -480,9 +480,12 @@ async def get_stats(novel_id: Optional[str] = Query(None, description="按小说
         stream_store_available = False
     try:
         import json
-        row = get_database().fetch_one(f"SELECT COUNT(*) AS total FROM anti_ai_prompt_runs{scope}", params)
+        # Shared semantic reviews retain their real prompt/reply in this
+        # history too. They do not observe generation-time L1-L5 hooks.
+        prompt_scope = scope + (" AND " if scope else " WHERE ") + "COALESCE(json_extract(evidence_json,'$.kind'),'') != 'semantic_review'"
+        row = get_database().fetch_one(f"SELECT COUNT(*) AS total FROM anti_ai_prompt_runs{prompt_scope}", params)
         prompt_count = int(row["total"] or 0) if row else 0
-        latest = get_database().fetch_one(f"SELECT * FROM anti_ai_prompt_runs{scope} ORDER BY rowid DESC LIMIT 1", params)
+        latest = get_database().fetch_one(f"SELECT * FROM anti_ai_prompt_runs{prompt_scope} ORDER BY rowid DESC LIMIT 1", params)
         if latest:
             latest_prompt_run = dict(latest)
             latest_prompt_run["evidence"] = json.loads(latest_prompt_run.pop("evidence_json"))

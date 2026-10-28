@@ -138,6 +138,15 @@ def _stage_after_review(novel) -> NovelStage:
     return NovelStage.ACT_PLANNING
 
 
+def _autopilot_executor_running() -> bool:
+    """Check this backend's owned process, independent of a busy loop's heartbeat."""
+    import sys
+
+    main = sys.modules.get("interfaces.main")
+    manager = getattr(main, "_daemon_manager", None)
+    return bool(manager is not None and manager.status().running)
+
+
 def _persist_autopilot_running_sync(
     novel_id: str, *, max_auto_chapters: int, target_chapters: int | None,
     target_words_per_chapter: int | None, command_id: str | None = None,
@@ -179,6 +188,8 @@ def _persist_autopilot_running_sync(
             return {"no_op": True, "run_epoch": getattr(novel, "autopilot_run_epoch", 0), "decision": None}
     if status == "running" and stage != "paused_for_review" and next_stage_override is None:
         raise HTTPException(409, "自动驾驶已运行，请先停止后再更改启动目标")
+    if not _autopilot_executor_running():
+        raise HTTPException(503, "托管执行器未启动或已退出，尚未提交启动命令。请重启网页版或桌面后端后重试。")
     policy = AutopilotRecoveryPolicy(get_database(), workspace=ChapterGenerationWorkspace())
     decision = policy.decide_on_start(novel_id)
     next_stage = next_stage_override or decision.next_stage
@@ -395,6 +406,38 @@ def _daemon_lease_status():
     except Exception:
         heartbeat, alive = None, False
     return {"daemon_alive": alive, "daemon_heartbeat_at": heartbeat, "daemon_lease_seconds": 60}
+
+
+def _control_runtime_projection(novel_id, command, heartbeat):
+    """Explain accepted intent separately from the current execution owner."""
+    from application.engine.services.execution_lease import get_execution_lease
+
+    lease = get_execution_lease(novel_id)
+    awaiting_start = bool(command and command["state"] == "pending"
+                          and command["command_type"] in {"start", "resume"})
+    reservation_expired = awaiting_start and not (
+        lease and lease["owner"] == "autopilot" and lease["job_id"] == command["command_id"]
+    )
+    message = ""
+    if command:
+        if command["state"] == "failed":
+            message = "控制命令执行失败：" + (command.get("error") or "请查看运行日志")
+        elif reservation_expired:
+            message = "启动请求的执行租约已过期或被替换，尚未启动；请重新提交启动请求"
+        elif command["state"] == "pending":
+            message = "请求已保存，等待执行器确认"
+            if not heartbeat["daemon_alive"]:
+                message += "；执行器暂无有效心跳，请检查后台状态"
+        elif command["state"] == "applied":
+            message = "停止信号已送达，等待当前任务退出确认"
+    return {
+        **heartbeat,
+        "execution_owner": lease["owner"] if lease else None,
+        "execution_job_id": lease["job_id"] if lease else None,
+        "execution_lease_expires_at": lease["expires_at"] if lease else None,
+        "execution_reservation_expired": bool(reservation_expired),
+        "control_message": message,
+    }
 
 
 def _build_autopilot_status_sync(novel_id: str) -> Optional[Dict[str, Any]]:
@@ -1569,10 +1612,13 @@ async def resume_from_review(novel_id: str):
 @router.get("/{novel_id}/commands/{command_id}")
 async def get_autopilot_command(novel_id: str, command_id: str):
     from application.engine.services.autopilot_control import get_command, command_response
-    command = await asyncio.get_running_loop().run_in_executor(_SSE_THREAD_POOL, get_command, command_id)
-    if not command or command["novel_id"] != novel_id:
-        raise HTTPException(404, "控制命令尚未提交或不存在")
-    return command_response(command)
+    def _command_sync():
+        command = get_command(command_id)
+        if not command or command["novel_id"] != novel_id:
+            raise HTTPException(404, "控制命令尚未提交或不存在")
+        return {**command_response(command),
+                **_control_runtime_projection(novel_id, command, _daemon_lease_status())}
+    return await asyncio.get_running_loop().run_in_executor(_SSE_THREAD_POOL, _command_sync)
 
 
 @router.get("/{novel_id}/status")
@@ -1587,9 +1633,9 @@ async def get_autopilot_status(novel_id: str):
         if status is None:
             status = _build_autopilot_status_sync(novel_id)
         if status is not None:
-            status = {**status, **command_response(latest_command(novel_id))}
-            heartbeat = _daemon_lease_status()
-            status.update(heartbeat)
+            command = latest_command(novel_id)
+            status = {**status, **command_response(command),
+                      **_control_runtime_projection(novel_id, command, _daemon_lease_status())}
         return status
     try:
         status = await asyncio.wait_for(asyncio.get_running_loop().run_in_executor(_SSE_THREAD_POOL, _status_sync),

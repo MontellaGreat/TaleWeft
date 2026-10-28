@@ -48,6 +48,7 @@ def register_api_routes(app: FastAPI) -> None:
     from interfaces.api.middleware.session_auth import session_router
     from interfaces.api.v1.control.security_audit import router as security_audit_router
     from interfaces.api.v1.core.credential_management import router as credential_management_router
+    from interfaces.api.v1.core.model_readiness_routes import router as model_readiness_router
     from interfaces.api.v1 import anti_ai as anti_ai_routes
     from interfaces.api.v1 import reader as reader_module
     from interfaces.api.v1 import system as system_routes
@@ -65,6 +66,7 @@ def register_api_routes(app: FastAPI) -> None:
     from interfaces.api.v1.blueprint.confluence_routes import router as confluence_router
     from interfaces.api.v1.core import (
         chapters,
+        creation_contract,
         extension_policy_routes,
         export,
         manuscript_entity_routes,
@@ -88,6 +90,7 @@ def register_api_routes(app: FastAPI) -> None:
         worldline_routes,
     )
     from interfaces.api.v1.engine.dag.dag_routes import router as dag_router
+    from interfaces.api.v1.engine.setup_dag_routes import router as setup_dag_router
     from interfaces.api.v1.engine.trace_routes import router as trace_router
     from interfaces.api.v1.meta import taxonomy_routes
     from interfaces.api.v1.prop import prop_routes
@@ -106,7 +109,9 @@ def register_api_routes(app: FastAPI) -> None:
             RouterRegistration(session_router, ""),
             RouterRegistration(security_audit_router, API_V1_PREFIX),
             RouterRegistration(credential_management_router, API_V1_PREFIX),
+            RouterRegistration(model_readiness_router, API_V1_PREFIX),
             RouterRegistration(novels.router, API_V1_PREFIX),
+            RouterRegistration(creation_contract.router, API_V1_PREFIX),
             RouterRegistration(taxonomy_routes.router, API_V1_PREFIX),
             RouterRegistration(chapters.router, NOVELS_API_PREFIX),
             RouterRegistration(extension_policy_routes.router, API_V1_PREFIX),
@@ -142,6 +147,7 @@ def register_api_routes(app: FastAPI) -> None:
             RouterRegistration(prop_routes.router, API_V1_PREFIX),
             RouterRegistration(trace_router, API_V1_PREFIX),
             RouterRegistration(dag_router, API_V1_PREFIX),
+            RouterRegistration(setup_dag_router, API_V1_PREFIX),
             RouterRegistration(chapter_review_routes.router, API_V1_PREFIX),
             RouterRegistration(macro_refactor.router, API_V1_PREFIX),
             RouterRegistration(chapter_element_routes.router, API_V1_PREFIX),

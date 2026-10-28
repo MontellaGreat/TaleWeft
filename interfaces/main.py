@@ -196,7 +196,9 @@ def create_app(app_settings: BackendSettings | None = None) -> FastAPI:
                 from interfaces.api.dependencies import get_chapter_aftermath_pipeline, get_knowledge_service
                 from application.core.services.chapter_derivation_jobs import recover_chapter_derivation_jobs
                 outcomes = await recover_chapter_derivation_jobs(
-                    get_database(), get_chapter_aftermath_pipeline(), get_knowledge_service(), startup=True, limit=500,
+                    get_database(), startup=True, limit=500,
+                    pipeline_factory=get_chapter_aftermath_pipeline,
+                    knowledge_service_factory=get_knowledge_service,
                 )
                 if outcomes:
                     logger.info("启动恢复章节派生任务 %s", {state: outcomes.count(state) for state in set(outcomes)})

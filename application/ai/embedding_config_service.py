@@ -1,7 +1,7 @@
 """EmbeddingConfigService — 嵌入模型配置管理服务（数据库驱动）。
 
 将嵌入模型配置持久化到 SQLite embedding_config 表；
-默认模型 ID / 本地路径由环境变量或用户在设置中填写，不在代码中写死。
+默认使用运行时数据目录中的开源 BGE 本地模型，保留显式云端配置。
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class EmbeddingConfigModel(BaseModel):
     """嵌入配置数据模型。"""
     model_config = {"protected_namespaces": ()}
     id: str = "default"
-    mode: str = "openai"  # local | openai（默认云端，轻量）
+    mode: str = "local"  # local | openai
     api_key: str = ""
     base_url: str = ""
     model: str = ""
@@ -44,7 +44,7 @@ class EmbeddingConfigModel(BaseModel):
     def from_row(cls, row: Dict[str, Any]) -> "EmbeddingConfigModel":
         return cls(
             id=row["id"],
-            mode=row.get("mode", "openai"),
+            mode=row.get("mode", "local"),
             api_key=row.get("api_key", ""),
             base_url=row.get("base_url", ""),
             model=row.get("model", ""),
@@ -70,15 +70,39 @@ class EmbeddingConfigService:
     @staticmethod
     def _default_row_values() -> dict[str, Any]:
         env = EmbeddingEnvironmentSettings.from_env()
+        from infrastructure.ai.embedding_download import get_local_model_path
+        mode = "openai" if env.service == "openai" else "local"
         return {
             "id": "default",
-            "mode": "openai",
-            "api_key": "",
-            "base_url": "",
+            "mode": mode,
+            "api_key": env.api_key_with_openai_fallback if mode == "openai" else "",
+            "base_url": env.base_url if mode == "openai" else "",
             "model": env.model,
             "use_gpu": 1,
-            "model_path": env.db_default_model_path,
+            "model_path": env.db_default_model_path or env.model_path or str(get_local_model_path()),
         }
+
+    @classmethod
+    def _effective_values(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """Treat only the old completely empty cloud placeholder as local."""
+        values = dict(values)
+        if (values.get("mode") == "openai" and EmbeddingEnvironmentSettings.from_env().service != "openai" and not any(
+            str(values.get(field) or "").strip() for field in ("api_key", "base_url", "model")
+        )):
+            values["mode"] = "local"
+        if values.get("mode") == "local" and not str(values.get("model_path") or "").strip():
+            values["model_path"] = cls._default_row_values()["model_path"]
+        return values
+
+    def get_config_readonly(self) -> EmbeddingConfigModel:
+        """Read effective settings without initialization or credential migration."""
+        db = self._get_db()
+        row = db.execute("SELECT * FROM embedding_config WHERE id = ? LIMIT 1", ("default",)).fetchone()
+        values = self._effective_values(dict(row) if row else self._default_row_values())
+        stored = values.get("api_key") or ""
+        if stored.startswith(PREFIX):
+            values["api_key"] = credentials_for_database(db).resolve(stored)
+        return EmbeddingConfigModel.from_row(values)
 
     def _get_db(self):
         """获取数据库连接（延迟导入避免循环依赖）。"""
@@ -99,6 +123,8 @@ class EmbeddingConfigService:
             return
         now = datetime.now().isoformat()
         defaults = self._default_row_values()
+        if defaults["api_key"]:
+            defaults["api_key"] = credentials_for_database(db).store(defaults["api_key"])
         db.execute("""
             INSERT OR IGNORE INTO embedding_config
             (id, mode, api_key, base_url, model, use_gpu, model_path, created_at, updated_at)
@@ -142,7 +168,7 @@ class EmbeddingConfigService:
                         return self.get_config()
                     stored = reference
                 values['api_key'] = vault.resolve(stored)
-        return EmbeddingConfigModel.from_row(values)
+        return EmbeddingConfigModel.from_row(self._effective_values(values))
 
     def update_config(self, **kwargs) -> EmbeddingConfigModel:
         """更新嵌入配置。

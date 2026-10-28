@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict
 
 from application.engine.dag.models import (
+    DefaultDagSlot,
     NodeCategory,
     NodeMeta,
     NodePort,
@@ -312,16 +313,20 @@ class ChapterAuditNode(BaseNode):
         prompt_variables=["content"],
         is_configurable=True,
         can_disable=True,
-        default_timeout_seconds=60,
+        default_timeout_seconds=300,
         cpms_node_key=ANTI_AI_CHAPTER_AUDIT,
         prompt_mode=PromptMode.CPMS_FIRST,
-        description="L7 章后审计：35+增强模式扫描，涵盖8大类AI味检测",
+        description="L7 章后审计：本地规则、尾段专项与模型语义文风审稿",
         default_edges=["review_improvement"],
     )
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> NodeResult:
-        from application.engine.dag.anti_ai_scan import scan_chapter
-        return scan_chapter(inputs.get("content"), context)
+        from application.engine.dag.anti_ai_scan import review_chapter
+        from domain.ai.services.llm_service import GenerationConfig
+        config = GenerationConfig(model=self._config.model_override or "",
+            max_tokens=self._config.max_tokens or 4000,
+            temperature=self._config.temperature if self._config.temperature is not None else 0.1)
+        return await review_chapter(inputs.get("content"), context, config=config)
 
     def validate_inputs(self, inputs: Dict[str, Any]) -> bool:
         content = inputs.get("content")
@@ -342,20 +347,23 @@ class FinaleEnhancementNode(BaseNode):
         icon="",
         color="#4c0519",
         input_ports=[
-            NodePort(name="content", data_type=PortDataType.TEXT, required=True),
+            NodePort(name="content", data_type=PortDataType.TEXT, required=False),
             NodePort(name="is_final_chapter", data_type=PortDataType.BOOLEAN, required=False, default=False),
+            NodePort(name="expected_ending", data_type=PortDataType.TEXT, required=False),
         ],
         output_ports=[
             NodePort(name="finale_block", data_type=PortDataType.TEXT),
         ],
-        prompt_variables=["content", "is_final_chapter"],
+        prompt_variables=["finale_text", "expected_ending", "is_final_chapter"],
         is_configurable=True,
         can_disable=True,
         default_timeout_seconds=10,
         cpms_node_key=ANTI_AI_FINALE_ENHANCEMENT,
         prompt_mode=PromptMode.INJECT,
-        description="终章/尾声段落的 Anti-AI 增强注入",
+        description="生成前终章约束注入；生成后的尾段专项由 Anti-AI 审计执行",
         default_edges=["exec_writer"],
+        default_dag_slot=DefaultDagSlot(instance_id="anti_ai_finale",
+            position={"x": 600.0, "y": 680.0}, outgoing_to=["exec_writer"]),
     )
 
     async def execute(self, inputs: Dict[str, Any], context: Dict[str, Any]) -> NodeResult:
@@ -363,26 +371,31 @@ class FinaleEnhancementNode(BaseNode):
         start = time.time()
 
         try:
-            is_final = inputs.get("is_final_chapter", False)
+            is_final = inputs.get("is_final_chapter", context.get("shared_state", {}).get("is_final_chapter", False))
+            if type(is_final) is not bool:
+                raise ValueError("终章状态必须来自章节计划或作者布尔确认")
             if not is_final:
                 return NodeResult(
-                    outputs={"finale_block": ""},
-                    status=NodeStatus.BYPASSED,
+                    outputs={"finale_block": "", "finale_mode": "not_applicable", "body_scanned": False},
+                    status=NodeStatus.SUCCESS,
                     duration_ms=int((time.time() - start) * 1000),
-                    error="当前章节不是终章，终章专项约束不适用",
+                    # Applicability was actually checked. An unconditional
+                    # dependency must complete so the ordinary writer can run.
                 )
 
             resolved = self.get_effective_prompt()
-            finale_block = resolved.get("system", "") or resolved.get("user_template", "")
+            finale_block = (resolved.get("user_template", "") or resolved.get("system", "")) if resolved.get("source") in {"cpms", "builtin"} else (resolved.get("system", "") or resolved.get("user_template", ""))
             if not finale_block.strip():
                 raise RuntimeError("Anti-AI 提示词片段不可用；请检查 CPMS 配置")
 
             if finale_block:
-                for key, value in inputs.items():
+                variables = {**inputs, "finale_text": inputs.get("content", ""),
+                             "expected_ending": inputs.get("expected_ending") or context.get("shared_state", {}).get("outline", "")}
+                for key, value in variables.items():
                     finale_block = finale_block.replace(f"{{{{{key}}}}}", str(value)).replace(f"{{{key}}}", str(value))
 
             return NodeResult(
-                outputs={"finale_block": finale_block},
+                outputs={"finale_block": finale_block, "finale_mode": "prompt_pre_generation_only", "body_scanned": False},
                 status=NodeStatus.SUCCESS,
                 duration_ms=int((time.time() - start) * 1000),
             )

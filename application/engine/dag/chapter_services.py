@@ -261,11 +261,13 @@ class DAGChapterServices:
                 "anchor_block": state.get("character_state_lock", "")})
         finally:
             node.meta = original_meta
-        targets = json.dumps(state.get("hits", []), ensure_ascii=False)
-        user = resolved["user"] + "\n\n同时修订以下 Anti-AI 规则命中，保留事实与对白信息：\n" + targets
+        targets = json.dumps({"rule_hits": state.get("hits", []),
+            "semantic_issues": (state.get("semantic_anti_ai") or {}).get("issues", [])}, ensure_ascii=False)
+        user = resolved["user"] + "\n\n同时修订以下 Anti-AI 规则及语义文风问题；仅调整表达，保留人物、事件、因果、时间线、设定事实与对白信息：\n" + targets
+        from application.audit.services.paragraph_style_policy import PARAGRAPH_PERIOD_RULE
         from application.engine.rules.prose_prompt_hooks import generate_direct_prose
         evidence = {}
-        content = generation_text(await generate_direct_prose(self.llm,Prompt(system=resolved["system"],user=user),self._config(node,0.4),db=self.db,
+        content = generation_text(await generate_direct_prose(self.llm,Prompt(system=resolved["system"] + '\n\n' + PARAGRAPH_PERIOD_RULE,user=user),self._config(node,0.4),db=self.db,
             context={"novel_id":state["novel_id"],"chapter_number":state["chapter_number"],"job_id":f"{state.get('dag_run_id','')}:{attempt}"}, evidence_sink=evidence))
         self._validate_prompt_evidence(evidence, content, state={**state, "attempt": attempt})
         state["anti_ai_prompt_evidence"] = evidence
@@ -323,6 +325,32 @@ class DAGChapterServices:
         from application.engine.rules.prose_prompt_hooks import ProsePromptHooks
         ProsePromptHooks(self.db).validate_current_market_profile(evidence, {"novel_id": state["novel_id"]})
 
+    @staticmethod
+    def _validate_anti_ai_review(state, *, db=None):
+        """Current rule, ending and semantic receipts must all exist before commit."""
+        from application.audit.services.semantic_anti_ai import SemanticAntiAIReview
+        from application.engine.dag.anti_ai_scan import scan_tail
+        count = state.get("effective_rule_count")
+        if type(count) is not int or count <= 0:
+            raise RuntimeError("去 AI 味有效规则覆盖为空，不能提交正文")
+        tail = state.get("tail_scan")
+        if not isinstance(tail, dict) or tail != scan_tail(state["content"]):
+            raise RuntimeError("去 AI 味尾段专项回执缺失或与当前正文不匹配")
+        semantic = state.get("semantic_anti_ai")
+        if not isinstance(semantic, dict) or semantic.get("review_version") not in SemanticAntiAIReview.SUPPORTED_VERSIONS:
+            raise RuntimeError("语义 Anti-AI 审稿没有有效完成回执")
+        validated = SemanticAntiAIReview.validate_report(semantic, state["content"])
+        if validated != semantic:
+            raise RuntimeError("语义 Anti-AI 审稿回执不完整或与当前版本不匹配")
+        if semantic.get("review_version") == SemanticAntiAIReview.VERSION:
+            try:
+                SemanticAntiAIReview.validate_durable_review(semantic, state["content"], db=db,
+                    context={"novel_id": state.get("novel_id", ""), "chapter_number": state.get("chapter_number"),
+                             "outline": state.get("outline", ""), "is_final_chapter": state.get("is_final_chapter", False)})
+            except ValueError as exc:
+                raise RuntimeError("语义 Anti-AI 审稿持久证据无效：" + str(exc)) from exc
+        return validated
+
     async def _quality_gate(self, node, state):
         from application.engine.dag.engine import DAGEngine
         maximum = node._config.thresholds.get("anti_ai_max_score", 0)
@@ -349,6 +377,11 @@ class DAGChapterServices:
                 raise RuntimeError("去 AI 味扫描回执与当前正文不匹配，不能提交正文")
             if not isinstance(latest.get("rule_version"), str) or not latest["rule_version"].strip():
                 raise RuntimeError("去 AI 味扫描回执缺少有效规则版本，不能提交正文")
+            semantic = self._validate_anti_ai_review(latest, db=self.db)
+            if semantic["passed"] is not True:
+                reasons.append("Anti-AI 语义文风问题")
+            if latest["tail_scan"]["total_hits"]:
+                reasons.append("Anti-AI 尾段专项命中")
             import math
             score = latest["severity_score"]
             if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score) or score < 0 or not isinstance(latest["hits"], list):
@@ -360,12 +393,12 @@ class DAGChapterServices:
             if not reasons:
                 if self.candidate_id:
                     await asyncio.to_thread(self.candidates.mark_audited, self.candidate_id,
-                        {"content_hash": expected_scan_hash, **{key: latest.get(key) for key in ("scan_status", "input_hash", "rule_version", "severity_score", "total_hits", "hits", "drift_score", "baseline_available", "composite", "quality_report", "anti_ai_prompt_evidence")}}, True)
+                        {"content_hash": expected_scan_hash, **{key: latest.get(key) for key in ("scan_status", "input_hash", "rule_version", "effective_rule_count", "scan_mode", "tail_scan", "semantic_anti_ai", "severity_score", "total_hits", "hits", "drift_score", "baseline_available", "composite", "quality_report", "anti_ai_prompt_evidence")}}, True)
                 return NodeResult(outputs={**{k: v for k, v in latest.items() if k not in {"services", "llm_service", "on_node_event"}},
                     "quality_approved": True, "retry_required": False, "attempts_used": attempt})
             if self.candidate_id:
                 await asyncio.to_thread(self.candidates.mark_audited, self.candidate_id,
-                    {"content_hash": expected_scan_hash, **{key: latest.get(key) for key in ("scan_status", "input_hash", "rule_version", "severity_score", "total_hits", "hits", "drift_score", "baseline_available", "composite", "quality_report", "anti_ai_prompt_evidence")}}, False)
+                    {"content_hash": expected_scan_hash, **{key: latest.get(key) for key in ("scan_status", "input_hash", "rule_version", "effective_rule_count", "scan_mode", "tail_scan", "semantic_anti_ai", "severity_score", "total_hits", "hits", "drift_score", "baseline_available", "composite", "quality_report", "anti_ai_prompt_evidence")}}, False)
             if attempt == budget:
                 return NodeResult(status=NodeStatus.ERROR, error=f"重写达到上限 ({budget})，审计仍未通过：{'、'.join(reasons)}",
                                   outputs={"quality_approved": False, "retry_required": True, "retry_reasons": reasons, "attempts_used": attempt})
@@ -408,6 +441,11 @@ class DAGChapterServices:
         if not self.candidate_id:
             raise RuntimeError("没有经过持久化复验的候选，不能提交正文")
         candidate = self.candidates.get(self.candidate_id)
+        semantic = self._validate_anti_ai_review(state, db=self.db)
+        if (semantic["passed"] is not True or state["tail_scan"]["total_hits"]
+                or any(candidate["audit"].get(key) != state.get(key)
+                       for key in ("semantic_anti_ai", "tail_scan", "effective_rule_count"))):
+            raise RuntimeError("提交前语义或尾段审稿未通过，或回执发生变化")
         quality = candidate["audit"].get("quality_report") or {}
         if (state.get("quality_approved") is not True or candidate["status"] != "audited"
                 or candidate["run_id"] != state["dag_run_id"] or candidate["content"] != content
@@ -447,6 +485,13 @@ class DAGChapterServices:
                         AND json_extract(r.audit_json,'$.content_hash')=?
                         AND json_extract(r.audit_json,'$.quality_report.passed')=1
                         AND json_extract(r.audit_json,'$.quality_report.status')='passed'
+                        AND json_extract(r.audit_json,'$.effective_rule_count')>0
+                        AND json_extract(r.audit_json,'$.semantic_anti_ai.status')='completed'
+                        AND json_extract(r.audit_json,'$.semantic_anti_ai.passed')=1
+                        AND json_extract(r.audit_json,'$.semantic_anti_ai.input_hash')=r.content_hash
+                        AND json_extract(r.audit_json,'$.tail_scan.scan_status')='completed'
+                        AND json_extract(r.audit_json,'$.tail_scan.input_hash')=r.content_hash
+                        AND json_extract(r.audit_json,'$.tail_scan.total_hits')=0
                         AND json_extract(r.audit_json,'$.anti_ai_prompt_evidence.content_hash')=?
                         AND ((?=1 AND json_extract(r.audit_json,'$.anti_ai_prompt_evidence.status')='reused_candidate')
                             OR EXISTS (SELECT 1 FROM anti_ai_prompt_runs p

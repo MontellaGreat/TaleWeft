@@ -100,7 +100,7 @@ const llmRef = ref<{ $el: HTMLElement } | null>(null)
 const plazaRef = ref<{ $el: HTMLElement } | null>(null)
 
 const aiToolsOptions = [
-  { label: '⚙️ AI 控制台', key: 'llm' },
+  { label: '⚙️ 模型控制台', key: 'llm' },
   { label: '✦ 提示词广场', key: 'plaza' },
 ]
 
@@ -265,7 +265,7 @@ onMounted(loadStats)
 
 <style scoped>
 /* ═══════════════════════════════════════════════════
-   StatsTopBar — 与 AI 控制台一体化的顶部导航栏
+   StatsTopBar — 与 模型控制台一体化的顶部导航栏
    使用 CSS 变量，自动适配亮/暗主题
    ═══════════════════════════════════════════════════ */
 .stats-top-bar {
@@ -289,7 +289,7 @@ onMounted(loadStats)
     0 4px 16px var(--color-brand-border, rgba(79, 70, 229, 0.08));
 }
 
-/* 左侧：AI 控制台入口 */
+/* 左侧：模型控制台入口 */
 .topbar-left {
   flex-shrink: 0;
   z-index: 2;

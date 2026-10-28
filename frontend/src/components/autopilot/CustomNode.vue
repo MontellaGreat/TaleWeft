@@ -90,6 +90,7 @@ const data = computed(() => props.data as {
   label: string
   enabled: boolean
   registryMissing?: boolean
+  meta?: Partial<NodeMeta>
   runState?: { status: NodeStatus; metrics: Record<string, number>; progress: number; duration_ms: number }
   isSelected: boolean
   [key: string]: unknown
@@ -97,7 +98,8 @@ const data = computed(() => props.data as {
 
 const registryMissing = computed(() => Boolean(data.value.registryMissing))
 
-const meta = computed((): NodeMeta | null => {
+const meta = computed((): Partial<NodeMeta> | null => {
+  if (data.value.meta) return data.value.meta
   const nodeType = data.value.type
   return dagStore.nodeTypeRegistry[nodeType] || null
 })

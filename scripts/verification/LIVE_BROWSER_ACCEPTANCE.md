@@ -7,13 +7,13 @@
 仅校验步骤，不启动进程、不读取密钥、不调用模型：
 
 ```powershell
-& 'F:\plotpilot\.ws8-verify-venv\Scripts\python.exe' scripts\verification\live_browser_edit.py --source-run out\verification\live-responses-fullflow-20261016 --output-dir out\verification\live-browser-responses-20261016 --dry-run
+& .\.venv\Scripts\python.exe scripts\verification\live_browser_edit.py --source-run out\verification\live-responses-fullflow-20261016 --output-dir out\verification\live-browser-responses-20261016 --dry-run
 ```
 
-开始真实验收（会按源测试库的模型配置运行章后分析，产生实际模型请求）：
+开始真实验收（会按源测试库的模型配置运行章后分析，产生实际模型请求）。先将 `$taskBrowserExecutable` 设为本机已安装 Chromium 的可执行文件绝对路径；示例使用项目内 `.venv`，可替换为实际虚拟环境：
 
 ```powershell
-& 'F:\plotpilot\.ws8-verify-venv\Scripts\python.exe' scripts\verification\live_browser_edit.py --source-run out\verification\live-responses-fullflow-20261016 --output-dir out\verification\live-browser-responses-20261016 --node 'C:\Program Files\nodejs\node.exe' --browser-executable 'C:\Users\81576\AppData\Local\ms-playwright\chromium-1169\chrome-win\chrome.exe'
+& .\.venv\Scripts\python.exe scripts\verification\live_browser_edit.py --source-run out\verification\live-responses-fullflow-20261016 --output-dir out\verification\live-browser-responses-20261016 --node (Get-Command node).Source --browser-executable $taskBrowserExecutable
 ```
 
 脚本会在新的隔离数据副本上启动源码后端，核对复制后的第1章末明确由沈舟保管钥匙；通过公开 props API 登记「验潮钥匙」（真实 unified_character ID，`introduced_chapter=1`，可复用同名已登记道具），并回读校验，不调用模型、不生成或伪造道具事件。此步骤是测试登记前置条件，不代表自动发现。随后启动真实 Vite 代理，使用安全启动 fragment 进入章节页面，确认 fragment 被清除。通过 UI 将第一章改名为「浏览器验收·一百零七号钥匙」，调整正文中的钥匙编号及最终持有人为林雁，点击保存，并独立验证版本、SHA-256、持久保存回执、刷新回读及历史标题。
@@ -29,5 +29,5 @@
 也可对正在运行的隔离测试库单独做零模型、只读证据检查（不会发起或重试业务工作流）：
 
 ```powershell
-& 'F:\plotpilot\.ws8-verify-venv\Scripts\python.exe' scripts\verification\linked_holder_evidence.py --run-dir out\verification\live-chat-fullflow-20261016 --expected-owner 沈舟 --expected-number 92 --report-name holder-evidence-readonly.json
+& .\.venv\Scripts\python.exe scripts\verification\linked_holder_evidence.py --run-dir out\verification\live-chat-fullflow-20261016 --expected-owner 沈舟 --expected-number 92 --report-name holder-evidence-readonly.json
 ```

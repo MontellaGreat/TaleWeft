@@ -231,6 +231,8 @@ async def get_character_narrative_profile(
     """角色聚合 read model：角色档案 / 状态 / 知识库 / 出场史 / 风险。"""
     try:
         return kernel.get_character_narrative_profile(novel_id, character_id).to_dict()
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as e:
         logger.error("character narrative profile failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -259,6 +261,8 @@ async def get_character_projection(
     """Character memory projection read model for frontend and context compiler."""
     try:
         return projection.get_projection(novel_id, character_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as e:
         logger.error("character projection failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

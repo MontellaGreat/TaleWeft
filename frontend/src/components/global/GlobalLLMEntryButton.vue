@@ -5,7 +5,7 @@
       class="global-llm-main"
       :class="appearance === 'sidebar' ? 'variant-sidebar' : 'variant-topbar'"
       :aria-label="ariaLabel"
-      @click="openPanel"
+      @click="openPanel()"
     >
       <span class="global-llm-glow"></span>
 
@@ -17,7 +17,7 @@
               <path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6M18.4 18.4l-1.6-1.6M7.2 7.2 5.6 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </span>
-          <span class="global-llm-title">AI 控制台</span>
+          <span class="global-llm-title">模型控制台</span>
         </template>
         <template v-else>
           <span class="global-llm-icon-core">
@@ -28,7 +28,7 @@
 
           <span class="global-llm-copy">
             <span class="global-llm-title-row">
-              <span class="global-llm-title">AI 控制台</span>
+              <span class="global-llm-title">模型控制台</span>
               <span class="global-llm-status"></span>
             </span>
             <span class="global-llm-subtitle">
@@ -56,7 +56,7 @@
             <div class="modal-header">
               <div class="modal-header-left">
                 <span class="modal-header-icon modal-header-icon-llm" aria-hidden="true">AI</span>
-                <span class="modal-header-title">AI 控制台</span>
+                <span class="modal-header-title">模型控制台</span>
                 <n-tag
                   v-if="drawerTab === 'llm'"
                   size="small"
@@ -144,6 +144,7 @@
                 </div>
 
                 <template v-else>
+                  <n-alert v-if="embeddingError || extensionsStatusError" type="error" :show-icon="false" class="mb-3">{{ [embeddingError, extensionsStatusError].filter(Boolean).join('；') }}</n-alert>
                   <!-- 本地 / 云端 切换 -->
                   <div class="embedding-mode-switch">
                     <span class="emb-mode-label" :class="{ active: embeddingForm.mode === 'local' }">本地模型</span>
@@ -158,27 +159,30 @@
                   <div v-if="embeddingForm.mode === 'local'" class="emb-local-info">
                     <div class="emb-local-card">
                       <div class="emb-local-name">BAAI/bge-small-zh-v1.5</div>
-                      <div class="emb-local-desc">本地中文嵌入模型，无需网络连接</div>
+                      <div class="emb-local-desc">首次下载依赖与权重后，可在本地离线运行。自动检测下载源，优先使用国内可用源。</div>
                     </div>
 
                     <!-- ═══ 扩展包安装状态 & 操作 ═══ -->
                     <div class="ext-install-section">
                       <!-- 未安装 / 检测中 -->
-                      <template v-if="extensionsStatus && !extensionsStatus.all_installed">
+                      <n-alert v-if="extensionsStatus?.install_running && !extensionsInstalling" type="info" :show-icon="false" class="mb-3">后台正在准备本地模型：{{ extensionsStatus.install_progress || '请稍候' }}。完成后点击重新检测。</n-alert>
+                      <n-alert v-if="extensionsStatus?.checking" type="info" :show-icon="false" class="mb-3">正在验证本地依赖能否加载，完成后自动更新。</n-alert>
+                      <n-alert v-if="extensionsStatus?.dependency_error" type="error" :show-icon="false" class="mb-3">依赖加载失败：{{ extensionsStatus.dependency_error }}</n-alert>
+                      <template v-if="!localEmbeddingReady">
                         <n-alert type="warning" :show-icon="true" class="mb-3">
-                          <template #header>⚠️ 缺少本地 AI 扩展包</template>
-                          本地向量检索需要 faiss / numpy / sentence-transformers 等依赖。
-                          请点击下方按钮一键安装（约 2GB，需要 5~20 分钟）。
+                          <template #header>{{ extensionsStatus?.all_installed ? '本地模型文件尚未就绪' : '请准备本地嵌入模型' }}</template>
+                          {{ extensionsStatus?.all_installed ? '依赖已安装，继续下载并校验模型权重。' : '需要安装向量检索依赖并下载模型权重，依赖约 2GB，耗时取决于网络。' }}
                         </n-alert>
                         <div class="ext-install-actions">
                           <n-button
                             type="warning"
                             :loading="extensionsInstalling"
-                            :disabled="extensionsInstalling"
+                            :disabled="extensionsInstalling || extensionsStatus?.install_running || extensionsStatus?.checking"
                             @click="startInstallExtensions"
                           >
-                            {{ extensionsInstalling ? '正在安装...' : '📦 下载并安装扩展包' }}
+                            {{ extensionsInstalling ? '正在准备本地模型…' : '下载并准备本地模型' }}
                           </n-button>
+                          <n-button size="small" secondary :loading="extensionsChecking" :disabled="extensionsInstalling" @click="checkExtensionsStatus">重新检测</n-button>
                           <n-button
                             v-if="extensionsInstalling"
                             size="small"
@@ -191,17 +195,24 @@
                       </template>
 
                       <!-- 已安装 -->
-                      <template v-else-if="extensionsStatus && extensionsStatus.all_installed">
+                      <template v-else>
                         <n-alert type="success" :show-icon="false" class="mb-3">
-                          ✅ 本地 AI 扩展包已安装完毕（faiss · numpy · sentence-transformers）
+                          本地嵌入模型已就绪（依赖与模型文件均已检查）
                         </n-alert>
                       </template>
+                      <p v-if="extensionsStatus?.download_source" class="emb-local-desc">模型下载源：{{ extensionsStatus.download_source }}</p>
+                      <div v-if="downloadedModelPath && embeddingForm.model_path !== downloadedModelPath" class="mb-3">
+                        <p class="emb-local-desc">已下载模型：{{ downloadedModelPath }}</p>
+                        <n-button size="small" secondary @click="embeddingForm.model_path = downloadedModelPath">填入已下载模型路径</n-button>
+                        <p class="emb-local-desc">填入后点击「保存嵌入配置」生效。</p>
+                      </div>
 
                       <!-- 安装进度面板 -->
                       <div v-if="extensionsInstalling" class="ext-install-progress">
                         <n-progress
                           type="line"
-                          :percentage="extensionsInstallPercent"
+                          :percentage="Math.max(0, extensionsInstallPercent)"
+                          :processing="extensionsInstallPercent < 0"
                           :status="extensionsInstallPercent >= 100 ? 'success' : 'default'"
                           :show-indicator="true"
                         />
@@ -310,7 +321,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { NModal, NTag, NButton, NSwitch, NForm, NFormItem, NInput, NSelect, NSpin, NAlert, NProgress } from 'naive-ui'
 import {
   llmControlApi,
@@ -319,6 +330,7 @@ import {
 } from '../../api/llmControl'
 import { settingsApi, type EmbeddingConfig, type ExtensionsStatus, type InstallEvent } from '../../api/settings'
 import LLMControlPanel from '../workbench/LLMControlPanel.vue'
+import { formatApiError } from '@/utils/apiError'
 
 type Appearance = 'sidebar' | 'topbar'
 type DrawerTab = 'embedding' | 'llm'
@@ -328,7 +340,7 @@ const props = withDefaults(defineProps<{
   ariaLabel?: string
 }>(), {
   appearance: 'sidebar',
-  ariaLabel: '打开 AI 控制台',
+  ariaLabel: '打开模型控制台',
 })
 
 const showPanel = ref(false)
@@ -374,26 +386,50 @@ const appearance = computed(() => props.appearance)
 
 // ── Embedding state ────────────────────────────────────────
 const embeddingLoading = ref(false)
+const embeddingError = ref('')
 const embeddingSaving = ref(false)
 const fetchingEmbeddingModels = ref(false)
 const embeddingModelOptions = ref<Array<{ label: string; value: string }>>([])
 
 // ── 扩展包安装状态 ─────────────────────────────────────
 const extensionsStatus = ref<ExtensionsStatus | null>(null)
+const extensionsStatusError = ref('')
 const extensionsChecking = ref(false)
 const extensionsInstalling = ref(false)
 const extensionsInstallLog = ref<string[]>([])
 const extensionsInstallPercent = ref(0)
 let extensionsAbortCtrl: AbortController | null = null
+let installRevision = 0
+let configRevision = 0
+let statusRevision = 0
+let draftRevision = 0
+let applyingConfig = false
+const embeddingDirty = ref(false)
+const savedModelPath = ref('')
+const downloadedModelPath = ref('')
+let statusTimer: ReturnType<typeof setTimeout> | null = null
+const localEmbeddingReady = computed(() => Boolean(extensionsStatus.value?.local_ready)
+  && (embeddingForm.value.model_path === savedModelPath.value || embeddingForm.value.model_path === extensionsStatus.value?.model_path))
 
 async function checkExtensionsStatus() {
+  if (statusTimer != null) { clearTimeout(statusTimer); statusTimer = null }
+  const revision = ++statusRevision
   extensionsChecking.value = true
   try {
-    extensionsStatus.value = await settingsApi.getExtensionsStatus()
-  } catch {
-    // 静默失败
+    const status = await settingsApi.getExtensionsStatus()
+    if (revision !== statusRevision) return
+    extensionsStatus.value = status
+    extensionsStatusError.value = ''
+    if (status.downloaded_model_ready && status.downloaded_model_path) downloadedModelPath.value = status.downloaded_model_path
+    if ((status.checking || status.install_running) && showPanel.value && drawerTab.value === 'embedding' && !extensionsInstalling.value) {
+      statusTimer = setTimeout(() => { statusTimer = null; void checkExtensionsStatus() }, 1200)
+    }
+  } catch (error) {
+    if (revision !== statusRevision) return
+    extensionsStatus.value = null
+    extensionsStatusError.value = formatApiError(error, '无法检测本地模型状态，请重新检测。')
   } finally {
-    extensionsChecking.value = false
+    if (revision === statusRevision) extensionsChecking.value = false
   }
 }
 
@@ -401,15 +437,21 @@ function startInstallExtensions() {
   if (extensionsInstalling.value) return
   extensionsInstalling.value = true
   extensionsInstallLog.value = []
-  extensionsInstallPercent.value = 0
+  extensionsInstallPercent.value = -1
+  embeddingError.value = ''
+  extensionsStatusError.value = ''
+  const revision = ++installRevision
 
   extensionsAbortCtrl = settingsApi.installExtensions({
     onEvent: (event: InstallEvent) => {
+      if (revision !== installRevision) return
+      if (event.type === 'done' && event.success && event.model_path) downloadedModelPath.value = event.model_path
       if (event.type === 'progress' && event.percent !== undefined) {
         extensionsInstallPercent.value = event.percent
       }
-      // 只记录重要日志（避免刷屏）
-      if (['info', 'success', 'error', 'warn', 'done'].includes(event.type)) {
+      // Keep bounded dependency output too: import/pip failures include their
+      // actionable traceback there, before the terminal summary.
+      if (['info', 'success', 'error', 'warn', 'done', 'log'].includes(event.type)) {
         extensionsInstallLog.value.push(event.message)
         // 只保留最近 50 条
         if (extensionsInstallLog.value.length > 50) {
@@ -418,16 +460,18 @@ function startInstallExtensions() {
       }
     },
     onDone: (success) => {
+      if (revision !== installRevision) return
       extensionsInstalling.value = false
       if (success) {
-        extensionsInstallLog.value.push('✅ 安装完成！请重启服务以生效。')
+        extensionsInstallLog.value.push('本地模型准备完成，正在重新检测可用状态。')
         extensionsInstallPercent.value = 100
-      } else {
+      } else if (!extensionsInstallLog.value.length) {
         extensionsInstallLog.value.push('❌ 安装失败，请检查网络后重试')
       }
       void checkExtensionsStatus()
     },
     onError: (err) => {
+      if (revision !== installRevision) return
       extensionsInstalling.value = false
       extensionsInstallLog.value.push(`❌ 错误: ${err.message}`)
     },
@@ -435,6 +479,7 @@ function startInstallExtensions() {
 }
 
 function cancelInstallExtensions() {
+  installRevision += 1
   extensionsAbortCtrl?.abort()
   extensionsInstalling.value = false
   extensionsInstallLog.value.push('已取消安装')
@@ -448,29 +493,53 @@ const embeddingForm = ref<EmbeddingConfig>({
   use_gpu: true,
   model_path: '',
 })
+watch(embeddingForm, () => {
+  if (!applyingConfig) { draftRevision += 1; embeddingDirty.value = true }
+}, { deep: true, flush: 'sync' })
+function applyEmbeddingConfig(config: EmbeddingConfig) {
+  applyingConfig = true
+  embeddingForm.value = config
+  savedModelPath.value = config.model_path
+  embeddingDirty.value = false
+  applyingConfig = false
+}
 
 async function loadEmbeddingConfig() {
+  const revision = ++configRevision
+  const draft = draftRevision
   embeddingLoading.value = true
   try {
     const cfg = await settingsApi.getEmbeddingConfig()
-    embeddingForm.value = cfg
+    if (revision !== configRevision || draft !== draftRevision || embeddingDirty.value) return
+    applyEmbeddingConfig(cfg)
     if (cfg.model) {
       embeddingModelOptions.value = [{ label: cfg.model, value: cfg.model }]
     }
-  } catch {
-    // 静默失败，使用默认值
+  } catch (error) {
+    if (revision !== configRevision) return
+    embeddingError.value = formatApiError(error, '无法读取嵌入配置，请重试。')
   } finally {
-    embeddingLoading.value = false
+    if (revision === configRevision) embeddingLoading.value = false
   }
 }
 
 async function handleSaveEmbedding() {
+  if (embeddingSaving.value) return
+  const revision = ++configRevision
+  const draft = draftRevision
   embeddingSaving.value = true
   try {
     const result = await settingsApi.updateEmbeddingConfig({ ...embeddingForm.value })
-    embeddingForm.value = result
-  } catch {
-    // 由 naive-ui form 处理错误提示
+    if (revision !== configRevision) return
+    savedModelPath.value = result.model_path
+    if (draft === draftRevision) applyEmbeddingConfig(result)
+    extensionsStatus.value = null
+    embeddingError.value = ''
+    extensionsInstallLog.value.push('嵌入配置已保存')
+    void checkExtensionsStatus()
+  } catch (error) {
+    if (revision !== configRevision) return
+    embeddingError.value = formatApiError(error, '嵌入配置保存失败')
   } finally {
     embeddingSaving.value = false
   }
@@ -492,7 +561,8 @@ async function handleFetchEmbeddingModels() {
   }
 }
 
-function openPanel() {
+function openPanel(tab?: DrawerTab) {
+  if (tab) drawerTab.value = tab
   llmPanelInitialized.value = true // 首次打开时初始化，之后保持
   // ★ 优化：不再同时 fire 3 个请求。LLMControlPanel.onMounted 会自己 loadPanel，
   // refreshRuntimeSummary 重复了。embedding 和 extensions 延迟到切换 tab 时加载。
@@ -500,13 +570,21 @@ function openPanel() {
 }
 
 // ── 延迟加载：切换到 embedding tab 时才加载配置和扩展状态 ──
-let embeddingLoaded = false
-watch(drawerTab, (tab) => {
-  if (tab === 'embedding' && !embeddingLoaded) {
-    embeddingLoaded = true
+watch([drawerTab, showPanel], ([tab, shown]) => {
+  if (statusTimer != null) { clearTimeout(statusTimer); statusTimer = null }
+  if (shown && tab === 'embedding' && !extensionsInstalling.value) {
+    embeddingError.value = ''
     void loadEmbeddingConfig()
     void checkExtensionsStatus()
   }
+})
+defineExpose({ openPanel })
+onBeforeUnmount(() => {
+  installRevision += 1
+  configRevision += 1
+  statusRevision += 1
+  if (statusTimer != null) clearTimeout(statusTimer)
+  extensionsAbortCtrl?.abort()
 })
 </script>
 

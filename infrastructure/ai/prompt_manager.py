@@ -880,12 +880,67 @@ class PromptManager:
         db.commit()
         return self.get_node(node_id, by_key=False)
 
+    def get_node_revision(self, node_key: str) -> Optional[Tuple[str, str]]:
+        """Cheap durable revision check, including edits made by another process."""
+        row = self._get_db().execute(
+            "SELECT active_version_id, updated_at FROM prompt_nodes WHERE node_key = ?",
+            (node_key,),
+        ).fetchone()
+        return (row["active_version_id"] or "", row["updated_at"] or "") if row else None
+
+    def _node_reference_queries(self, node_key: str, node_id: str):
+        # These relations intentionally do not cascade: removing a prompt must
+        # not silently invalidate a workflow, a draft or invocation evidence.
+        tables = {r["name"] for r in self._get_db().execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        version_query = "SELECT id FROM prompt_versions WHERE node_id = ?"
+        definitions = [
+            ("prompt_bindings", "工作流绑定", "node_key = ?", (node_key,)),
+            ("invocation_specs", "调用规格", f"node_key = ? OR prompt_node_version_id IN ({version_query})", (node_key, node_id)),
+            ("cpms_variable_binding_sets", "变量绑定", "node_key = ?", (node_key,)),
+            ("cpms_variable_bindings", "变量绑定项", "node_key = ?", (node_key,)),
+            ("prompt_asset_link_sets", "提示词资产组合", f"node_key = ? OR node_version_id IN ({version_query})", (node_key, node_id)),
+            ("ai_invocation_sessions", "调用会话及历史", f"node_key = ? OR (json_valid(prompt_snapshot_json) AND json_extract(prompt_snapshot_json, '$.node_version_id') IN ({version_query}))", (node_key, node_id)),
+            ("ai_invocation_prompt_drafts", "调用草稿版本", f"base_node_version_id IN ({version_query})", (node_id,)),
+            ("ai_invocation_attempts", "调用尝试版本", f"json_valid(prompt_snapshot_json) AND json_extract(prompt_snapshot_json, '$.node_version_id') IN ({version_query})", (node_id,)),
+        ]
+        return [(table, label, condition, params) for table, label, condition, params in definitions if table in tables]
+
+    def get_node_references(self, node_key: str, node_id: str) -> List[Dict[str, Any]]:
+        """Return durable dependencies, including disabled bindings and history."""
+        references = []
+        for table, label, condition, params in self._node_reference_queries(node_key, node_id):
+            row = self._get_db().execute(
+                f"SELECT COUNT(*) AS count FROM {table} WHERE {condition}", params,
+            ).fetchone()
+            if row["count"]:
+                references.append({"kind": table, "label": label, "count": row["count"]})
+        return references
+
     def delete_node(self, node_id: str) -> bool:
-        """删除节点及其所有版本。"""
+        """Delete an unreferenced custom node and its versions atomically."""
         db = self._get_db()
-        cursor = db.execute("DELETE FROM prompt_nodes WHERE id = ?", (node_id,))
+        node = self.get_node(node_id, by_key=False)
+        if node is None:
+            return False
+        if node.is_builtin:
+            raise ValueError("内置提示词不能删除")
+        references = self.get_node_references(node.node_key, node.id)
+        if references:
+            labels = "、".join(f"{r['label']}（{r['count']}）" for r in references)
+            raise ValueError(f"提示词仍被引用：{labels}。请先处理关联；调用历史使用的版本需保留。")
+
+        conditions = ["id = ?", "is_builtin = 0"]
+        params: List[Any] = [node_id]
+        for table, _, condition, values in self._node_reference_queries(node.node_key, node.id):
+            conditions.append(f"NOT EXISTS (SELECT 1 FROM {table} WHERE {condition})")
+            params.extend(values)
+        cursor = db.execute(f"DELETE FROM prompt_nodes WHERE {' AND '.join(conditions)}", tuple(params))
         db.commit()
-        return cursor.rowcount > 0
+        if not cursor.rowcount:
+            raise ValueError("提示词的引用已变化，请刷新后处理关联")
+        return True
 
     # ------------------------------------------------------------------
     # 版本管理（核心！）
@@ -1002,9 +1057,13 @@ class PromptManager:
         db = self._get_db()
 
         # 获取目标版本
-        target = self.get_version(target_version_id)
-        if not target:
+        target_row = db.execute(
+            "SELECT * FROM prompt_versions WHERE id = ? AND node_id = ?",
+            (target_version_id, node_id),
+        ).fetchone()
+        if not target_row:
             return None
+        target = VersionInfo(dict(target_row))
 
         # 获取当前最新版本号
         row = db.execute(

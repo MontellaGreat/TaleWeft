@@ -1,6 +1,6 @@
 <template>
   <div class="plaza-entry">
-    <!-- 入口按钮 —— 仿 AI 控制台样式 -->
+    <!-- 入口按钮 —— 仿 模型控制台样式 -->
     <button
       type="button"
       class="plaza-main"
@@ -262,7 +262,7 @@ onMounted(() => {
 
 <style scoped>
 /* ════════════════════════════════════
-   提示词广场入口按钮 —— 完全仿 AI 控制台
+   提示词广场入口按钮 —— 完全仿 模型控制台
    ════════════════════════════════════ */
 .plaza-entry {
   display: inline-flex;

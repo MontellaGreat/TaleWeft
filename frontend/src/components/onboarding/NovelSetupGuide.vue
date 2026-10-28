@@ -5,6 +5,7 @@
     :close-on-esc="false"
     :closable="true"
     preset="card"
+    class="novel-setup-modal"
     title="新书设置向导"
     style="width: 94%; max-width: 960px; max-height: 92vh"
     :segmented="{ content: true, footer: true }"
@@ -17,7 +18,32 @@
       <n-step title="开始" description="进入工作台" />
     </n-steps>
 
+    <SetupDAGProgress
+      :novel-id="novelId"
+      :current-stage="stepStages[currentStep - 1]"
+      :stages="setupStages" :run="setupRun" :busy="setupBusy" :loading="setupLoading"
+      :stopping="setupStopping" :error="setupError"
+      @stop="setupDag.stop" @reconnect="setupDag.resume"
+    />
+
     <div class="step-content">
+      <n-alert v-if="currentDependencyLock" type="warning" class="stage-lock-notice">
+        {{ stageNames[currentDependencyLock] }}阶段尚未完成，已使用的前置资料暂时只读。请先继续{{ stageNames[currentDependencyLock] }}的审核与保存。
+        <n-button secondary size="small" :disabled="isWizardGenerating || setupLoading" @click="goToStep(stepStages.indexOf(currentDependencyLock) + 1)">前往{{ stageNames[currentDependencyLock] }}继续</n-button>
+      </n-alert>
+      <n-alert v-else-if="currentStageLocked" type="warning" class="stage-lock-notice">
+        本阶段的偏离审核、去 AI 味审核与保存回读尚未全部完成，暂不可编辑或进入下一步。已保存的分项会保留，继续生成将从上次进度恢复。
+      </n-alert>
+      <n-button v-if="currentStageIncomplete && !currentDependencyLock && !isWizardGenerating && !setupLoading && !openingWizard && currentStep < 4" secondary class="stage-restart-button" @click="restartSetupStage(stepStages[currentStep - 1]!)">从头重新生成</n-button>
+      <div v-if="currentStageLocked && savedStagePreview.length" class="saved-stage-preview" aria-label="已保存内容，只读预览">
+        <n-collapse>
+          <n-collapse-item title="查看已保存内容（只读）" name="saved">
+            <div v-for="item in savedStagePreview" :key="item.label" class="saved-stage-preview__item">
+              <strong>{{ item.label }}</strong><p>{{ item.content }}</p>
+            </div>
+          </n-collapse-item>
+        </n-collapse>
+      </div>
       <!-- 续传提示 -->
       <n-alert v-if="resumedFromStep > 1" type="success" style="margin-bottom: 16px">
         检测到之前的进度，已回到第 {{ resumedFromStep }} 步。您可以继续完成剩余设置。
@@ -39,7 +65,7 @@
             </div>
             <div class="generating-text">
               <h3>{{ phaseMessage || '正在生成文风公约与世界观...' }}</h3>
-              <p class="generating-sub">AI 会先定文风，再逐维度构建您的世界，出一个渲染一个</p>
+              <p class="generating-sub">文风公约与五个维度依次生成，每项通过偏离和去 AI 味审核后保存回读。</p>
             </div>
           </div>
 
@@ -122,7 +148,7 @@
         </div>
 
         <!-- 生成完成后显示可编辑预览 -->
-        <div v-else-if="bibleGenerated" class="bible-preview">
+        <div v-else-if="bibleGenerated && !currentStageLocked" class="bible-preview">
           <n-alert type="success" title="文风公约与世界观生成完成" style="margin-bottom: 16px">
             请查看并修改文风公约和世界观设定，确认后下一步将基于此生成人物和地点。
           </n-alert>
@@ -157,20 +183,20 @@
               </n-space>
             </n-collapse-item>
           </n-collapse>
-          <n-button secondary style="margin-top: 12px" @click="startBibleGeneration()">
+          <n-button secondary style="margin-top: 12px" @click="restartSetupStage('worldbuilding')">
             重新生成
           </n-button>
         </div>
 
         <!-- 初始状态 -->
-        <div v-else class="step-info">
+        <div v-else-if="!currentDependencyLock" class="step-info">
           <n-icon size="48" color="#18a058">
             <IconBook />
           </n-icon>
           <h3>准备生成文风公约与世界观</h3>
           <p>AI 将先生成文风公约，再逐维度构建世界观。</p>
           <n-button type="primary" style="margin-top: 16px" @click="startBibleGeneration()">
-            开始生成
+            {{ stageStartLabel('worldbuilding') }}
           </n-button>
         </div>
       </div>
@@ -191,7 +217,7 @@
             </div>
             <div class="generating-text">
               <h3>{{ phaseMessage || '正在生成人物...' }}</h3>
-              <p class="generating-sub">角色逐一呈现</p>
+              <p class="generating-sub">完成生成与校验后显示可编辑的人物设定</p>
             </div>
           </div>
 
@@ -242,7 +268,7 @@
         </div>
 
         <!-- 生成完成后显示可编辑预览 -->
-        <div v-else-if="charactersGenerated" class="bible-preview">
+        <div v-else-if="charactersGenerated && !currentStageLocked" class="bible-preview">
           <n-alert type="success" title="人物生成完成" style="margin-bottom: 16px">
             请查看并修改角色设定，确认后将继续。
           </n-alert>
@@ -406,20 +432,20 @@
               </div>
             </n-list-item>
           </n-list>
-          <n-button secondary style="margin-top: 12px" @click="startCharactersGeneration()">
+          <n-button secondary style="margin-top: 12px" @click="restartSetupStage('characters')">
             重新生成
           </n-button>
         </div>
 
         <!-- 初始状态 -->
-        <div v-else class="step-info">
+        <div v-else-if="!currentDependencyLock" class="step-info">
           <n-icon size="48" color="#2080f0">
             <IconPeople />
           </n-icon>
           <h3>生成主要角色</h3>
           <p>基于已确认的世界观，AI 将生成主要角色及其关系。</p>
           <n-button type="primary" style="margin-top: 16px" @click="startCharactersGeneration()">
-            开始生成
+            {{ stageStartLabel('characters') }}
           </n-button>
         </div>
       </div>
@@ -480,7 +506,7 @@
         </div>
 
         <!-- 生成完成后显示可编辑预览 -->
-        <div v-else-if="locationsGenerated" class="bible-preview">
+        <div v-else-if="locationsGenerated && !currentStageLocked" class="bible-preview">
           <n-alert type="success" title="地图生成完成" style="margin-bottom: 16px">
             请查看并修改地点设定，确认后将继续。
           </n-alert>
@@ -505,20 +531,20 @@
               </div>
             </n-list-item>
           </n-list>
-          <n-button secondary style="margin-top: 12px" @click="startLocationsGeneration()">
+          <n-button secondary style="margin-top: 12px" @click="restartSetupStage('locations')">
             重新生成
           </n-button>
         </div>
 
         <!-- 初始状态 -->
-        <div v-else class="step-info">
+        <div v-else-if="!currentDependencyLock" class="step-info">
           <n-icon size="48" color="#f0a020">
             <IconMap />
           </n-icon>
           <h3>生成地图系统</h3>
           <p>基于已确认的世界观和人物，AI 将生成重要地点和地图结构。</p>
           <n-button type="primary" style="margin-top: 16px" @click="startLocationsGeneration()">
-            开始生成
+            {{ stageStartLabel('locations') }}
           </n-button>
         </div>
       </div>
@@ -593,7 +619,7 @@
 
         <div v-else class="plot-options-block">
             <n-space vertical :size="12" style="width: 100%">
-              <n-card v-if="plotOutline" size="small" :bordered="true" class="plot-option-card">
+              <n-card v-if="plotOutline && !currentStageLocked" size="small" :bordered="true" class="plot-option-card">
                 <template #header>
                   <n-space align="center" :size="8">
                     <n-tag size="small" type="info" round>剧情总纲</n-tag>
@@ -663,8 +689,11 @@
             </n-space>
 
             <n-space style="margin-top: 16px; width: 100%" justify="center" :size="12">
+              <n-button v-if="currentStageLocked" type="primary" :disabled="plotOutlineBusy" @click="startSetupStage('plot_outline')">
+                继续生成
+              </n-button>
               <n-button secondary :disabled="plotOutlineBusy" @click="refreshPlotOutline">
-                重新生成
+                从头重新生成
               </n-button>
               <n-button
                 v-if="featureFlags.aiInvocationDebug && plotOutlineSessionId"
@@ -692,21 +721,22 @@
     </div>
 
     <template #footer>
-      <n-space justify="space-between">
-        <n-space>
+      <div class="wizard-footer">
+        <div class="wizard-footer__group">
           <n-button v-if="currentStep > 1 && currentStep < 5" :disabled="isWizardGenerating" @click="handlePrev">
             上一步
           </n-button>
-          <n-button v-if="currentStep > 1 && currentStep < 5" :disabled="isWizardGenerating" @click="handleSkip">
-            跳过向导
+          <n-button v-if="currentStep > 1 && currentStep < 5" @click="requestClose">
+            稍后继续
           </n-button>
-        </n-space>
-        <n-space>
+        </div>
+        <div class="wizard-footer__group wizard-footer__group--primary">
           <!-- 步骤1~3：已生成后显示"确认修改并继续" -->
           <n-button
-            v-if="(currentStep === 1 && bibleGenerated) || (currentStep === 2 && charactersGenerated) || (currentStep === 3 && locationsGenerated)"
+            v-if="!currentDependencyLock && ((currentStep === 1 && bibleGenerated) || (currentStep === 2 && charactersGenerated) || (currentStep === 3 && locationsGenerated))"
             type="primary"
             :loading="savingStep"
+            :disabled="isWizardGenerating || currentStageLocked || setupLoading"
             @click="handleNext"
           >
             确认修改并继续
@@ -715,7 +745,7 @@
             v-if="currentStep === 4"
             type="primary"
             :loading="savingStep"
-            :disabled="!plotOutline || plotOutlineBusy"
+            :disabled="!plotOutline || isWizardGenerating || currentStageLocked || setupLoading"
             @click="handleNext"
           >
             确认修改并继续
@@ -724,8 +754,8 @@
           <n-button v-if="currentStep === 5" type="primary" @click="handleComplete">
             进入工作台
           </n-button>
-        </n-space>
-      </n-space>
+        </div>
+      </div>
     </template>
   </n-modal>
 </template>
@@ -733,10 +763,10 @@
 <script setup lang="ts">
 import { h, ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { bibleApi, type BibleDTO, consumeBibleGenerateStream, type WorldbuildingDimensionData } from '@/api/bible'
+import { bibleApi, type BibleDTO } from '@/api/bible'
 // timeout constants removed - SSE runs until complete or error
 import { worldbuildingApi } from '@/api/worldbuilding'
-import { consumePlotOutlineStream, workflowApi, type PlotOutlineDTO } from '@/api/workflow'
+import { workflowApi, type PlotOutlineDTO } from '@/api/workflow'
 import type { InvocationResponseDTO, InvocationVariableBinding } from '@/api/aiInvocation'
 import { characterPsycheApi } from '@/api/engineCore'
 import { featureFlags } from '@/config/features'
@@ -789,6 +819,9 @@ import { extractBoundOutputMaps, parseJsonLikeRecord } from '@/utils/invocationO
 import { invocationFailureMessage } from '@/utils/invocationFailure'
 import BibleLocationsGraphPreview from './BibleLocationsGraphPreview.vue'
 import WizardSkeleton from './WizardSkeleton.vue'
+import SetupDAGProgress from './SetupDAGProgress.vue'
+import { useSetupDag } from '@/composables/useSetupDag'
+import type { SetupStageId } from '@/api/setupDag'
 import {
   clearWizardUiCache,
   isPlotOutlineCacheFresh,
@@ -1058,11 +1091,12 @@ function failBibleStage(stage: string, error: string) {
   else if (stage === 'locations') locationsError.value = error
 }
 
-async function markBibleStageCommitted(stage: string) {
-  const loaded = await loadBibleData()
+async function markBibleStageCommitted(stage: string, isCurrent = () => true) {
+  const loaded = await loadBibleData(stage === 'worldbuilding', isCurrent)
+  if (!isCurrent()) return false
   if (!loaded) {
     failBibleStage(stage, '生成结果已保存，但读取失败，请检查连接后重试')
-    return
+    return false
   }
   if (stage === 'worldbuilding') {
     completedDimensions.value = new Set(WB_DIMS)
@@ -1076,6 +1110,7 @@ async function markBibleStageCommitted(stage: string) {
     locationsGenerated.value = true
   }
   phaseMessage.value = ''
+  return true
 }
 
 async function openBibleReviewPanel(stage: 'worldbuilding' | 'characters' | 'locations', sessionId: string) {
@@ -1170,7 +1205,7 @@ const plotOutlineBusy = computed(() =>
   (plotOutlineStatus.value !== 'idle' && plotOutlineStatus.value !== 'done' && plotOutlineStatus.value !== 'error')
 )
 const isWizardGenerating = computed(() =>
-  generatingBible.value || generatingCharacters.value || generatingLocations.value || plotOutlineBusy.value
+  generatingBible.value || generatingCharacters.value || generatingLocations.value || plotOutlineBusy.value || setupDag.busy.value
 )
 const plotOutlineStatusMessage = computed(() => {
   if (phaseMessage.value) return phaseMessage.value
@@ -1189,25 +1224,14 @@ const plotOutlineLivePreview = computed(() => {
   if (!text) return ''
   return text.length > 1000 ? text.slice(-1000) : text
 })
-const plotOutlineProgressIndex = computed(() => {
-  if (plotOutlineStatus.value === 'done') return 4
-  if (plotOutlineStatus.value === 'committing') return 3
-  if (plotOutlineStatus.value === 'generating' || plotOutlineStatus.value === 'reviewing') return 2
-  if (plotOutlineStatus.value === 'creating') return 1
-  return plotOutlineBusy.value ? 1 : 0
-})
 const plotOutlineProgressItems = computed<PlotOutlineProgressItem[]>(() => {
-  const current = plotOutlineProgressIndex.value
-  const items = [
-    { key: 'context', label: '汇总设定', desc: '读取世界观、人物与地图' },
-    { key: 'outline', label: '推演主线', desc: '生成核心冲突与故事走向' },
-    { key: 'stage', label: '拆分阶段', desc: '规划阶段任务与章节范围' },
-    { key: 'commit', label: '写入结果', desc: '回填可编辑的剧情总纲' },
-  ]
-  return items.map((item, index) => ({
-    ...item,
-    state: current > index + 1 ? 'done' : current === index + 1 ? 'active' : 'pending',
-  }))
+  const run = setupRun.value
+  if (!run || run.stage !== 'plot_outline') return []
+  return run.graph.nodes.map(node => {
+    const status = run.node_states[node.id]?.status || 'pending'
+    return { key: node.id, label: node.label, desc: run.progress.current_node_id === node.id ? run.progress.message : '',
+      state: status === 'success' || status === 'bypassed' ? 'done' : status === 'running' ? 'active' : 'pending' }
+  })
 })
 
 function syncEditablePlotOutline(outline: PlotOutlineDTO | null | undefined) {
@@ -1314,9 +1338,10 @@ function updatePlotOutlineStatusFromInvocation(payload: InvocationResponseDTO) {
   phaseMessage.value = '正在创建剧情总纲任务...'
 }
 
-async function refreshPlotOutlineFromApi(): Promise<boolean> {
+async function refreshPlotOutlineFromApi(isCurrent = () => true): Promise<boolean> {
   try {
     const response = await workflowApi.getPlotOutline(props.novelId)
+    if (!isCurrent()) return false
     if (!response.plot_outline) return false
     const normalized = normalizeIncomingPlotOutline(response.plot_outline)
     if (!normalized) return false
@@ -1401,351 +1426,154 @@ async function openPlotOutlineReviewPanel(sessionId: string) {
 }
 
 async function loadPlotOutline(opts?: { forceNew?: boolean }) {
+  if (setupDag.busy.value || setupDag.loading.value) return
   step4RestoredFromCache.value = false
   plotOutlineError.value = ''
-  plotOutlineStatus.value = 'creating'
-  phaseMessage.value = '正在创建剧情总纲任务...'
-  const cached = opts?.forceNew ? null : readWizardUiCache(props.novelId)
-  const cachedPlotOutline =
-    !opts?.forceNew && cached && isPlotOutlineCacheFresh(cached) ? cached.plotOutline : null
-
-  if (cachedPlotOutline) {
-    const cachedSessionId = cached?.invocationSessionId || ''
-    const normalizedCachedPlotOutline = normalizeIncomingPlotOutline(cachedPlotOutline)
-    plotOutline.value = normalizedCachedPlotOutline
-    syncEditablePlotOutline(normalizedCachedPlotOutline)
-    plotOutlineSessionId.value = cachedSessionId
-    step4RestoredFromCache.value = true
-    resetPlotOutlineInvocationState()
-    if (cachedSessionId && !plotOutlineCommitted.value) {
-      void openPlotOutlineReviewPanel(cachedSessionId)
-    }
+  if (!opts?.forceNew && !isStageLocked('plot_outline') && await refreshPlotOutlineFromApi()) {
+    finishPlotOutlineInvocation()
     return
   }
-
-  plotOutlineGenerating.value = true
-  if (!plotOutline.value || opts?.forceNew) {
-    plotOutline.value = null
-    syncEditablePlotOutline(null)
-  }
-  if (opts?.forceNew) {
-    plotOutlineCommitted.value = false
-    plotOutlineSessionId.value = ''
-    writeWizardUiCache(props.novelId, { invocationSessionId: undefined, plotOutline: undefined })
-  }
-  try {
-    if (cached?.invocationSessionId) {
-      plotOutlineSessionId.value = cached.invocationSessionId
-      await openPlotOutlineReviewPanel(cached.invocationSessionId)
-      return
-    }
-
-    let streamError = ''
-    await consumePlotOutlineStream(props.novelId, {
-      onApprovalRequired: (sessionId) => {
-        plotOutlineSessionId.value = sessionId
-        void openPlotOutlineReviewPanel(sessionId)
-      },
-      onPhase: (message) => {
-        if (message) phaseMessage.value = message
-      },
-      onDone: (outline) => {
-        if (outline) {
-          const normalized = normalizeIncomingPlotOutline(outline)
-          plotOutline.value = normalized
-          syncEditablePlotOutline(normalized)
-        }
-      },
-      onError: (message) => {
-        streamError = message || '流式生成失败'
-      },
-    })
-    if (streamError && !plotOutline.value) {
-      throw new Error(streamError)
-    }
-    if (plotOutline.value) {
-      writeWizardUiCache(props.novelId, { plotOutline: plotOutline.value })
-    }
-  } catch (e: unknown) {
-    try {
-      const res = await workflowApi.generatePlotOutline(props.novelId)
-      plotOutline.value = normalizeIncomingPlotOutline(res.plot_outline)
-      syncEditablePlotOutline(plotOutline.value)
-      if (res.invocation_session_id) {
-        plotOutlineSessionId.value = res.invocation_session_id
-        void openPlotOutlineReviewPanel(res.invocation_session_id)
-      }
-      if (!res.invocation_session_id && cached?.invocationSessionId) {
-        plotOutlineSessionId.value = cached.invocationSessionId
-        void openPlotOutlineReviewPanel(cached.invocationSessionId)
-      }
-      if (plotOutline.value) {
-        writeWizardUiCache(props.novelId, { plotOutline: plotOutline.value })
-      }
-    } catch (directError: unknown) {
-      let msg = formatApiError(directError) || formatApiError(e) || '生成失败，请重试'
-      if (isLikelyTimeoutError(directError) || isLikelyTimeoutError(e)) {
-        msg = `请求超时：LLM 响应时间过长。请换更快模型后重试。`
-      }
-      plotOutlineError.value = msg
-    }
-  } finally {
-    if (plotOutline.value || plotOutlineError.value || !plotOutlineSessionId.value) {
-      resetPlotOutlineInvocationState()
-    }
-  }
+  plotOutlineCommitted.value = false
+  plotOutlineSessionId.value = ''
+  await startSetupStage('plot_outline')
 }
 
 async function refreshPlotOutline() {
-  await loadPlotOutline({ forceNew: true })
+  restartSetupStage('plot_outline')
 }
 
 function hydrateStepFourFromCache() {
-  step4RestoredFromCache.value = false
   const cached = readWizardUiCache(props.novelId)
-  if (!cached) return
-  if (isPlotOutlineCacheFresh(cached) && cached.plotOutline) {
-    const normalizedCachedPlotOutline = normalizeIncomingPlotOutline(cached.plotOutline)
-    plotOutline.value = normalizedCachedPlotOutline
-    syncEditablePlotOutline(normalizedCachedPlotOutline)
-    plotOutlineSessionId.value = cached.invocationSessionId || ''
-    step4RestoredFromCache.value = true
-    if (cached.invocationSessionId && !plotOutlineCommitted.value) {
-      void openPlotOutlineReviewPanel(cached.invocationSessionId)
+  if (!cached || !isPlotOutlineCacheFresh(cached) || !cached.plotOutline) return
+  const normalized = normalizeIncomingPlotOutline(cached.plotOutline)
+  plotOutline.value = normalized
+  syncEditablePlotOutline(normalized)
+  step4RestoredFromCache.value = true
+}
+
+const unverifiedStages = ref(new Set<SetupStageId>())
+const verifiedPreviewKeys = new Map<string, string>()
+let previewRevision = 0
+const setupDag = useSetupDag(() => props.novelId, {
+  onUpdate(run, isCurrent) {
+    if ((run.workflow_version ?? 1) >= 2) unverifiedStages.value.add(run.stage)
+    phaseMessage.value = run.progress.current_node_label || run.progress.message
+    if (run.stage === 'plot_outline') {
+      plotOutlineGenerating.value = run.status === 'running' || run.status === 'completed'
+      plotOutlineStatus.value = run.status === 'running' ? 'generating' : run.status === 'completed' ? 'committing' : 'error'
+      plotOutlineCommitted.value = false
+    } else {
+      const busy = run.status === 'running' || run.status === 'completed'
+      if (run.stage === 'worldbuilding') { generatingBible.value = busy; bibleGenerated.value = false }
+      else if (run.stage === 'characters') { generatingCharacters.value = busy; charactersGenerated.value = false }
+      else { generatingLocations.value = busy; locationsGenerated.value = false }
     }
-    return
-  }
-  if (cached.invocationSessionId) {
-    plotOutlineSessionId.value = cached.invocationSessionId
+    const verified = run.graph.nodes.filter(node => {
+      const vars = node.config.prompt_variables as { action?: string; unit?: string } | undefined
+      return vars?.action === 'verify' && ['success', 'completed'].includes(run.node_states[node.id]?.status || '')
+    })
+    if (run.stage === 'worldbuilding') {
+      completedDimensions.value = new Set(verified.map(node => (node.config.prompt_variables as { unit: string }).unit).filter((unit): unit is WorldbuildingDimKey => WB_DIMS.includes(unit as WorldbuildingDimKey)))
+      const active = run.graph.nodes.find(node => node.id === run.progress.current_node_id)
+      const unit = (active?.config.prompt_variables as { unit?: string } | undefined)?.unit
+      activeDimension.value = WB_DIMS.includes(unit as WorldbuildingDimKey) ? unit as WorldbuildingDimKey : ''
+    }
+    const key = verified.map(node => node.id).join('|')
+    if (run.status !== 'completed' && key && verifiedPreviewKeys.get(run.run_id) !== key) {
+      verifiedPreviewKeys.set(run.run_id, key)
+      const revision = ++previewRevision
+      const valid = () => isCurrent() && revision === previewRevision && setupRun.value?.status !== 'completed'
+      if (run.stage === 'plot_outline') void refreshPlotOutlineFromApi(valid)
+      else void loadBibleData(false, valid)
+    }
+  },
+  async onCompleted(run, isCurrent) {
+    previewRevision++
+    if (run.stage === 'plot_outline') {
+      const loaded = await refreshPlotOutlineFromApi(isCurrent)
+      if (!isCurrent()) return false
+      if (!loaded) {
+        failPlotOutlineInvocation('生成结果已保存，但读取失败，请检查连接后重新连接。')
+        return false
+      }
+      finishPlotOutlineInvocation()
+      unverifiedStages.value.delete(run.stage)
+      return true
+    }
+    const loaded = await markBibleStageCommitted(run.stage, isCurrent)
+    if (loaded && isCurrent()) unverifiedStages.value.delete(run.stage)
+    return loaded
+  },
+  onFailure(stage, error) {
+    unverifiedStages.value.add(stage)
+    if (stage === 'plot_outline') failPlotOutlineInvocation(error)
+    else failBibleStage(stage, error)
+  },
+})
+const { stages: setupStages, run: setupRun, busy: setupBusy, loading: setupLoading, stopping: setupStopping, error: setupError } = setupDag
+const openingWizard = ref(false)
+const stepStages: SetupStageId[] = ['worldbuilding', 'characters', 'locations', 'plot_outline']
+const stageNames: Record<SetupStageId, string> = { worldbuilding: '文风 / 世界观', characters: '人物', locations: '地图', plot_outline: '剧情总纲' }
+function stageRun(stage: SetupStageId) { return setupStages.value.find(item => item.id === stage)?.latest_run || (setupRun.value?.stage === stage ? setupRun.value : null) }
+function isStageIncomplete(stage: SetupStageId) { const run = stageRun(stage); return unverifiedStages.value.has(stage) || Boolean(run && (run.workflow_version ?? 1) >= 2 && run.status !== 'completed') }
+function stageDependencyLock(stage: SetupStageId) { return stepStages.slice(stepStages.indexOf(stage) + 1).find(isStageIncomplete) || null }
+function isStageLocked(stage: SetupStageId) { return isStageIncomplete(stage) || Boolean(stageDependencyLock(stage)) }
+const currentStageIncomplete = computed(() => Boolean(stepStages[currentStep.value - 1] && isStageIncomplete(stepStages[currentStep.value - 1]!)))
+const currentDependencyLock = computed(() => stepStages[currentStep.value - 1] ? stageDependencyLock(stepStages[currentStep.value - 1]!) : null)
+const currentStageLocked = computed(() => openingWizard.value || setupLoading.value || Boolean(stepStages[currentStep.value - 1] && isStageLocked(stepStages[currentStep.value - 1]!)))
+function stageStartLabel(stage: SetupStageId) { return isStageIncomplete(stage) ? '继续生成' : '开始生成' }
+const savedStagePreview = computed(() => {
+  if (currentStep.value === 1) return [
+    ...(styleText.value ? [{ label: '文风公约', content: styleText.value }] : []),
+    ...wbDimensionCards.value.filter(dim => orderedWorldbuildingFields(dim.key).length).map(dim => ({ label: dim.label, content: orderedWorldbuildingFields(dim.key).map(field => `${worldbuildingFieldTitle(dim.key, field.key)}：${field.value}`).join('\n') })),
+  ]
+  if (currentStep.value === 2) return editableCharacters.value.map(char => ({ label: char.name, content: char.background || char.description || '' }))
+  if (currentStep.value === 3) return editableLocations.value.map(loc => ({ label: loc.name, content: loc.description }))
+  if (currentStep.value === 4 && plotOutline.value) return [{ label: '剧情总纲', content: plotFieldText(plotOutline.value, 'main_story_overview') }]
+  return []
+})
+
+async function startSetupStage(stage: SetupStageId, restart = false) {
+  if (setupDag.busy.value || setupDag.loading.value || stageDependencyLock(stage)) return
+  unverifiedStages.value.add(stage)
+  previewRevision++
+  if (stage === 'plot_outline') {
+    plotOutlineError.value = ''
     plotOutlineGenerating.value = true
     plotOutlineStatus.value = 'creating'
-    phaseMessage.value = '正在恢复剧情总纲生成任务...'
-    void openPlotOutlineReviewPanel(cached.invocationSessionId)
-    return
+    plotOutlineCommitted.value = false
+  } else {
+    if (stage === 'worldbuilding') bibleError.value = ''
+    else if (stage === 'characters') charactersError.value = ''
+    else locationsError.value = ''
+    setBibleStageHeadlessGenerating(stage)
   }
-  if (cached.plotOutline && !isPlotOutlineCacheFresh(cached)) {
-    writeWizardUiCache(props.novelId, { plotOutline: undefined })
-  }
+  phaseMessage.value = '正在创建生成任务…'
+  await setupDag.start(stage, restart)
 }
-
-// ════════════════════════════════════════════════════════════════════════════
-// SSE 流式生成函数（含降级到轮询的逻辑）
-// ════════════════════════════════════════════════════════════════════════════
-
-function finishWorldbuildingGeneration() {
-  activeDimension.value = ''
-  activeField.value = ''
-  currentStep.value = 1
-  setWizardLastStep(props.novelId, 1)
-  void markBibleStageCommitted('worldbuilding')
+function restartSetupStage(stage: SetupStageId) {
+  if (isWizardGenerating.value || setupLoading.value || stageDependencyLock(stage)) return
+  dialog.warning({ title: '从头重新生成', content: '这会重新执行本阶段全部生成与审核步骤，不沿用已成功的检查点。已有资料会在新结果通过审核后更新。', positiveText: '从头重新生成', negativeText: '取消', onPositiveClick: () => startSetupStage(stage, true) })
 }
+function startBibleGeneration() { return startSetupStage('worldbuilding') }
+function startCharactersGeneration() { return startSetupStage('characters') }
+function startLocationsGeneration() { return startSetupStage('locations') }
 
-// ── AI Invocation 模式入口 ──
-
-/** 启动第1步：创建可调试的 AI Invocation；调试面板由 feature flag 控制。 */
-function startBibleGeneration() {
-  startBibleGenerationSSE()
-}
-
-/** 启动第1步：生成文风公约与世界观 */
-function startBibleGenerationSSE() {
-  generatingBible.value = true
-  bibleGenerated.value = false
-  bibleError.value = ''
-  phaseMessage.value = '正在准备生成文风公约...'
-  activeDimension.value = ''
-  activeField.value = ''
-  completedDimensions.value = new Set()
-  arrivedFields.value = new Set()
-  worldbuildingData.value = emptyWorldbuildingShape()
-  worldbuildingRawStream.value = ''
-  styleText.value = ''
-
-  const ctrl = new AbortController()
-  sseAbortController.value = ctrl
-
-  consumeBibleGenerateStream(props.novelId, 'worldbuilding', {
-    signal: ctrl.signal,
-    onPhase: (phase, msg) => {
-      phaseMessage.value = msg
-      // 世界观维度级阶段：worldbuilding_core_rules / worldbuilding_geography 等
-      if (phase.startsWith('worldbuilding_') && phase !== 'worldbuilding_done') {
-        const dimKey = phase.replace('worldbuilding_', '')
-        if (WB_DIMS.includes(dimKey as typeof WB_DIMS[number])) {
-          activeDimension.value = dimKey
-          activeField.value = ''
-          arrivedFields.value = new Set()
-        } else if (dimKey === 'style') {
-          // worldbuilding_style phase：文风公约生成中，清除 activeDimension
-          // 让所有维度都显示"等待中"，文风信息通过 phaseMessage 显示
-          activeDimension.value = ''
-          activeField.value = ''
-        } else {
-          // 其他 worldbuilding_* phase 事件（如 worldbuilding_done），忽略
-        }
-      }
-      if (phase === 'worldbuilding' || phase === 'worldbuilding_streaming') {
-        activeDimension.value = ''
-        activeField.value = ''
-      }
-      if (phase === 'worldbuilding_done') {
-        completedDimensions.value = new Set(WB_DIMS)
-        activeDimension.value = ''
-        activeField.value = ''
-      }
-    },
-    onStyle: (content) => {
-      styleText.value = content
-    },
-    onStyleChunk: (chunk) => {
-      styleText.value += chunk
-    },
-    onWorldbuildingChunk: (chunk) => {
-      applyWorldbuildingChunk(chunk)
-    },
-    onWorldbuildingField: (dimension, field, value) => {
-      const dim = dimension as keyof typeof worldbuildingData.value
-      worldbuildingData.value[dim][field] = value
-      activeDimension.value = dimension
-      arrivedFields.value = new Set([...arrivedFields.value, field])
-      activeField.value = field
-    },
-    onWorldbuildingDimension: (data: WorldbuildingDimensionData) => {
-      const dim = data.dimension as keyof typeof worldbuildingData.value
-      Object.assign(worldbuildingData.value[dim], data.content)
-      activeDimension.value = data.dimension
-      completedDimensions.value = new Set([...completedDimensions.value, data.dimension])
-    },
-    onApprovalRequired: (sessionId) => {
-      void openBibleReviewPanel('worldbuilding', sessionId)
-    },
-    onDone: () => {
-      finishWorldbuildingGeneration()
-    },
-    onError: (msg) => {
-      failBibleStage('worldbuilding', msg)
-    },
-  })
-}
-
-/** 启动第2步：创建可调试的 AI Invocation；调试面板由 feature flag 控制。 */
-function startCharactersGeneration() {
-  startCharactersGenerationSSE()
-}
-
-/** 启动第2步：生成人物 */
-function startCharactersGenerationSSE() {
-  generatingCharacters.value = true
-  charactersGenerated.value = false
-  charactersError.value = ''
-  streamingCharacters.value = []
-  editableCharacters.value = []
-  generatedCharacterDrafts.value = {}
-  phaseMessage.value = '正在生成人物...'
-
-  const ctrl = new AbortController()
-  charactersSseAbort.value = ctrl
-
-  consumeBibleGenerateStream(props.novelId, 'characters', {
-    signal: ctrl.signal,
-    onPhase: (_phase, msg) => {
-      phaseMessage.value = msg
-    },
-    onCharacter: (char) => {
-      const c = char as GeneratedCharacterPayload
-      if (c.name) {
-        const editable = mapGeneratedCharacterToEditable(c)
-        const draftKey = characterDraftKey({ id: editable.id, name: editable.name })
-        if (draftKey) {
-          generatedCharacterDrafts.value = {
-            ...generatedCharacterDrafts.value,
-            [draftKey]: editable,
-          }
-        }
-        streamingCharacters.value = [...streamingCharacters.value, editable]
-      }
-    },
-    onCharacterChunk: (_chunk) => {
-      // LLM 逐 token 输出中 —— 更新进度提示
-      if (!phaseMessage.value.includes('正在生成')) {
-        phaseMessage.value = 'AI 正在构思角色...'
-      }
-    },
-    onApprovalRequired: (sessionId) => {
-      void openBibleReviewPanel('characters', sessionId)
-    },
-    onDone: () => {
-      void markBibleStageCommitted('characters')
-    },
-    onError: (msg) => {
-      failBibleStage('characters', msg)
-    },
-  })
-}
-
-/** 启动第3步：创建可调试的 AI Invocation；调试面板由 feature flag 控制。 */
-function startLocationsGeneration() {
-  startLocationsGenerationSSE()
-}
-
-/** 启动第3步：生成地点 */
-function startLocationsGenerationSSE() {
-  generatingLocations.value = true
-  locationsGenerated.value = false
-  locationsError.value = ''
-  streamingLocations.value = []
-  editableLocations.value = []
-  phaseMessage.value = '正在生成地点...'
-
-  const ctrl = new AbortController()
-  locationsSseAbort.value = ctrl
-
-  consumeBibleGenerateStream(props.novelId, 'locations', {
-    signal: ctrl.signal,
-    onPhase: (_phase, msg) => {
-      phaseMessage.value = msg
-    },
-    onLocation: (loc) => {
-      const l = loc as { name?: string; id?: string; type?: string; location_type?: string; description?: string }
-      if (l.name) {
-        streamingLocations.value = [...streamingLocations.value, {
-          name: l.name,
-          id: l.id,
-          type: l.type,
-          location_type: l.location_type,
-          description: l.description || '',
-        }]
-      }
-    },
-    onLocationChunk: (_chunk) => {
-      // LLM 逐 token 输出中 —— 更新进度提示
-      if (!phaseMessage.value.includes('正在生成')) {
-        phaseMessage.value = 'AI 正在构思地点...'
-      }
-    },
-    onApprovalRequired: (sessionId) => {
-      void openBibleReviewPanel('locations', sessionId)
-    },
-    onDone: () => {
-      void markBibleStageCommitted('locations')
-    },
-    onError: (msg) => {
-      failBibleStage('locations', msg)
-    },
-  })
-}
-
-/** 加载完整 Bible 数据（SSE 完成后从 API 刷新） */
-async function loadBibleData() {
+/** 生成完成后读取已保存的设定，世界观读取失败时不标记生成成功。 */
+async function loadBibleData(requireWorldbuilding = false, isCurrent = () => true) {
   try {
     const bible = await bibleApi.getBible(props.novelId)
-    bibleData.value = bible
+    if (!isCurrent()) return false
 
     let fromApi = emptyWorldbuildingShape()
     try {
       const w = await worldbuildingApi.getWorldbuilding(props.novelId)
       fromApi = normalizeWorldbuildingFromApi(w as unknown as Record<string, unknown>)
-    } catch { /* 404 */ }
+    } catch {
+      if (requireWorldbuilding && !hasWorldbuildingContent(worldbuildingFromWorldSettings(bible.world_settings))) return false
+    }
+    if (!isCurrent()) return false
+    bibleData.value = bible
     const fromWs = worldbuildingFromWorldSettings(bible.world_settings)
     worldbuildingData.value = mergeWorldbuildingDisplay(fromApi, fromWs)
 
@@ -1775,6 +1603,17 @@ async function loadBibleData() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function resetWizardStateForOpen() {
+  previewRevision++
+  verifiedPreviewKeys.clear()
+  generatingBible.value = false
+  generatingCharacters.value = false
+  generatingLocations.value = false
+  bibleGenerated.value = false
+  charactersGenerated.value = false
+  locationsGenerated.value = false
+  bibleError.value = ''
+  plotOutlineGenerating.value = false
+  plotOutlineStatus.value = 'idle'
   currentStep.value = 1
   stepStatus.value = 'process'
   plotOutline.value = null
@@ -1885,19 +1724,29 @@ async function detectWizardProgress(): Promise<number> {
 }
 
 async function runWizardOpenSequence() {
-  resetWizardStateForOpen()
-  const step = await detectWizardProgress()
-  currentStep.value = step
-  maxVisitedStep.value = step
-  if (step === 4 && !plotOutlineCommitted.value) {
-    hydrateStepFourFromCache()
+  openingWizard.value = true
+  try {
+    resetWizardStateForOpen()
+    const step = await detectWizardProgress()
+    if (!props.show) return
+    await setupDag.resume()
+    if (!props.show) return
+    const active = setupRun.value?.status === 'running' ? setupRun.value : null
+    const unfinished = setupStages.value.find(stage => isStageIncomplete(stage.id))
+    currentStep.value = active ? stepStages.indexOf(active.stage) + 1 : unfinished ? stepStages.indexOf(unfinished.id) + 1 : step
+    maxVisitedStep.value = Math.max(step, currentStep.value)
+    if (currentStep.value === 4 && !plotOutlineCommitted.value && !active) hydrateStepFourFromCache()
+  } finally {
+    openingWizard.value = false
+  }
+  if (props.show && currentStep.value === 4 && !plotOutline.value && !setupDag.busy.value && !setupError.value) {
+    void loadPlotOutline()
   }
 }
 
 function stopGenerationOnClose() {
-  sseAbortController.value?.abort()
-  charactersSseAbort.value?.abort()
-  locationsSseAbort.value?.abort()
+  previewRevision++
+  setupDag.pause()
   generatingBible.value = false
   generatingCharacters.value = false
   generatingLocations.value = false
@@ -1906,9 +1755,7 @@ function stopGenerationOnClose() {
   phaseMessage.value = ''
   mainPlotSessionUnsub?.()
   mainPlotSessionUnsub = null
-  for (const unsub of bibleInvocationUnsubs.values()) {
-    unsub()
-  }
+  for (const unsub of bibleInvocationUnsubs.values()) unsub()
   bibleInvocationUnsubs.clear()
   bibleStageSessions.clear()
 }
@@ -1941,10 +1788,10 @@ watch(currentStep, (step, prevStep) => {
     setWizardLastStep(props.novelId, step)
   }
   // 切换步骤时刷新数据（排除初次加载，首次由 runWizardOpenSequence 处理）
-  if (prevStep !== undefined && props.show) {
+  if (prevStep !== undefined && props.show && !openingWizard.value && !setupDag.busy.value) {
     void loadBibleData()
   }
-  if (step === 4 && props.show && !plotOutlineCommitted.value && !plotOutline.value && !plotOutlineGenerating.value) {
+  if (step === 4 && props.show && !openingWizard.value && !setupDag.busy.value && !isStageLocked('plot_outline') && !plotOutlineCommitted.value && !plotOutline.value && !plotOutlineGenerating.value) {
     void loadPlotOutline()
   }
 })
@@ -1962,6 +1809,7 @@ const savingStep = ref(false)
 
 /** 保存步骤1的编辑（世界观 + 文风）到后端 */
 async function saveWorldbuildingEdits(): Promise<boolean> {
+  if (isStageLocked('worldbuilding') || isWizardGenerating.value || setupLoading.value) return false
   try {
     // 保存世界观维度数据
     const wbData: Record<string, Record<string, string>> = {}
@@ -2003,6 +1851,7 @@ async function saveWorldbuildingEdits(): Promise<boolean> {
 
 /** 保存步骤2的编辑（人物）到后端 */
 async function saveCharactersEdits(): Promise<boolean> {
+  if (isStageLocked('characters') || isWizardGenerating.value || setupLoading.value) return false
   try {
     const existing = await bibleApi.getBible(props.novelId)
     await bibleApi.updateBible(props.novelId, {
@@ -2074,6 +1923,7 @@ async function runBulkCharacterExtract() {
 
 /** 保存步骤3的编辑（地点）到后端 */
 async function saveLocationsEdits(): Promise<boolean> {
+  if (isStageLocked('locations') || isWizardGenerating.value || setupLoading.value) return false
   try {
     const existing = await bibleApi.getBible(props.novelId)
     const locationIds = new Set(editableLocations.value.map(l => l.id).filter(Boolean))
@@ -2099,6 +1949,7 @@ async function saveLocationsEdits(): Promise<boolean> {
 }
 
 async function savePlotOutlineEdits(): Promise<boolean> {
+  if (isStageLocked('plot_outline') || isWizardGenerating.value || setupLoading.value) return false
   try {
     const payload = buildEditablePlotOutlinePayload()
     const validationError = validateEditablePlotOutline(payload)
@@ -2129,6 +1980,7 @@ function goToStep(step: number) {
   if (step === currentStep.value) return
   // 正在生成中不允许切换
   if (isWizardGenerating.value) return
+  if (setupLoading.value || (step > currentStep.value && stepStages.slice(0, step - 1).some(isStageIncomplete))) return
   currentStep.value = step
 }
 
@@ -2142,7 +1994,8 @@ function handlePrev() {
 }
 
 const handleNext = async () => {
-  if (savingStep.value) return
+  if (savingStep.value || currentStageLocked.value || isWizardGenerating.value) return
+  if ((currentStep.value === 1 && !bibleGenerated.value) || (currentStep.value === 2 && !charactersGenerated.value) || (currentStep.value === 3 && !locationsGenerated.value) || (currentStep.value === 4 && !plotOutline.value)) return
   savingStep.value = true
   try {
     if (currentStep.value === 1) {
@@ -2184,6 +2037,7 @@ const handleNext = async () => {
 const dialog = useDialog()
 
 const handleSkip = () => {
+  if (isWizardGenerating.value || setupLoading.value || stepStages.some(isStageLocked)) return
   dialog.warning({
     title: '确认跳过向导',
     content: '已写入作品的数据会保留；第 4 步未提交的剧情总纲预览仍会缓存在本机，便于以后从向导继续。',
@@ -2200,7 +2054,7 @@ const handleSkip = () => {
 const requestClose = () => {
   dialog.warning({
     title: '关闭向导',
-    content: '进度已按步骤写入作品；第 4 步未提交的剧情总纲预览会缓存在本机以便下次继续。',
+    content: isWizardGenerating.value ? '关闭后生成会在后台继续。重新打开向导可恢复进度；如需取消，请先点击「停止生成」。' : '进度已按步骤写入作品；第 4 步未提交的剧情总纲预览会缓存在本机以便下次继续。',
     positiveText: '关闭',
     negativeText: '取消',
     onPositiveClick: () => {
@@ -2210,6 +2064,7 @@ const requestClose = () => {
 }
 
 const handleComplete = () => {
+  if (isWizardGenerating.value || setupLoading.value || stepStages.some(isStageLocked)) return
   markWizardCompleted(props.novelId)
   emit('complete')
   emit('update:show', false)
@@ -2217,11 +2072,20 @@ const handleComplete = () => {
 </script>
 
 <style scoped>
+:global(.novel-setup-modal) { display: flex; flex-direction: column; overflow: hidden; }
+:global(.novel-setup-modal > .n-card-content) { min-height: 0; overflow-y: auto; }
+:global(.novel-setup-modal > .n-card__footer),:global(.novel-setup-modal > .n-card-header) { flex-shrink: 0; }
+.wizard-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; min-width: 0; }
+.wizard-footer__group { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.wizard-footer__group--primary { margin-left: auto; }
+.wizard-footer :deep(.n-button) { max-width: 100%; }
+.stage-lock-notice { margin-bottom: 12px; }
+.stage-restart-button { margin-bottom: 12px; }
+.saved-stage-preview { margin-bottom: 16px; padding: 12px; border: 1px solid var(--app-border); border-radius: 8px; }
+.saved-stage-preview__item p { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--app-text-secondary); line-height: 1.7; }
 .step-content {
   margin: 24px 0;
-  min-height: 280px;
-  max-height: calc(90vh - 280px);
-  overflow-y: auto;
+  min-height: 0;
 }
 
 .step-panel {

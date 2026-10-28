@@ -44,23 +44,23 @@ async function save() {
   return vi.mocked(llmControlApi.saveConfig).mock.calls.at(-1)![0]
 }
 
-describe('Engine matrix C / R protocol routing', () => {
-  it('loads and saves all independent role endpoint choices without conflating C and R', async () => {
+describe('Engine matrix automatic protocol routing', () => {
+  it('migrates old independent role endpoint choices to automatic OpenAI', async () => {
     await mounted([profile('main', '主力模型', 'auto'), profile('cheap', '经济模型', 'chat'), profile('kg', '知识图谱模型', 'responses')], true)
     const selects = wrapper.findAll('select')
-    expect(selects.map(select => select.element.value)).toEqual(['openai.auto', 'openai.chat', 'openai.responses'])
-    await selects[0]!.setValue('openai.responses')
-    await selects[1]!.setValue('openai.responses')
-    await selects[2]!.setValue('openai.chat')
+    expect(selects.map(select => select.element.value)).toEqual(['openai.auto', 'openai.auto', 'openai.auto'])
+    for (const select of selects) {
+      expect(select.findAll('option').map(option => option.element.value)).toEqual(['openai.auto', 'anthropic', 'gemini'])
+    }
     const saved = await save()
     expect(saved.endpoint_mode).toBe('independent')
     expect(saved.profiles.map(profile => [profile.protocol, profile.endpoint_kind])).toEqual([
-      ['openai', 'responses'], ['openai', 'responses'], ['openai', 'chat'],
+      ['openai', 'auto'], ['openai', 'auto'], ['openai', 'auto'],
     ])
     expect(saved.profiles.every(profile => !profile.use_legacy_chat_completions)).toBe(true)
   })
 
-  it('preserves old automatic routing until the user chooses an explicit protocol', async () => {
+  it('preserves automatic routing on save', async () => {
     await mounted([profile('main', '主力模型', 'auto')])
     expect((await save()).profiles[0]?.endpoint_kind).toBe('auto')
   })

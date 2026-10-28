@@ -1,6 +1,7 @@
 """Autopilot invocation orchestration."""
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from typing import Any, Callable
 
@@ -160,11 +161,32 @@ class AutopilotInvocationOrchestrator:
                     "variable_plan": prepared_result.variable_plan,
                 },
             )
-        attempt = await self._gateway._attempt_service.generate(
-            session=session,
-            prompt_snapshot=prepared_result.prompt_snapshot,
-            config=self._build_config(intent),
-        )
+        attempt = None
+
+        def record_started(value):
+            nonlocal attempt
+            attempt = value
+            running = replace(prepared_result, attempt=value)
+            self._save_result(running)
+            self._publish(intent, running)
+
+        try:
+            attempt = await self._gateway._attempt_service.generate(
+                session=session,
+                prompt_snapshot=prepared_result.prompt_snapshot,
+                config=self._build_config(intent),
+                on_started=record_started,
+            )
+        except BaseException as exc:
+            session.status = (InvocationSessionStatus.CANCELLED if isinstance(exc, asyncio.CancelledError)
+                              else InvocationSessionStatus.FAILED)
+            if attempt is not None:
+                attempt.status = InvocationAttemptStatus.FAILED
+                attempt.error = str(exc) or ("调用已取消" if isinstance(exc, asyncio.CancelledError) else type(exc).__name__)
+            failed = replace(prepared_result, attempt=attempt)
+            self._save_result(failed)
+            self._publish(intent, failed)
+            raise
         if attempt.status != InvocationAttemptStatus.SUCCEEDED:
             if session.status != InvocationSessionStatus.CANCELLED:
                 session.status = InvocationSessionStatus.FAILED

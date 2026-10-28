@@ -99,7 +99,8 @@ class DAGEngine:
             executable = []
             incoming_by_node = {}
             for node in layer:
-                incoming = [e for e in dag.edges if e.target == node.id]
+                incoming = [e for e in dag.edges if e.target == node.id
+                            and not self._disabled_optional_injection(e, dag)]
                 active = [e for e in incoming if self._edge_active(e, results, state)]
                 plain = [e for e in incoming if e.condition == EdgeCondition.ALWAYS]
                 conditional = [e for e in incoming if e.condition != EdgeCondition.ALWAYS]
@@ -149,6 +150,22 @@ class DAGEngine:
                     state["_dag_injection_receipts"] = injections
             state["error_count"] = previous_errors + sum(r.status == NodeStatus.ERROR for r in results.values())
         return state
+
+    @staticmethod
+    def _disabled_optional_injection(edge, dag):
+        """A disabled optional prompt fragment is not a failed quality gate."""
+        from application.engine.dag.models import PromptMode
+        source, target = dag.get_node(edge.source), dag.get_node(edge.target)
+        if source is None or source.enabled or target is None or edge.condition != EdgeCondition.ALWAYS:
+            return False
+        source_meta, target_meta = NodeRegistry.get_meta(source.type), NodeRegistry.get_meta(target.type)
+        if source_meta.prompt_mode != PromptMode.INJECT or not source_meta.can_disable:
+            return False
+        outputs = {port.name for port in source_meta.output_ports}
+        optional = {port.name for port in target_meta.input_ports if not port.required}
+        if edge.target_port:
+            return edge.target_port in optional and edge.source_port in outputs
+        return bool(outputs & optional)
 
     @staticmethod
     def _edge_active(edge, results, state):

@@ -3868,7 +3868,7 @@ dependencies = [
 
 [[package]]
 name = "taleweft"
-version = "0.1.0-preview.1"
+version = "0.2.0"
 dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",

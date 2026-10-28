@@ -26,6 +26,12 @@ class Provider:
 
     async def generate(self, prompt, config):
         self.calls.append((prompt, config))
+        if '"review_version": "semantic-style-' in prompt.user:
+            request = json.loads(prompt.user)
+            return json.dumps({"review_version": request["review_version"], "passed": True, "input_hash": request["input_hash"], "issues": [],
+                "checks": {key: True for key in request["required_checks"]},
+                "coverage": [{"text_id": item["text_id"]}
+                             for item in request["texts"]]})
         if "plot_tension" in prompt.system or "plot_tension" in prompt.user:
             return json.dumps({"plot_tension": 61, "emotional_tension": 54, "pacing_tension": 48})
         if "次文风定向修正" in prompt.user:
@@ -198,6 +204,21 @@ async def test_shared_lease_rejects_other_engine_and_stop_cancels_provider(write
     assert (await runtime.status("novel"))["status"] == "cancelled"
     assert get_execution_lease("novel", db) is None
     assert db.fetch_one("SELECT content FROM chapters WHERE id='chapter'")["content"] == "旧正文"
+
+
+@pytest.mark.asyncio
+async def test_pending_autopilot_conflict_explains_reservation_not_running(writer):
+    from application.engine.services import autopilot_control as control
+    db, _queue = writer
+    command = control.submit_command("novel", "start", {
+        "next_stage": "macro_planning", "max_auto_chapters": 10,
+        "target_chapters": 10, "target_words_per_chapter": 2000,
+    }, db=db)
+    runtime = manager(db, Provider())
+    with pytest.raises(DAGRuntimeConflict, match="等待执行器确认") as caught:
+        await runtime.start("novel")
+    assert command["command_id"] in str(caught.value)
+    assert get_execution_lease("novel", db)["job_id"] == command["command_id"]
 
 
 @pytest.mark.asyncio

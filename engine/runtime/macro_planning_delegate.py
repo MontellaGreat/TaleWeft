@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any, Mapping
 
@@ -24,8 +25,6 @@ def _consume_pending_macro_plan(host: Any, *, novel_id: str, target_chapters: in
         return None
     host._update_shared_state(
         novel_id,
-        autopilot_pending_macro_plan=None,
-        autopilot_pending_macro_target_chapters=None,
         active_invocation_session_id="",
         active_invocation_operation="",
         active_invocation_node_key="",
@@ -39,6 +38,50 @@ def _consume_pending_macro_plan(host: Any, *, novel_id: str, target_chapters: in
         writing_substep_label="宏观规划 · 写入结构树",
     )
     return dict(pending)
+
+
+def _durable_recovered_macro_plan(host: Any, novel_id: str, target_chapters: int):
+    """Reuse a manually committed result after an explicit managed restart."""
+    from infrastructure.persistence.database.connection import DatabaseConnection
+    db = getattr(getattr(host,'novel_repository',None),'db',None)
+    if not isinstance(db,DatabaseConnection):
+        return None
+    session = db.fetch_one("""SELECT * FROM ai_invocation_sessions WHERE operation='autopilot.macro.plan'
+        AND ((CASE WHEN json_valid(context_json) THEN json_extract(context_json,'$.novel_id') END)=?
+          OR (CASE WHEN json_valid(metadata_json) THEN json_extract(metadata_json,'$.novel_id') END)=?)
+        ORDER BY created_at DESC,rowid DESC LIMIT 1""",(novel_id,novel_id))
+    if not session or session['status']!='completed':
+        return None
+    metadata=json.loads(session['metadata_json'] or '{}')
+    if not metadata.get('manual_stop_recovery') or metadata.get('macro_plan_applied'):
+        return None
+    commit=db.fetch_one("""SELECT c.*,d.accepted_content,a.status AS attempt_status FROM ai_adoption_commits c
+        JOIN ai_adoption_decisions d ON d.id=c.decision_id AND d.session_id=c.session_id
+        JOIN ai_invocation_attempts a ON a.id=d.attempt_id AND a.session_id=c.session_id
+        WHERE c.session_id=? AND c.status='succeeded' AND d.decision='accepted'
+        ORDER BY c.created_at DESC,c.rowid DESC LIMIT 1""",(session['id'],))
+    if not commit or commit['attempt_status']!='succeeded':
+        raise ValueError('恢复的结构缺少成功调用和采纳提交证据，请检查 AI 请求记录')
+    continuation=json.loads(commit['result_json']).get('continuation') or {}
+    from application.ai_invocation.autopilot.continuations import _load_json_value
+    accepted=_load_json_value(commit['accepted_content'],'恢复结构不是有效 JSON')
+    parts=accepted if isinstance(accepted,list) else accepted.get('parts') or accepted.get('structure') if isinstance(accepted,dict) else None
+    result=continuation.get('macro_plan')
+    if (not continuation.get('deferred_apply') or not isinstance(result,dict)
+            or not result.get('success') or result.get('structure')!=parts):
+        raise ValueError('恢复的结构与已采纳结果不一致，未重新调用模型')
+    if int(continuation.get('target_chapters') or 0)!=int(target_chapters):
+        raise ValueError('目标章节数已变化，请先核对已恢复的结构，未重新调用模型')
+    return {'db':db,'session_id':session['id'],'result':result}
+
+
+def _mark_recovered_macro_applied(recovered):
+    if not recovered:
+        return
+    db=recovered['db']
+    db.execute("""UPDATE ai_invocation_sessions SET metadata_json=json_set(metadata_json,'$.macro_plan_applied',json('true')),
+        updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='completed'""",(recovered['session_id'],))
+    db.commit()
 
 
 def _write_macro_variables(*, novel_id: str, variables: Mapping[str, Any], node_key: str) -> None:
@@ -82,6 +125,26 @@ def _write_macro_variables(*, novel_id: str, variables: Mapping[str, Any], node_
         )
 
 
+def _backfill_autopilot_setup_variables(novel_id: str) -> None:
+    """Materialize persisted setup and Bible facts before resolving DAG inputs."""
+    from application.ai_invocation.variable_backfill import VariableHubBackfillService
+    from application.paths import get_db_path
+    from infrastructure.persistence.database.connection import get_database
+    from infrastructure.persistence.database.sqlite_ai_invocation_repository import SqliteVariableHubRepository
+    from infrastructure.persistence.database.sqlite_novel_repository import SqliteNovelRepository
+    from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
+    from interfaces.api.dependencies import get_bible_repository
+
+    result = VariableHubBackfillService(
+        variable_hub_repository=SqliteVariableHubRepository(get_database()),
+        novel_repository=SqliteNovelRepository(get_database()),
+        bible_repository=get_bible_repository(),
+        worldbuilding_repository=WorldbuildingRepository(get_db_path()),
+    ).backfill_novel(novel_id)
+    if result.errors:
+        raise RuntimeError("托管创作设定回填失败: " + "; ".join(result.errors))
+
+
 def _pause_for_invocation(host: Any, novel: Novel, outcome) -> None:
     session = outcome.payload.get("session") if isinstance(outcome.payload, Mapping) else None
     policy_value = getattr(getattr(session, "policy", ""), "value", "") or "AUTOPILOT_PAUSE"
@@ -112,6 +175,17 @@ async def _request_macro_invocation(host: Any, novel: Novel, *, target_chapters:
     from infrastructure.ai.generation_profiles import generation_config_from_profile
     from infrastructure.ai.prompt_keys import PLANNING_QUICK_MACRO
     from infrastructure.persistence.database.connection import get_database
+
+    # The HTTP invocation route backfills legacy/setup facts before resolving
+    # variables. Managed writing enters the same contract directly from the
+    # daemon, so it must perform the identical idempotent backfill here. Without
+    # this, a saved Bible character is visible to the planning service but the
+    # Variable Hub still reports the required `characters` input as missing.
+    try:
+        _backfill_autopilot_setup_variables(novel.novel_id.value)
+    except Exception:
+        logger.exception("[%s] 托管宏观规划变量回填失败", novel.novel_id.value)
+        raise
 
     bible_context = host.planning_service._get_bible_context(novel.novel_id.value)
     variables = host.planning_service.build_quick_macro_variables(bible_context, target_chapters)
@@ -176,7 +250,8 @@ async def run_macro_planning(host: Any, novel: Novel) -> None:
         target_chapters,
     )
 
-    result = _consume_pending_macro_plan(
+    recovered = await asyncio.to_thread(_durable_recovered_macro_plan,host,novel.novel_id.value,target_chapters)
+    result = recovered['result'] if recovered else _consume_pending_macro_plan(
         host,
         novel_id=novel.novel_id.value,
         target_chapters=target_chapters,
@@ -247,8 +322,11 @@ async def run_macro_planning(host: Any, novel: Novel) -> None:
         target_chapters=target_chapters,
         allow_minimal_placeholder_on_empty=False,
     )
+    await asyncio.to_thread(_mark_recovered_macro_applied,recovered)
     host._update_shared_state(
         novel.novel_id.value,
+        autopilot_pending_macro_plan=None,
+        autopilot_pending_macro_target_chapters=None,
         macro_structure_ready=True,
         writing_substep="macro_planning",
         writing_substep_label="宏观规划 · 结构已生成",

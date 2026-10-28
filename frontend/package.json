@@ -2,7 +2,7 @@
   "name": "taleweft",
   "private": true,
   "description": "叙织 · TaleWeft — 面向长篇小说的 AI 创作工作台",
-  "version": "0.1.0-preview.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "sync:taxonomy": "node scripts/sync-builtin-taxonomy.mjs",

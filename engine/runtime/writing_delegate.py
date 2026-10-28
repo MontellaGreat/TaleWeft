@@ -83,7 +83,7 @@ def is_story_pipeline_writing_enabled() -> bool:
 def _build_runner(daemon: Any):
     from engine.runtime.runner import StoryPipelineRunner
 
-    return StoryPipelineRunner(
+    runner = StoryPipelineRunner(
         novel_repository=daemon.novel_repository,
         llm_service=daemon.llm_service,
         context_builder=daemon.context_builder,
@@ -100,6 +100,11 @@ def _build_runner(daemon: Any):
         foreshadowing_repository=daemon.foreshadowing_repository,
         knowledge_service=daemon.knowledge_service,
     )
+    # The lifecycle host acquired the durable execution lease before entering
+    # writing. Reuse that host for the runner so CQRS chapter writes carry the
+    # same job/epoch/pid fence instead of being rejected as ownerless.
+    runner.attach_legacy_daemon(daemon)
+    return runner
 
 
 async def run_writing(host: Any, novel: Any) -> WritingOutcome:

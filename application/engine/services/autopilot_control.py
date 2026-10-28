@@ -7,7 +7,7 @@ import time
 import uuid
 
 from application.engine.services.execution_lease import (
-    claim_execution_lease, get_execution_lease, refresh_execution_lease, release_execution_lease, ensure_execution_schema,
+    get_execution_lease, refresh_execution_lease, release_execution_lease, ensure_execution_schema,
 )
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,11 @@ _lock = threading.RLock()
 _command_lock = threading.RLock()
 _ready = set()
 _last_lease_refresh = 0.0
+# A provider request can legitimately exceed two minutes (especially through
+# a proxy). The daemon refreshes between stages, but it cannot refresh while
+# awaiting a single model response, so the autopilot reservation must cover a
+# bounded long call. Stop/replacement commands still fence it by job id.
+AUTOPILOT_LEASE_TTL_SECONDS = 900
 
 
 def _db(db=None):
@@ -64,7 +69,7 @@ def submit_command(novel_id, command_type, payload, db=None, *, command_id=None)
                 ON CONFLICT(novel_id) DO UPDATE SET owner=excluded.owner, job_id=excluded.job_id,
                     expires_at=excluded.expires_at, updated_at=excluded.updated_at
                 WHERE novel_execution_leases.expires_at<=? OR novel_execution_leases.owner='autopilot'""",
-                (command_id, now + 120, now, novel_id, now))
+                (command_id, now + AUTOPILOT_LEASE_TTL_SECONDS, now, novel_id, now))
             guard = "EXISTS (SELECT 1 FROM novel_execution_leases l WHERE l.novel_id=novels.id AND l.owner='autopilot' AND l.job_id=? AND l.expires_at>?)"
             guard_params = (command_id, now)
         epoch_cursor = conn.execute(f"""UPDATE novels
@@ -138,6 +143,9 @@ def command_response(command):
         "accepted": True, "execution_confirmed": command["state"] == "completed",
         "command_error": command.get("error"), "command_requested_at": command["requested_at"],
         "command_executed_at": command.get("executed_at"),
+        "command_executor_pid": command.get("executor_pid"),
+        "command_wait_seconds": max(0.0, time.time() - command["requested_at"])
+            if command["state"] in {"pending", "applied"} else 0.0,
     }
 
 
@@ -184,7 +192,8 @@ def refresh_owned_leases(db=None):
             if current and current["autopilot_status"] == "running" and (
                 current["autopilot_run_epoch"] == row["run_epoch"] or stop_requested(row["novel_id"], db=db)
             ):
-                if not refresh_execution_lease(row["novel_id"], "autopilot", row["command_id"], db=db):
+                if not refresh_execution_lease(row["novel_id"], "autopilot", row["command_id"],
+                                               ttl_seconds=AUTOPILOT_LEASE_TTL_SECONDS, db=db):
                     lost.add(row["novel_id"])
     except Exception as exc:
         logger.debug("控制租约续期失败: %s", exc)
@@ -251,9 +260,19 @@ def _process_pending_commands(novel_id=None, active_novel_ids=None, db=None):
         else:
             if nid in active:
                 continue
-            if not claim_execution_lease(nid, "autopilot", command["command_id"], db=db):
-                db.execute("UPDATE autopilot_commands SET state='failed', error='execution ownership unavailable' WHERE command_id=?", (command["command_id"],))
+            # Submission already reserved ownership atomically. An expired
+            # reservation must never restart work long after the user's request.
+            if not refresh_execution_lease(nid, "autopilot", command["command_id"], db=db):
+                error = "execution_reservation_expired: 执行预约已过期或归属已改变，请重新提交启动请求"
+                db.execute("UPDATE autopilot_commands SET state='failed', error=?, executed_at=?, executor_pid=? WHERE command_id=?", (error, time.time(), os.getpid(), command["command_id"]))
                 db.commit()
+                # Remove the reservation that failed ownership validation. A
+                # filtered expired row is still a durable conflict for future
+                # submitters and can make the next start look unresponsive.
+                release_execution_lease(nid, "autopilot", command["command_id"], db=db)
+                logger.warning("控制命令执行失败 novel=%s command=%s: %s", nid, command["command_id"], error)
+                _publish(nid, **command_response(dict(command, state="failed", error=error,
+                                                      executor_pid=os.getpid(), executed_at=time.time())))
                 continue
             from application.engine.services.novel_stop_signal import clear_local_novel_stop
             from application.engine.services.autopilot_recovery_policy import AutopilotRecoveryPolicy
@@ -289,9 +308,11 @@ def _process_pending_commands(novel_id=None, active_novel_ids=None, db=None):
             continue
         _publish(nid, autopilot_status="stopped" if command["command_type"] == "stop" else "running",
                  **({"current_stage": payload["next_stage"]} if command["command_type"] != "stop" else {}),
-                 **command_response(dict(command, state="completed", executed_at=time.time())))
+                 **command_response(dict(command, state="completed", executed_at=time.time(), executor_pid=os.getpid())))
         if command["command_type"] == "stop":
             if lease_to_release and lease_to_release["owner"] == "autopilot":
                 release_execution_lease(nid, "autopilot", lease_to_release["job_id"], db=db)
+        logger.info("控制命令执行完成 novel=%s command=%s type=%s epoch=%s executor_pid=%s",
+                    nid, command["command_id"], command["command_type"], epoch, os.getpid())
         processed.append(command["command_id"])
     return processed

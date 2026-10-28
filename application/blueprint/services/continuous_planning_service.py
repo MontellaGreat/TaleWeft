@@ -10,6 +10,7 @@ import logging
 import re
 import sys
 import copy
+import time
 from typing import Dict, List, Optional
 from datetime import datetime
 from json_repair import repair_json
@@ -431,7 +432,56 @@ def _repair_json_string(text: str) -> str:
 __all__ = ['ContinuousPlanningService', 'MergeConflictException']
 
 
-def get_macro_plan_progress(novel_id: str) -> Dict:
+def _reconcile_macro_invocation_progress(novel_id: str, progress: Dict, db) -> Dict:
+    """Read durable managed calls; never repair sessions or start work here."""
+    novel = db.fetch_one("SELECT current_stage,autopilot_status FROM novels WHERE id=?", (novel_id,))
+    if not novel:
+        return progress
+    progress.update(current_stage=novel['current_stage'], autopilot_status=novel['autopilot_status'])
+    session = db.fetch_one("""SELECT id,status,policy,created_at,
+        (julianday(updated_at)-2440587.5)*86400.0 AS updated_epoch
+        FROM ai_invocation_sessions WHERE operation='autopilot.macro.plan'
+        AND ((CASE WHEN json_valid(context_json) THEN json_extract(context_json,'$.novel_id') END)=?
+          OR (CASE WHEN json_valid(metadata_json) THEN json_extract(metadata_json,'$.novel_id') END)=?)
+        ORDER BY created_at DESC,rowid DESC LIMIT 1""", (novel_id, novel_id))
+    if not session:
+        if (progress.get('status') == 'running' and not progress.get('task_started_at')
+                and novel['autopilot_status'] in {'stopped', 'paused', 'failed'}):
+            progress.update(status='paused', message='宏观规划当前未运行，已保留现有预览')
+        return progress
+    # A separately started manual planning task has its own progress. An older
+    # managed session must not replace that task's live observations.
+    if float(progress.get('task_started_at') or 0) > float(session['updated_epoch'] or 0) + 1:
+        return progress
+    attempt = db.fetch_one("SELECT status,error FROM ai_invocation_attempts WHERE session_id=? ORDER BY rowid DESC LIMIT 1",
+        (session['id'],))
+    status = session['status']
+    progress.update(invocation_session_id=session['id'], invocation_status=status,
+                    invocation_policy=session['policy'])
+    if status == 'failed':
+        progress.update(status='failed', message='宏观规划调用失败：' + ((attempt or {}).get('error') or '请在 AI 请求面板查看并重试'))
+    elif status == 'cancelled':
+        progress.update(status='cancelled', message='宏观规划调用已取消，已保留现有预览')
+    elif status in {'awaiting_pre_call_review', 'awaiting_acceptance', 'awaiting_commit', 'blocked'}:
+        progress.update(status='awaiting_review', message='宏观规划等待 AI 请求面板审阅或处理')
+    elif status == 'prompt_compiled' and not attempt and (
+            novel['autopilot_status'] != 'running' or novel['current_stage'] != 'macro_planning'):
+        progress.update(status='interrupted', message='宏观规划调用中断，旧版缺少调用回执，请在 AI 请求面板检查并恢复')
+    elif status == 'generating' and attempt and attempt['status'] == 'running':
+        progress.update(status='running', message='宏观规划模型请求进行中')
+    elif status == 'completed':
+        if novel['current_stage'] in {'act_planning', 'writing', 'auditing', 'completed'}:
+            progress.update(status='completed', percent=100, message='宏观规划已生成并进入后续阶段')
+        else:
+            progress.update(status='awaiting_review', message='宏观规划模型结果已生成，等待结构确认或落库')
+    elif novel['autopilot_status'] != 'running':
+        progress.update(status='paused', message='宏观规划当前未运行，可在 AI 请求面板检查已有调用')
+    else:
+        progress.update(status='running', message='宏观规划请求已准备，等待模型调用')
+    return progress
+
+
+def get_macro_plan_progress(novel_id: str, *, db=None) -> Dict:
     defaults = {
         "status": "idle",
         "current": 0,
@@ -446,14 +496,16 @@ def get_macro_plan_progress(novel_id: str) -> Dict:
         try:
             got = shared.get(_macro_plan_progress_shared_key(novel_id))
             if isinstance(got, dict):
-                return copy.deepcopy(got)
+                progress = copy.deepcopy(got)
+                return _reconcile_macro_invocation_progress(novel_id, progress, db) if db is not None else progress
         except Exception:
             logger.debug(
                 "read macro_plan_progress from shared failed novel=%s",
                 novel_id,
                 exc_info=True,
             )
-    return copy.deepcopy(_macro_plan_progress_store.get(novel_id, defaults))
+    progress = copy.deepcopy(_macro_plan_progress_store.get(novel_id, defaults))
+    return _reconcile_macro_invocation_progress(novel_id, progress, db) if db is not None else progress
 
 
 def get_macro_plan_result(novel_id: str) -> Dict:
@@ -508,13 +560,11 @@ class ContinuousPlanningService:
 
         logger.info(f"Generating macro plan for novel {novel_id}")
         # 每轮生成清空流式缓冲，避免全托管未走 initialize_macro_plan_task 时与前一次输出拼接
-        self._clear_macro_llm_stream(novel_id)
-        self._update_macro_progress(novel_id, status="running", current=0, total=0, message="正在准备结构规划")
-
-        # 获取 Bible 信息
-        bible_context = self._get_bible_context(novel_id)
+        self.initialize_macro_plan_task(novel_id)
 
         try:
+            # Context failures belong to this task and must close its progress.
+            bible_context = self._get_bible_context(novel_id)
             if structure_preference is None:
                 # 构建提示词
                 prompt = self._build_macro_planning_prompt(
@@ -577,11 +627,11 @@ class ContinuousPlanningService:
                 "quality_metrics": quality_metrics,
                 "generation_time": elapsed_time
             }
-        except Exception:
+        except BaseException as exc:
             self._update_macro_progress(
                 novel_id,
-                status="failed",
-                message="结构规划生成失败",
+                status="cancelled" if isinstance(exc, asyncio.CancelledError) else "failed",
+                message="结构规划已取消" if isinstance(exc, asyncio.CancelledError) else f"结构规划生成失败：{exc}",
             )
             raise
 
@@ -1005,14 +1055,13 @@ class ContinuousPlanningService:
                     if isinstance(preview_parts, list) and _macro_incremental_tree_score(preview_parts) > 0:
                         logger.warning(
                             "[MacroLLMStream] novel=%s upstream failed after %d chunks/%d chars; "
-                            "using repaired partial macro plan: %s",
+                            "retaining partial preview without declaring completion: %s",
                             novel_id,
                             chunk_count,
                             len(joined),
                             exc,
                         )
                         self._set_macro_preview_parts(novel_id, preview_parts)
-                        return json.dumps({"parts": preview_parts}, ensure_ascii=False)
                 except Exception:
                     logger.debug(
                         "[MacroLLMStream] novel=%s partial repair failed after upstream error",
@@ -1072,6 +1121,7 @@ class ContinuousPlanningService:
             message="正在准备结构规划",
         )
         prog = _macro_plan_progress_store.setdefault(novel_id, {})
+        prog["task_started_at"] = time.time()
         prog["llm_stream_text"] = ""
         prog["preview_parts"] = None
         _mirror_macro_plan_progress_to_shared(novel_id)

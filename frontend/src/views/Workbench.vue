@@ -52,6 +52,7 @@
               @back="goHome"
               @refresh="handleChapterUpdated"
               @plan-act="handlePlanAct"
+              @open-runtime="openStructureRuntime"
             /></div>
           </template>
 
@@ -166,6 +167,11 @@ function openOperations(dag: boolean) {
   activeDesk.value = 'workflow'
   if (dag) workspace.openDag()
   else workspace.openMonitor()
+  workAreaRef.value?.openManagedWorkspace?.()
+}
+function openStructureRuntime() {
+  activeDesk.value = 'workflow'
+  workspace.setTab('cockpit')
   workAreaRef.value?.openManagedWorkspace?.()
 }
 function openMetrics() {

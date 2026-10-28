@@ -54,6 +54,7 @@ from infrastructure.persistence.database.sqlite_ai_invocation_repository import 
     variable_plan_to_dict,
 )
 from interfaces.api.dependencies import get_llm_service
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_variable_writes
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,13 @@ class VariableUpdateRequest(BaseModel):
 
 
 _VARIABLE_HUB_FACT_SOURCE_PREFIXES = ("setup.", "bible.setup.")
+
+
+def _guard_variable_writes(repository, writes):
+    try:
+        assert_setup_variable_writes(writes, repository=repository)
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
 
 
 def _config_from_dict(raw: Mapping[str, Any] | None) -> GenerationConfig | None:
@@ -217,7 +225,7 @@ def _request_binding_aliases(binding: VariableBinding) -> tuple[str, ...]:
     return tuple(alias for alias in aliases if alias)
 
 
-def _materialize_request_variables_before_invoke(repos, request: InvocationCreateRequest) -> list[dict[str, Any]]:
+def _materialize_request_variables_before_invoke(repos, request: InvocationCreateRequest, *, persist=True) -> list[dict[str, Any]]:
     spec = repos["spec"].get(request.operation, request.node_key)
     if spec is None or not request.variables:
         return []
@@ -230,7 +238,7 @@ def _materialize_request_variables_before_invoke(repos, request: InvocationCreat
     if not bindings:
         return []
     trace_id = str((request.metadata or {}).get("trace_id") or f"request:{request.operation}:{request.node_key}")
-    written: list[dict[str, Any]] = []
+    pending: list[tuple[str, VariableWrite]] = []
     for alias, raw_value in dict(request.variables or {}).items():
         if str(alias).startswith("genre_"):
             continue
@@ -240,8 +248,7 @@ def _materialize_request_variables_before_invoke(repos, request: InvocationCreat
         if binding.source in RUNTIME_ONLY_BINDING_SOURCES or str(binding.variable_key).startswith("system."):
             continue
         value = parse_variable_literal(raw_value)
-        stored = repos["variable_hub"].set_value(
-            VariableWrite(
+        pending.append((alias, VariableWrite(
                 key=binding.variable_key,
                 value=value,
                 context_key=context_key_for_scope(request.context, binding.scope),
@@ -257,13 +264,18 @@ def _materialize_request_variables_before_invoke(repos, request: InvocationCreat
                 display_name=binding.display_name,
                 scope=binding.scope,
                 stage=binding.stage,
-            )
-        )
+            )))
+    _guard_variable_writes(repos["variable_hub"], [write for _, write in pending])
+    if not persist:
+        return []
+    written: list[dict[str, Any]] = []
+    for alias, write in pending:
+        stored = repos["variable_hub"].set_value(write)
         written.append(
             {
                 "alias": alias,
-                "variable_key": binding.variable_key,
-                "context_key": context_key_for_scope(request.context, binding.scope),
+                "variable_key": write.key,
+                "context_key": write.context_key,
                 "version_number": getattr(stored, "version_number", 1),
             }
         )
@@ -868,6 +880,9 @@ async def create_invocation(request: InvocationCreateRequest) -> dict[str, Any]:
         pass
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    # Reject the complete explicit input batch before historical backfill or
+    # the gateway can persist any values as a side effect of creating a session.
+    _materialize_request_variables_before_invoke(repos, request, persist=False)
     _backfill_invocation_novel_variables(repos, request)
     pre_materialized = []
     invocation_variables = request.variables
@@ -908,18 +923,23 @@ async def create_invocation(request: InvocationCreateRequest) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ProseExecutionEvidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     spec = repos["spec"].get(result.session.operation, result.session.node_key)
     if spec is not None:
-        materialize_input_variables(
-            variable_hub_repository=repos["variable_hub"],
-            session=result.session,
-            spec=spec,
-            variable_plan=result.variable_plan,
-            updated_by="create_invocation",
-        )
+        try:
+            materialize_input_variables(
+                variable_hub_repository=repos["variable_hub"],
+                session=result.session,
+                spec=spec,
+                variable_plan=result.variable_plan,
+                updated_by="create_invocation",
+            )
+        except SetupEditConflict as exc:
+            raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
     if pre_materialized:
         metadata = dict(result.session.metadata or {})
         metadata["pre_invocation_materialization"] = {"written": pre_materialized}
@@ -1065,7 +1085,7 @@ async def update_invocation_variables(session_id: str, request: VariableUpdateRe
     if not request.values:
         raise HTTPException(status_code=400, detail="variable_values_required")
 
-    written: list[dict[str, Any]] = []
+    pending: list[tuple[str, VariableWrite]] = []
     for alias, value in request.values.items():
         value = parse_variable_literal(value)
         binding = bindings.get(alias)
@@ -1080,8 +1100,7 @@ async def update_invocation_variables(session_id: str, request: VariableUpdateRe
             raise HTTPException(status_code=400, detail=f"variable_key_not_bound:{alias}")
         if binding.source in RUNTIME_ONLY_BINDING_SOURCES or str(binding.variable_key).startswith("system."):
             raise HTTPException(status_code=400, detail=f"variable_not_persistable:{alias}")
-        stored = repos["variable_hub"].set_value(
-            VariableWrite(
+        pending.append((alias, VariableWrite(
                 key=binding.variable_key,
                 value=value,
                 context_key=context_key_for_scope(session.context, binding.scope),
@@ -1098,13 +1117,16 @@ async def update_invocation_variables(session_id: str, request: VariableUpdateRe
                 display_name=binding.display_name,
                 scope=binding.scope,
                 stage=binding.stage,
-            )
-        )
+            )))
+    _guard_variable_writes(repos["variable_hub"], [write for _, write in pending])
+    written: list[dict[str, Any]] = []
+    for alias, write in pending:
+        stored = repos["variable_hub"].set_value(write)
         written.append(
             {
                 "alias": alias,
-                "variable_key": binding.variable_key,
-                "context_key": context_key_for_scope(session.context, binding.scope),
+                "variable_key": write.key,
+                "context_key": write.context_key,
                 "version_number": getattr(stored, "version_number", 1),
             }
         )
@@ -1187,6 +1209,8 @@ async def resume_invocation(session_id: str, request: ResumeInvocationRequest) -
         raise HTTPException(status_code=400, detail="invocation_session_not_waiting_for_pre_call_review")
     if session.prompt_snapshot is None:
         raise HTTPException(status_code=400, detail="invocation_session_missing_prompt_snapshot")
+    config = _config_from_dict({**request.config, "operation": session.operation})
+    db, basis, novel_id = _retry_claim_basis(repos,session)
     reviewed_hash = session.prompt_snapshot.rendered_prompt_hash
     _refresh_session_variables_from_hub(repos, session, render_prompt=True, persist=False)
     if session.variable_plan is not None and not session.variable_plan.ok:
@@ -1207,15 +1231,14 @@ async def resume_invocation(session_id: str, request: ResumeInvocationRequest) -
     )
     session.attempts.append(attempt.id)
     session.status = InvocationSessionStatus.GENERATING
-    with sqlite_writes_bypass_queue():
-        repos["attempt"].save(attempt)
-        repos["session"].save(session)
+    _mark_manual_macro_recovery(db,session,novel_id)
+    _claim_retry_attempt(db,basis,novel_id,session,attempt)
     _publish_autopilot_session_state(session)
     asyncio.create_task(
         _run_streaming_invocation_attempt(
             session_id=session.id,
             attempt_id=attempt.id,
-            config=_config_from_dict({**request.config, "operation": session.operation}),
+            config=config,
         )
     )
     return {
@@ -1223,6 +1246,89 @@ async def resume_invocation(session_id: str, request: ResumeInvocationRequest) -
         "attempt": _attempt_payload(attempt),
         "next_action": "generating",
     }
+
+
+def _running_retry_attempt_condition(session_id, novel_id):
+    if not novel_id:
+        return "NOT EXISTS(SELECT 1 FROM ai_invocation_attempts WHERE session_id=? AND status='running')", (session_id,)
+    return ("""NOT EXISTS(SELECT 1 FROM ai_invocation_attempts a JOIN ai_invocation_sessions s ON s.id=a.session_id
+        WHERE a.status='running' AND (a.session_id=? OR
+        (CASE WHEN json_valid(s.context_json) THEN json_extract(s.context_json,'$.novel_id') END)=? OR
+        (CASE WHEN json_valid(s.metadata_json) THEN json_extract(s.metadata_json,'$.novel_id') END)=?))""",
+        (session_id,novel_id,novel_id))
+
+
+def _retry_claim_basis(repos, session, *, legacy_compiled=False):
+    """Read a retry basis, never interpret missing old receipts as no API call."""
+    from application.engine.services.execution_lease import ensure_execution_schema, get_execution_lease
+    db = repos["session"]._db
+    ensure_execution_schema(db)
+    basis = db.fetch_one("SELECT rowid AS _recovery_rowid_,* FROM ai_invocation_sessions WHERE id=?", (session.id,))
+    if basis is None or basis['status'] != session.status.value:
+        raise HTTPException(409, detail="invocation_session_changed_refresh_required")
+    expected_json = {'context_json':dict(session.context), 'metadata_json':dict(session.metadata),
+        'prompt_snapshot_json':prompt_snapshot_to_dict(session.prompt_snapshot),
+        'variables_snapshot_json':variable_plan_to_dict(session.variable_plan),'attempts_json':list(session.attempts)}
+    if any(json.loads(basis[key]) != value for key,value in expected_json.items()):
+        raise HTTPException(409, detail="invocation_session_changed_refresh_required")
+    novel_id = str(session.context.get('novel_id') or session.metadata.get('novel_id') or '')
+    if novel_id and get_execution_lease(novel_id, db):
+        raise HTTPException(409, detail="作品仍有执行任务，请停止并等待退出后再重试")
+    no_running, running_params = _running_retry_attempt_condition(session.id,novel_id)
+    if not db.fetch_one('SELECT '+no_running+' AS idle',running_params)['idle']:
+        raise HTTPException(409, detail="invocation_attempt_still_running")
+    if legacy_compiled:
+        novel = db.fetch_one('SELECT autopilot_status FROM novels WHERE id=?', (novel_id,))
+        if (session.operation != 'autopilot.macro.plan' or not novel or novel['autopilot_status'] != 'stopped'
+                or session.attempts or db.fetch_one('SELECT 1 FROM ai_invocation_attempts WHERE session_id=?', (session.id,))):
+            raise HTTPException(409, detail="旧规划请求状态尚未确认中断，请停止托管并核对请求后再重试")
+    return db, basis, novel_id
+
+
+def _claim_retry_attempt(db, basis, novel_id, session, attempt, *, legacy_compiled=False):
+    """Claim the attempt and session in one acknowledged SQLite writer batch."""
+    compare = ('status','context_json','metadata_json','prompt_snapshot_json','variables_snapshot_json','attempts_json','updated_at')
+    guards = [f'{column} IS ?' for column in compare]
+    params = [basis[column] for column in compare]
+    no_running,running_params = _running_retry_attempt_condition(session.id,novel_id)
+    guards.append(no_running)
+    params.extend(running_params)
+    if novel_id:
+        guards.append("NOT EXISTS(SELECT 1 FROM novel_execution_leases WHERE novel_id=? AND expires_at>(julianday('now')-2440587.5)*86400)")
+        params.append(novel_id)
+    if legacy_compiled:
+        guards.append("EXISTS(SELECT 1 FROM novels WHERE id=? AND autopilot_status='stopped')")
+        params.append(novel_id)
+        guards.append("NOT EXISTS(SELECT 1 FROM ai_invocation_attempts WHERE session_id=?)")
+        params.append(session.id)
+        guards.append("""NOT EXISTS(SELECT 1 FROM ai_invocation_sessions newer
+            WHERE newer.operation=? AND newer.rowid>? AND
+            ((CASE WHEN json_valid(newer.context_json) THEN json_extract(newer.context_json,'$.novel_id') END)=?
+            OR (CASE WHEN json_valid(newer.metadata_json) THEN json_extract(newer.metadata_json,'$.novel_id') END)=?))""")
+        params.extend((session.operation,basis['_recovery_rowid_'],novel_id,novel_id))
+    dumps = lambda value: json.dumps(value,ensure_ascii=False,sort_keys=True)
+    attempts_json = dumps(session.attempts)
+    snapshot_json = dumps(prompt_snapshot_to_dict(session.prompt_snapshot))
+    with db.transaction() as conn:
+        claimed = conn.execute("""UPDATE ai_invocation_sessions SET status='generating',attempts_json=?,
+            prompt_snapshot_json=?,variables_snapshot_json=?,metadata_json=?,updated_at=CURRENT_TIMESTAMP
+            WHERE id=? AND """+' AND '.join(guards),
+            (attempts_json,snapshot_json,dumps(variable_plan_to_dict(session.variable_plan)),dumps(session.metadata),session.id,*params))
+        conn.execute("""INSERT INTO ai_invocation_attempts(id,session_id,status,prompt_snapshot_json,content,token_usage_json,error)
+            SELECT ?,?,'running',?,'','{}','' WHERE EXISTS(SELECT 1 FROM ai_invocation_sessions
+            WHERE id=? AND status='generating' AND attempts_json=?)""",
+            (attempt.id,session.id,snapshot_json,session.id,attempts_json))
+    if claimed.rowcount != 1:
+        raise HTTPException(409,detail="请求、执行状态或调用记录已变化，未启动新的模型调用，请刷新后核对")
+
+
+def _mark_manual_macro_recovery(db, session, novel_id):
+    if session.operation != 'autopilot.macro.plan':
+        return
+    novel = db.fetch_one('SELECT autopilot_status FROM novels WHERE id=?',(novel_id,))
+    session.metadata = {**dict(session.metadata), 'manual_retry_requested':True}
+    if novel and novel['autopilot_status']=='stopped':
+        session.metadata = {**dict(session.metadata), 'manual_stop_recovery':True}
 
 
 @router.post("/{session_id}/retry")
@@ -1233,13 +1339,16 @@ async def retry_invocation(session_id: str, request: ResumeInvocationRequest) ->
         raise HTTPException(status_code=404, detail="invocation_session_not_found")
     if session.prompt_snapshot is None:
         raise HTTPException(status_code=400, detail="invocation_session_missing_prompt_snapshot")
+    config = _config_from_dict({**request.config, "operation": session.operation})
+    legacy_compiled = session.status == InvocationSessionStatus.PROMPT_COMPILED
     if session.status not in {
         InvocationSessionStatus.AWAITING_PRE_CALL_REVIEW,
         InvocationSessionStatus.AWAITING_ACCEPTANCE,
         InvocationSessionStatus.CANCELLED,
         InvocationSessionStatus.FAILED,
-    }:
+    } and not legacy_compiled:
         raise HTTPException(status_code=400, detail="invocation_session_not_retryable")
+    db, basis, novel_id = _retry_claim_basis(repos,session,legacy_compiled=legacy_compiled)
     reviewed_hash = session.prompt_snapshot.rendered_prompt_hash
     _refresh_session_variables_from_hub(repos, session, render_prompt=True, persist=False)
     if session.variable_plan is not None and not session.variable_plan.ok:
@@ -1260,15 +1369,17 @@ async def retry_invocation(session_id: str, request: ResumeInvocationRequest) ->
     )
     session.attempts.append(attempt.id)
     session.status = InvocationSessionStatus.GENERATING
-    with sqlite_writes_bypass_queue():
-        repos["attempt"].save(attempt)
-        repos["session"].save(session)
+    if legacy_compiled:
+        session.metadata = {**dict(session.metadata), 'legacy_missing_attempt_receipt':True,
+                            'recovery_requested_by':request.resumed_by}
+    _mark_manual_macro_recovery(db,session,novel_id)
+    _claim_retry_attempt(db,basis,novel_id,session,attempt,legacy_compiled=legacy_compiled)
     _publish_autopilot_session_state(session)
     asyncio.create_task(
         _run_streaming_invocation_attempt(
             session_id=session.id,
             attempt_id=attempt.id,
-            config=_config_from_dict({**request.config, "operation": session.operation}),
+            config=config,
         )
     )
     return {
@@ -1316,6 +1427,8 @@ async def create_commit(session_id: str, request: CommitCreateRequest) -> dict[s
     except ProseExecutionEvidenceError as exc:
         _persist_prose_evidence_block(repos, session, exc)
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
     with sqlite_writes_bypass_queue():
         repos["adoption"].save_commit(commit)
         repos["session"].save(session)

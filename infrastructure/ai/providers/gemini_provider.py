@@ -130,10 +130,6 @@ class GeminiProvider(BaseProvider):
             'temperature': config.temperature,
             'maxOutputTokens': config.max_tokens,
         }
-        if config.reasoning_effort not in (None, "none"):
-            raise ValueError(
-                "Gemini thinking uses thinking_budget_tokens; reasoning_effort level is unavailable for this adapter"
-            )
         if config.thinking_budget_tokens is not None:
             generation_config['thinkingConfig'] = {
                 'thinkingBudget': config.thinking_budget_tokens,
@@ -143,8 +139,6 @@ class GeminiProvider(BaseProvider):
         if config.top_p is not None:
             generation_config['topP'] = config.top_p
         if config.stop_sequences:
-            if len(config.stop_sequences) > 5:
-                raise ValueError('Gemini supports at most 5 stop_sequences')
             generation_config['stopSequences'] = config.stop_sequences
         # 🔥 response_format 自适应：
         # Gemini 支持 responseMimeType 但不支持 json_schema 结构定义
@@ -178,15 +172,10 @@ class GeminiProvider(BaseProvider):
         generation_override = extra_body.pop('generationConfig', None)
         if isinstance(generation_override, dict):
             for key, value in generation_override.items():
-                if key in {'topP', 'stopSequences'}:
-                    raise ValueError(f'extra_body {key} must use the explicit generation control')
                 if key in generation_config and value != generation_config[key]:
                     raise ValueError(f'extra_body cannot override {key}')
             payload['generationConfig'].update(generation_override)
         for key, value in extra_body.items():
-            if key in {'contents', 'systemInstruction', 'stream', 'input', 'messages', 'response_format',
-                       'tools', 'toolConfig'}:
-                raise ValueError(f'extra_body cannot supply protected request field {key}')
             if key in payload and payload[key] != value:
                 raise ValueError(f'extra_body cannot override {key}')
         payload.update(extra_body)

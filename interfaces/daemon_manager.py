@@ -176,44 +176,12 @@ def run_autopilot_daemon_process(
 
         daemon = build_daemon()
         process_logger.info("守护进程已启动（独立进程），开始轮询...")
+        from engine.runtime.daemon_loop import run_daemon_loop
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        process_logger.info("守护进程：持久化事件循环已创建")
-
-        while not stop_event.is_set():
-            try:
-                try:
-                    from application.engine.services.streaming_bus import streaming_bus
-
-                    streaming_bus.consume_stop_signals()
-                except Exception:
-                    pass
-
-                try:
-                    from application.engine.services.shared_state_repository import (
-                        get_shared_state_repository,
-                    )
-
-                    get_shared_state_repository().update_daemon_heartbeat()
-                except Exception:
-                    pass
-
-                active_novels = daemon._get_active_novels()
-                if active_novels:
-                    for novel in active_novels:
-                        if stop_event.is_set():
-                            break
-                        loop.run_until_complete(daemon._process_novel(novel))
-
-                stop_event.wait(timeout=daemon.poll_interval)
-
-            except BaseException as exc:
-                if stop_event.is_set() or is_expected_daemon_shutdown_exception(exc):
-                    process_logger.info("守护进程在停止/热重载期间中断，正常退出")
-                    break
-                process_logger.error("守护进程异常: %s", exc, exc_info=True)
-                stop_event.wait(timeout=lifecycle_settings.error_sleep_seconds)
+        run_daemon_loop(
+            daemon, stop_event=stop_event,
+            error_sleep_seconds=lifecycle_settings.error_sleep_seconds,
+        )
 
     except BaseException as exc:
         if stop_event.is_set() or is_expected_daemon_shutdown_exception(exc):

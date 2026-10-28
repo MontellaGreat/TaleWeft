@@ -107,13 +107,19 @@ export interface MacroPlanGenerateResponse {
 }
 
 export interface MacroPlanProgress {
-  status: 'idle' | 'running' | 'completed' | 'failed'
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'awaiting_review' | 'paused' | 'cancelled' | 'interrupted'
   current: number
   total: number
   percent: number
   message: string
   /** LLM 流式输出的累积文本（宏观规划生成过程中） */
   llm_stream_text?: string
+  preview_parts?: MacroPartNode[]
+  invocation_session_id?: string
+  invocation_status?: string
+  invocation_policy?: string
+  autopilot_status?: string
+  current_stage?: string
 }
 
 export interface MacroPlanResultPayload {

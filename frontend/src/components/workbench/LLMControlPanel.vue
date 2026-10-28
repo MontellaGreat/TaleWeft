@@ -4,13 +4,13 @@
     <header class="llm-header">
       <div class="llm-header-main">
         <div class="llm-title-row">
-          <h3 class="llm-title">LLM 控制台</h3>
+          <h3 class="llm-title">模型控制台</h3>
           <n-tag size="small" round :bordered="false">Provider Control</n-tag>
         </div>
         <p class="llm-lead">
           一个面板统一管理 <strong>OpenAI / Claude / Gemini</strong> 与所有
           <strong>OpenAI / Claude / Gemini 兼容网关</strong>。
-          OpenAI 兼容服务可明确选择 <strong>C（Chat Completions）或 R（Responses）</strong> 协议。
+          OpenAI 兼容服务会自动选择可用的调用方式。
         </p>
         <n-space :size="8" wrap>
           <n-tag size="small" type="info" round>
@@ -33,31 +33,6 @@
     <n-alert v-if="runtimeUnavailable" type="warning" :show-icon="true" class="llm-alert">
       {{ panelData?.runtime?.reason || '当前未配置可用模型，请补全模型配置后生成。' }}
     </n-alert>
-
-    <section v-if="panelData && quickImportPresets.length" class="llm-preset-strip">
-      <div class="llm-preset-strip-head">
-        <div>
-          <div class="llm-preset-strip-title">导入厂商预设</div>
-          <div class="llm-preset-strip-desc">一键生成常用厂商配置草稿，再填 Key 即可测试。</div>
-        </div>
-      </div>
-      <div class="llm-preset-grid">
-        <button
-          v-for="preset in quickImportPresets"
-          :key="preset.key"
-          type="button"
-          class="llm-preset-card"
-          @click="importPresetShortcut(preset.key)"
-        >
-          <span class="llm-preset-card-head">
-            <span class="llm-preset-card-title">{{ preset.label }}</span>
-            <span class="llm-preset-card-protocol">{{ llmProtocolLabel(preset) }}</span>
-          </span>
-          <span class="llm-preset-card-model">{{ preset.default_model || '自定义模型' }}</span>
-          <span class="llm-preset-card-url">{{ preset.default_base_url || '兼容网关 / 自定义 Base URL' }}</span>
-        </button>
-      </div>
-    </section>
 
     <div v-if="panelData && panelData.config" class="llm-layout">
       <aside class="llm-sidebar">
@@ -121,20 +96,6 @@
           </template>
 
           <div class="llm-form-grid">
-            <div class="llm-field span-2">
-              <label class="llm-label">预设</label>
-              <div class="llm-field-row">
-                <n-select
-                  v-model:value="selectedProfile.preset_key"
-                  :options="presetOptions"
-                  placeholder="选择预设"
-                  filterable
-                />
-                <n-button secondary @click="applyPresetToSelected">应用预设</n-button>
-              </div>
-              <n-text depth="3" style="font-size: 12px">{{ selectedPreset?.description || '可先套预设，再微调 endpoint。' }}</n-text>
-            </div>
-
             <div class="llm-field">
               <label class="llm-label">配置名称</label>
               <n-input v-model:value="selectedProfile.name" placeholder="例如：DeepSeek 生产网关" />
@@ -169,12 +130,21 @@
             <div class="llm-field span-2">
               <label class="llm-label">模型名</label>
               <div class="llm-model-row">
-                <n-auto-complete
-                  v-model:value="selectedProfile.model"
+                <n-select
+                  v-if="fetchedModels.length"
+                  v-model:show="modelListOpen"
+                  :value="selectedProfile.model || null"
                   :options="fetchedModelOptions"
-                  placeholder="填写所用网关文档中的模型 ID（本处不预设具体名称）"
+                  filterable
                   clearable
-                  style="flex: 1"
+                  placeholder="选择模型，可输入搜索"
+                  @update:value="selectedProfile.model = $event || ''"
+                />
+                <n-input
+                  v-else
+                  v-model:value="selectedProfile.model"
+                  placeholder="拉取后直接选择，或手动填写模型 ID"
+                  clearable
                 />
                 <n-button
                   secondary
@@ -189,6 +159,20 @@
               <n-text v-if="fetchedModels.length > 0" depth="3" style="font-size: 11px">
                 已拉取 {{ fetchedModels.length }} 个模型，可输入过滤或直接选择
               </n-text>
+            </div>
+
+            <div v-if="selectedProfile.protocol === 'openai'" class="llm-field span-2">
+              <label class="llm-label">模型思考程度</label>
+              <n-select v-model:value="selectedProfile.reasoning_effort" :options="reasoningOptionsForSelected" :disabled="reasoningCapabilityStatus === 'unavailable' && !selectedReasoningInvalid" clearable placeholder="由模型默认值决定" />
+              <n-alert v-if="reasoningCapabilityMessage" type="warning" :show-icon="false" class="llm-reasoning-hint">
+                {{ reasoningCapabilityMessage }}
+              </n-alert>
+              <n-text depth="3" style="font-size: 12px">留空表示不发送该参数、由模型默认决定。none 是显式的协议值，仅对自定义网关原样发送，实际效果由网关解释；官方模型请改用受支持的档位或留空。启用推理时省略温度参数。</n-text>
+            </div>
+            <div v-else class="llm-field span-2">
+              <label class="llm-label">模型思考预算（token）</label>
+              <n-input-number v-model:value="selectedProfile.thinking_budget_tokens" :min="0" :step="1024" clearable placeholder="由模型默认值决定" />
+              <n-text depth="3" style="font-size: 12px">0 表示请求关闭；Anthropic 开启时至少 1024，且小于输出上限。</n-text>
             </div>
 
             <div class="llm-field">
@@ -216,20 +200,6 @@
             <n-alert v-if="topPThinkingConflict" type="warning" class="llm-field span-2" :show-icon="false">
               当前已启用思考并显式设置 top_p；此组合不受当前协议支持，调用会明确拒绝。请清空 top_p，或清空思考程度（留空表示由模型默认值决定）。
             </n-alert>
-
-            <div v-if="selectedProfile.protocol === 'openai'" class="llm-field">
-              <label class="llm-label">模型思考程度</label>
-              <n-select v-model:value="selectedProfile.reasoning_effort" :options="reasoningOptionsForSelected" :disabled="reasoningCapabilityStatus === 'unavailable' && !selectedReasoningInvalid" clearable placeholder="由模型默认值决定" />
-              <n-alert v-if="reasoningCapabilityMessage" type="warning" :show-icon="false" class="llm-reasoning-hint">
-                {{ reasoningCapabilityMessage }}
-              </n-alert>
-              <n-text depth="3" style="font-size: 12px">留空表示不发送该参数、由模型默认决定。none 是显式的协议值，仅对自定义网关原样发送，实际效果由网关解释；官方模型请改用受支持的档位或留空。启用推理时省略温度参数。</n-text>
-            </div>
-            <div v-else class="llm-field">
-              <label class="llm-label">模型思考预算（token）</label>
-              <n-input-number v-model:value="selectedProfile.thinking_budget_tokens" :min="0" :step="1024" clearable placeholder="由模型默认值决定" />
-              <n-text depth="3" style="font-size: 12px">0 表示请求关闭；Anthropic 开启时至少 1024，且小于输出上限。</n-text>
-            </div>
 
             <div class="llm-field">
               <label class="llm-label">超时（秒）</label>
@@ -326,7 +296,6 @@ import {
   type LLMControlPanelData,
   type LLMPreset,
   type LLMProfile,
-  type LLMProtocol,
   type LLMRuntimeSummary,
   type ModelItem,
 } from '../../api/llmControl'
@@ -370,6 +339,7 @@ const capabilities = ref<ModelCapabilities | null>(null)
 const reasoningCapability = ref<ModelCapabilities | null>(null)
 const lastTestParameters = ref('')
 const fetchedModels = ref<ModelItem[]>([])
+const modelListOpen = ref(false)
 const selectedProfileId = ref('')
 const extraHeadersText = ref('{}')
 const extraQueryText = ref('{}')
@@ -384,6 +354,7 @@ let capabilityRequest = 0
 let capabilityIdentityRevision = 0
 let modelListRequest = 0
 let saveRequest = 0
+let loadRequest = 0
 let disposed = false
 
 const authOptions = [{ label: 'API Key', value: 'api_key' }, { label: '免密钥（本地或私有兼容服务）', value: 'none' }]
@@ -453,23 +424,12 @@ const reasoningCapabilityMessage = computed(() => {
   return ''
 })
 
-const presetOptions = computed(() =>
-  (panelData.value?.presets || []).map((preset) => ({
-    label: preset.label,
-    value: preset.key,
-  }))
-)
-
-const quickImportPresets = computed(() =>
-  (panelData.value?.presets || []).filter((preset) => preset.key !== 'custom-openai-compatible')
-)
-
 const selectedProfile = computed(() =>
   panelData.value?.config?.profiles.find((profile) => profile.id === selectedProfileId.value) || null
 )
 
 const selectedProtocol = computed<LLMProtocolSelection>({
-  get: () => selectedProfile.value ? llmProtocolSelection(selectedProfile.value) : 'openai.chat',
+  get: () => selectedProfile.value ? llmProtocolSelection(selectedProfile.value) : 'openai.auto',
   set: selection => {
     if (selectedProfile.value) Object.assign(selectedProfile.value, llmProtocolFields(selection))
   },
@@ -482,11 +442,6 @@ const runtimeProtocolLabel = computed(() => {
   return llmProtocolLabel({ protocol: runtime.protocol,
     endpoint_kind: runtime.endpoint_kind ?? active?.endpoint_kind,
     use_legacy_chat_completions: runtime.endpoint_kind ? false : active?.use_legacy_chat_completions })
-})
-
-const selectedPreset = computed<LLMPreset | null>(() => {
-  if (!selectedProfile.value || !panelData.value) return null
-  return panelData.value.presets.find((preset) => preset.key === selectedProfile.value?.preset_key) || null
 })
 
 const runtimeUnavailable = computed(() => {
@@ -537,8 +492,7 @@ const stopSequenceHint = computed(() => {
   const profile = selectedProfile.value
   if (profile?.protocol === 'gemini') return 'Gemini 最多 5 项。'
   if (profile?.protocol !== 'openai') return '最多 16 项，每项最多 1024 个字符。'
-  if (profile.endpoint_kind === 'responses') return 'Responses 不支持非空停止序列，请切换 Chat Completions。'
-  return `${profile.endpoint_kind === 'auto' ? '自动端点模式配置非空序列时选择 Chat Completions；' : ''}Chat Completions 最多 4 项。`
+  return '最多 4 项；配置非空停止序列时自动选择支持此参数的调用方式。'
 })
 
 async function handleFetchModels() {
@@ -554,6 +508,7 @@ async function handleFetchModels() {
   const request = ++modelListRequest
   const isCurrent = () => !disposed && request === modelListRequest && revision === modelListRevision
   fetchingModels.value = true
+  modelListOpen.value = false
   fetchedModels.value = []
   try {
     const result = await llmControlApi.fetchModels({
@@ -568,6 +523,7 @@ async function handleFetchModels() {
     if (!isCurrent()) return
     if (result.success && result.items.length > 0) {
       fetchedModels.value = result.items
+      modelListOpen.value = true
       message.success(`成功拉取 ${result.count} 个模型`)
     } else {
       message.warning('未获取到可用模型列表')
@@ -667,15 +623,15 @@ function newProfileId(): string {
   return globalThis.crypto?.randomUUID?.() || `profile-${Date.now()}`
 }
 
-function buildProfileFromPreset(preset?: LLMPreset): LLMProfile {
+function buildEmptyProfile(): LLMProfile {
   return {
     id: newProfileId(),
-    name: preset?.label || '新配置',
-    preset_key: preset?.key || 'custom-openai-compatible',
-    protocol: (preset?.protocol || 'openai') as LLMProtocol,
-    base_url: preset?.default_base_url || '',
+    name: '新配置',
+    preset_key: 'custom-openai-compatible',
+    protocol: 'openai',
+    base_url: '',
     api_key: '',
-    model: preset?.default_model || '',
+    model: '',
     temperature: 0.7,
     top_p: null,
     stop_sequences: [],
@@ -686,7 +642,7 @@ function buildProfileFromPreset(preset?: LLMPreset): LLMProfile {
     extra_body: {},
     notes: '',
     use_legacy_chat_completions: false,
-    endpoint_kind: preset?.endpoint_kind ?? (preset?.protocol && preset.protocol !== 'openai' ? 'auto' : 'chat'),
+    endpoint_kind: 'auto',
     auth_mode: 'api_key',
     reasoning_effort: null,
     thinking_budget_tokens: null,
@@ -742,12 +698,12 @@ function normalizePanelData(raw: unknown): LLMControlPanelData {
     : []
 
   if (!profiles.length) {
-    profiles = [buildProfileFromPreset(undefined)]
+    profiles = [buildEmptyProfile()]
   }
   profiles = profiles.map((profile) => ({ ...profile,
     top_p: profile.top_p ?? null,
     stop_sequences: profile.stop_sequences ?? [],
-    endpoint_kind: profile.endpoint_kind || (profile.use_legacy_chat_completions ? 'chat' : 'auto'),
+    ...llmProtocolFields(llmProtocolSelection(profile)),
     auth_mode: profile.auth_mode || 'api_key',
     reasoning_effort: profile.reasoning_effort ?? null,
     thinking_budget_tokens: profile.thinking_budget_tokens ?? null,
@@ -835,26 +791,40 @@ function commitAdvancedEditors() {
 }
 
 async function loadPanel() {
+  const request = ++loadRequest
+  const draftSignature = () => JSON.stringify({ config: panelData.value?.config, id: selectedProfileId.value,
+    headers: extraHeadersText.value, query: extraQueryText.value, body: extraBodyText.value, stops: stopSequencesText.value })
+  const requestedDraft = draftSignature()
   loading.value = true
   try {
     const raw = await llmControlApi.getPanel()
+    if (disposed || request !== loadRequest) return
     const data = normalizePanelData(raw)
-    panelData.value = deepClone(data)
-    const persistedState = readUiState()
-    const preferredId = persistedState.selectedProfileId || selectedProfileId.value
-    const candidateId = preferredId && data.config.profiles.some((profile) => profile.id === preferredId)
-      ? preferredId
-      : data.config.active_profile_id || data.config.profiles[0]?.id || ''
-    selectedProfileId.value = candidateId
-    syncJsonEditors()
+    if (panelData.value && draftSignature() !== requestedDraft) {
+      // Refreshing saved state must not replace a draft edited while awaiting it.
+      panelData.value.runtime = deepClone(data.runtime)
+      panelData.value.presets = deepClone(data.presets)
+      message.info('已刷新运行状态；刷新期间的新修改已保留，请保存配置')
+    } else {
+      panelData.value = deepClone(data)
+      const persistedState = readUiState()
+      const preferredId = persistedState.selectedProfileId || selectedProfileId.value
+      const candidateId = preferredId && data.config.profiles.some((profile) => profile.id === preferredId)
+        ? preferredId
+        : data.config.active_profile_id || data.config.profiles[0]?.id || ''
+      selectedProfileId.value = candidateId
+      syncJsonEditors()
+    }
     emit('panel-updated', deepClone(data))
     await nextTick()
+    if (disposed || request !== loadRequest) return
     restoreUiState()
   } catch (error) {
+    if (disposed || request !== loadRequest) return
     const detail = error instanceof Error ? error.message : '加载失败'
     message.error(`LLM 面板加载失败：${detail}`)
   } finally {
-    loading.value = false
+    if (!disposed && request === loadRequest) loading.value = false
   }
 }
 
@@ -877,27 +847,12 @@ function preserveEditorDraft(): boolean {
 function addProfile() {
   if (!panelData.value) return
   if (!preserveEditorDraft()) return
-  const preset = panelData.value.presets.find((item) => item.key === 'custom-openai-compatible')
-  const profile = buildProfileFromPreset(preset)
+  const profile = buildEmptyProfile()
   profile.name = uniqueProfileName(profile.name)
   panelData.value.config.profiles.push(profile)
   selectedProfileId.value = profile.id
   syncJsonEditors()
   saveUiState()
-}
-
-function importPresetShortcut(presetKey: string) {
-  if (!panelData.value) return
-  const preset = panelData.value.presets.find((item) => item.key === presetKey)
-  if (!preset) return
-  if (!preserveEditorDraft()) return
-  const profile = buildProfileFromPreset(preset)
-  profile.name = uniqueProfileName(preset.label)
-  panelData.value.config.profiles.unshift(profile)
-  selectedProfileId.value = profile.id
-  syncJsonEditors()
-  saveUiState()
-  message.success(`已导入预设：${preset.label}`)
 }
 
 function duplicateSelected() {
@@ -931,22 +886,6 @@ function removeSelected() {
   selectedProfileId.value = panelData.value.config.active_profile_id || panelData.value.config.profiles[0]?.id || ''
   syncJsonEditors()
   saveUiState()
-}
-
-function applyPresetToSelected() {
-  if (!selectedProfile.value || !panelData.value) return
-  const preset = panelData.value.presets.find((item) => item.key === selectedProfile.value?.preset_key)
-  if (!preset) return
-  if (!preserveEditorDraft()) return
-  selectedProfile.value.protocol = preset.protocol
-  selectedProfile.value.endpoint_kind = preset.endpoint_kind ?? (preset.protocol === 'openai' ? 'chat' : 'auto')
-  selectedProfile.value.use_legacy_chat_completions = false
-  if (preset.default_base_url) selectedProfile.value.base_url = preset.default_base_url
-  if (preset.default_model) selectedProfile.value.model = preset.default_model
-  if (!selectedProfile.value.name || selectedProfile.value.name === '新配置') {
-    selectedProfile.value.name = preset.label
-  }
-  syncJsonEditors()
 }
 
 async function saveAll() {
@@ -1179,6 +1118,7 @@ watch(() => {
     extra_query: profile.extra_query, headersDraft: extraHeadersText.value, queryDraft: extraQueryText.value } : null)
 }, () => {
   modelListRevision += 1
+  modelListOpen.value = false
   fetchedModels.value = []
   fetchingModels.value = false
 }, { flush: 'sync' })
@@ -1241,96 +1181,6 @@ onBeforeUnmount(() => {
 .llm-alert {
   margin: 0 18px 12px;
   flex-shrink: 0;
-}
-
-.llm-preset-strip {
-  margin: 0 18px 12px;
-  padding: 14px;
-  border: 1px solid var(--taleweft-split-border);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, var(--color-brand-light), var(--app-surface)),
-    var(--app-surface);
-  flex-shrink: 0;
-}
-
-.llm-preset-strip-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.llm-preset-strip-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--n-text-color-1);
-}
-
-.llm-preset-strip-desc {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--n-text-color-3);
-}
-
-.llm-preset-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
-}
-
-.llm-preset-card {
-  border: 1px solid var(--color-brand-border, rgba(99, 102, 241, 0.12));
-  border-radius: 12px;
-  background: var(--app-surface-raised, var(--app-surface));
-  padding: 12px;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  cursor: pointer;
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.llm-preset-card:hover {
-  transform: translateY(-1px);
-  border-color: var(--color-brand-hover, rgba(79, 70, 229, 0.28));
-  box-shadow: var(--app-shadow-md), 0 10px 22px var(--color-brand-border, rgba(79, 70, 229, 0.08));
-}
-
-.llm-preset-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.llm-preset-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--n-text-color-1);
-}
-
-.llm-preset-card-protocol {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--color-brand, #4f46e5);
-  background: var(--color-brand-light, rgba(79, 70, 229, 0.08));
-  border-radius: 999px;
-  padding: 2px 8px;
-}
-
-.llm-preset-card-model {
-  font-size: 12px;
-  color: var(--n-text-color-2);
-}
-
-.llm-preset-card-url {
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--n-text-color-3);
-  word-break: break-all;
 }
 
 .llm-layout {
@@ -1468,12 +1318,6 @@ onBeforeUnmount(() => {
 
 .llm-field.span-2 {
   grid-column: span 2;
-}
-
-.llm-field-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
 }
 
 .llm-label {

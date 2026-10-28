@@ -120,4 +120,16 @@ describe('production named and wizard stream consumers', () => {
     expect(failure.done).not.toHaveBeenCalled()
     expect(failure.error).toHaveBeenCalledTimes(1)
   })
+  it('reports an installation conflict response with its reason instead of an incomplete stream', async () => {
+    for (const status of [200, 409]) {
+      transport.fetch.mockResolvedValueOnce(new Response(JSON.stringify({ detail: '安装任务已在运行中，请等待完成' }), {
+        status, headers: { 'Content-Type': 'application/json' },
+      }))
+      const result = doneHandlers()
+      settingsApi.installExtensions({ onDone: result.done, onError: result.error })
+      await result.promise
+      expect(result.done).not.toHaveBeenCalled()
+      expect(result.error).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('安装任务已在运行中') }))
+    }
+  })
 })

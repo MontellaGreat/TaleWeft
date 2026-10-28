@@ -11,6 +11,7 @@ from application.world.services.auto_knowledge_generator import AutoKnowledgeGen
 from application.core.dtos.novel_dto import NovelDTO
 from application.core.chapter_target_limits import CHAPTER_TARGET_WORDS_MAX, CHAPTER_TARGET_WORDS_MIN
 from application.core.taxonomy.market_selection import normalize_market_preferences
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_bible_generation_editable
 from interfaces.api.dependencies import (
     get_novel_service,
     get_auto_bible_generator,
@@ -332,6 +333,10 @@ async def generate_bible_alias(
         202 Accepted
     """
     try:
+        assert_setup_bible_generation_editable(novel_id, stage)
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
+    try:
         import traceback
 
         novel = novel_service.get_novel(novel_id)
@@ -340,6 +345,7 @@ async def generate_bible_alias(
 
         async def _generate_task():
             try:
+                assert_setup_bible_generation_editable(novel_id, stage)
                 premise = novel.premise if novel.premise else novel.title
                 bible_data = await bible_generator.generate_and_save(
                     novel_id=novel_id,

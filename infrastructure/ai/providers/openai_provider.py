@@ -1,9 +1,9 @@
 """OpenAI LLM 提供商实现"""
 import asyncio
 import logging
+import re
 import openai
 import httpx
-from copy import deepcopy
 from typing import Any, AsyncIterator
 
 from openai import AsyncOpenAI
@@ -11,12 +11,13 @@ from openai import AsyncOpenAI
 from domain.ai.services.llm_service import GenerationConfig, GenerationResult
 from domain.ai.value_objects.prompt import Prompt
 from domain.ai.value_objects.token_usage import TokenUsage
-from application.ai.llm_retry_policy import LLM_MAX_TOTAL_ATTEMPTS, is_retryable_llm_error
+from application.ai.llm_retry_policy import LLM_MAX_TOTAL_ATTEMPTS, is_retryable_llm_error, llm_retry_delay_seconds
 from application.ai.usage_context import current_usage, parse_usage, record_stream_usage, record_response_usage
 from infrastructure.ai.config.settings import Settings
 from infrastructure.ai.http_timeout import build_httpx_timeout
 from .base import BaseProvider
 from .model_resolution import require_resolved_model_id
+from .generation_constraints import extract_openai_reasoning_controls, openai_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class OpenAIProvider(BaseProvider):
     """OpenAI LLM 提供商实现
 
     通过 endpoint_kind 选择协议：chat 固定 C，responses 固定 R；
-    仅 auto 保留旧版端点探测和 use_legacy_chat_completions 兼容行为。
+    auto 优先 Responses，仅在端点不支持时协商到 Chat；保留旧版标志兼容。
     """
 
     _fallback_to_chat_cache: set[tuple[str, str, str, str]] = set()
@@ -72,71 +73,57 @@ class OpenAIProvider(BaseProvider):
                 config.model or self.settings.default_model, self.settings.endpoint_kind)
 
     def _may_fallback(self, error: Exception) -> bool:
-        if self._force_responses:
+        """Negotiate protocols only for endpoint failures, never request failures.
+
+        SDK status and structured error fields take precedence over message
+        text: a proxy may mention an upstream 404 in an auth or overload error.
+        Non-HTTP gateway errors need an explicit unsupported API declaration.
+        """
+        if self._force_responses or self._use_legacy:
             return False
-        message = str(error).lower()
-        if 'model' in message and any(marker in message for marker in ('model_not_found', 'invalid_model', 'not found', 'does not exist', 'not supported')):
+        if isinstance(error, (ValueError, TypeError, openai.APIConnectionError,
+                              httpx.TransportError, TimeoutError, ConnectionError)):
             return False
-        if isinstance(error, openai.NotFoundError):
+
+        status = getattr(error, 'status_code', None)
+        if status is None and isinstance(error, httpx.HTTPStatusError):
+            status = error.response.status_code
+        if status is not None and status not in (400, 404, 405, 422, 501):
+            return False
+
+        body = getattr(error, 'body', None)
+        if isinstance(body, dict) and isinstance(body.get('error'), dict):
+            body = body['error']
+        details = body if isinstance(body, dict) else {}
+        code = str(details.get('code') or getattr(error, 'code', '') or '').lower()
+        message = str(details.get('message') or getattr(error, 'message', None) or error).lower()
+        if (details.get('param') or getattr(error, 'param', None)
+                or code in {'model_not_found', 'invalid_model', 'unsupported_model',
+                            'invalid_api_key', 'authentication_error', 'permission_denied',
+                            'rate_limit_exceeded', 'insufficient_quota', 'unsupported_parameter'}):
+            return False
+        if ('model' in message and any(marker in message for marker in
+                ('model_not_found', 'invalid_model', 'not found', 'does not exist', 'no such model'))):
+            return False
+        if status in (404, 405, 501):
             return True
-        return any(marker in message for marker in ('404', 'not found', 'responses api unsupported', 'unknown endpoint', 'unsupported endpoint'))
+        if code in {'unsupported_endpoint', 'unknown_endpoint', 'unsupported_api', 'unsupported_protocol'}:
+            return True
+        return any(re.search(pattern, message) for pattern in (
+            r'\b(?:unsupported|unknown|unrecognized)\s+(?:api\s+)?(?:endpoint|route|path|responses(?:\s+api)?)\b',
+            r'\b(?:responses(?:\s+api)?|endpoint|route)(?:\s+(?:is|are))?\s+(?:unsupported|not supported|not implemented|not found|does not exist)\b',
+            r'\b(?:endpoint|gateway|server|service|model)\b[^.;\n]{0,60}\b(?:does not|do not|doesn\x27t)\s+support\s+(?:the\s+)?responses(?:\s+api)?\b',
+            r'/responses[\x27\"]?(?:\s+(?:endpoint|api))?(?:\s+is)?\s+(?:unsupported|not supported|not implemented|not found|does not exist)\b',
+        ))
 
     def _should_use_responses(self, config: GenerationConfig) -> bool:
-        # Responses has no stop-sequence parameter. Auto may select Chat, while
-        # an explicit Responses selection must expose the incompatibility.
-        if config.stop_sequences:
-            if self._force_responses:
-                raise ValueError('stop_sequences is unavailable for OpenAI Responses; select Chat or auto')
+        force_responses = getattr(self, '_force_responses', self.settings.endpoint_kind == 'responses')
+        endpoint = openai_endpoint('responses' if force_responses else self.settings.endpoint_kind,
+                                   legacy_chat=self._use_legacy,
+                                   stop_sequences=config.stop_sequences)
+        if endpoint == 'chat':
             return False
-        return not self._use_legacy and (self._force_responses or self._endpoint_cache_key(config) not in self.__class__._fallback_to_chat_cache)
-
-    @staticmethod
-    def _reasoning_value(value: Any) -> Any:
-        """Normalize a user supplied effort without changing opaque gateway values."""
-        return value.strip().lower() if isinstance(value, str) else value
-
-    @classmethod
-    def _extract_reasoning_controls(
-        cls,
-        extra_body: dict[str, Any],
-        explicit_effort: str | None,
-    ) -> tuple[str | Any | None, dict[str, Any]]:
-        """Extract OpenAI reasoning effort into the endpoint's native field.
-
-        OpenAI-compatible gateways commonly accept both ``reasoning_effort``
-        and ``reasoning.effort`` in an extension body.  Keeping either one in
-        ``extra_body`` while also choosing the token/temperature branch makes
-        the request receipt lie and can send two conflicting controls.  Read
-        both locations, require equal values, and preserve all other reasoning
-        keys (for example ``summary``) for the gateway.
-        """
-        cleaned = deepcopy(extra_body or {})
-        declarations: list[Any] = []
-        if explicit_effort is not None:
-            declarations.append(cls._reasoning_value(explicit_effort))
-
-        if 'reasoning_effort' in cleaned:
-            value = cls._reasoning_value(cleaned.pop('reasoning_effort'))
-            if value is not None:
-                declarations.append(value)
-
-        nested = cleaned.get('reasoning')
-        if isinstance(nested, dict) and 'effort' in nested:
-            nested = dict(nested)
-            value = cls._reasoning_value(nested.pop('effort'))
-            if value is not None:
-                declarations.append(value)
-            if nested:
-                cleaned['reasoning'] = nested
-            else:
-                cleaned.pop('reasoning', None)
-
-        if declarations:
-            first = declarations[0]
-            if any(value != first for value in declarations[1:]):
-                raise ValueError('explicit reasoning_effort conflicts with extra_body reasoning control')
-            return first, cleaned
-        return None, cleaned
+        return not self._use_legacy and (force_responses or self._endpoint_cache_key(config) not in self.__class__._fallback_to_chat_cache)
 
     @staticmethod
     def _chat_completion_finished(chunk: Any) -> bool:
@@ -168,7 +155,8 @@ class OpenAIProvider(BaseProvider):
                     logger.info(f"Responses API unsupported for {base_url}, falling back to chat completions: {str(e)}")
                     self.__class__._fallback_to_chat_cache.add(self._endpoint_cache_key(config))
                 except Exception as e:
-                    # 某些网关在路径错误时可能不抛严格的 404 而是抛出其他错误，如果消息含有明确路径错误也尝试降级
+                    # Some gateways use explicit endpoint error messages in
+                    # place of standard HTTP status codes.
                     if self._may_fallback(e):
                         logger.info(f"Gateway returned error for Responses API ({base_url}), falling back: {str(e)}")
                         self.__class__._fallback_to_chat_cache.add(self._endpoint_cache_key(config))
@@ -227,7 +215,9 @@ class OpenAIProvider(BaseProvider):
                 if attempt >= total_attempts - 1 or not is_retryable_llm_error(exc):
                     raise
                 record_response_usage(None)
-                delay = min(1.5 * (2 ** attempt), 8.0)
+                delay = llm_retry_delay_seconds(exc, attempt)
+                if delay > 120:
+                    raise
                 logger.warning(
                     "OpenAI-compatible provider transient failure; retrying in %.1fs "
                     "(attempt=%d/%d): %s",
@@ -327,19 +317,10 @@ class OpenAIProvider(BaseProvider):
             self.settings.default_model,
             provider_label="OpenAI 兼容",
         )
-        self._validate_output_tokens(config, model_id, protocol='openai')
-        if config.thinking_budget_tokens is not None:
-            raise ValueError('thinking_budget_tokens is not supported by OpenAI; use reasoning_effort')
+        self._validate_output_tokens(config, model_id, protocol='openai', endpoint_kind='chat')
         reasoning_effort = config.reasoning_effort
         extra_body = dict(self.settings.extra_body or {})
-        protected = {'messages', 'input', 'instructions', 'system', 'stream', 'response_format', 'text',
-                     'tools', 'tool_choice', 'functions', 'function_call', 'n'}
-        if protected.intersection(extra_body):
-            raise ValueError('extra_body cannot supply protected request fields: ' + ', '.join(sorted(protected.intersection(extra_body))))
-        reasoning_effort, extra_body = self._extract_reasoning_controls(extra_body, reasoning_effort)
-        if reasoning_effort is not None:
-            if 'temperature' in extra_body:
-                raise ValueError('extra_body temperature cannot be combined with reasoning_effort')
+        reasoning_effort, extra_body = extract_openai_reasoning_controls(extra_body, reasoning_effort)
         kwargs: dict[str, Any] = {
             "model": model_id,
             "messages": messages,
@@ -356,16 +337,9 @@ class OpenAIProvider(BaseProvider):
         else:
             kwargs['temperature'] = config.temperature
         if config.top_p is not None:
-            if reasoning_effort not in (None, 'none'):
-                raise ValueError('top_p is unavailable with enabled OpenAI reasoning')
             kwargs['top_p'] = config.top_p
         if config.stop_sequences:
-            if len(config.stop_sequences) > 4:
-                raise ValueError('OpenAI Chat supports at most 4 stop_sequences')
             kwargs['stop'] = config.stop_sequences
-        for parameter in ('top_p', 'stop'):
-            if parameter in extra_body:
-                raise ValueError(f'extra_body {parameter} must use the explicit generation control')
 
         if config.response_format:
             kwargs["response_format"] = config.response_format
@@ -399,18 +373,10 @@ class OpenAIProvider(BaseProvider):
             self.settings.default_model,
             provider_label="OpenAI 兼容",
         )
-        self._validate_output_tokens(config, model_id, protocol='openai')
-        if config.thinking_budget_tokens is not None:
-            raise ValueError('thinking_budget_tokens is not supported by OpenAI; use reasoning_effort')
-        if config.stop_sequences:
-            raise ValueError('stop_sequences is unavailable for OpenAI Responses')
+        self._validate_output_tokens(config, model_id, protocol='openai', endpoint_kind='responses')
         reasoning_effort = config.reasoning_effort
         extra_body = dict(self.settings.extra_body or {})
-        protected = {'messages', 'input', 'instructions', 'system', 'stream', 'response_format', 'text',
-                     'tools', 'tool_choice', 'functions', 'function_call', 'n'}
-        if protected.intersection(extra_body):
-            raise ValueError('extra_body cannot supply protected request field ' + ', '.join(sorted(protected.intersection(extra_body))))
-        reasoning_effort, extra_body = self._extract_reasoning_controls(extra_body, reasoning_effort)
+        reasoning_effort, extra_body = extract_openai_reasoning_controls(extra_body, reasoning_effort)
         kwargs: dict[str, Any] = {
             "model": model_id,
             "instructions": prompt.system,
@@ -422,8 +388,6 @@ class OpenAIProvider(BaseProvider):
         else:
             kwargs['temperature'] = config.temperature
         if config.top_p is not None:
-            if reasoning_effort not in (None, 'none'):
-                raise ValueError('top_p is unavailable with enabled OpenAI reasoning')
             kwargs['top_p'] = config.top_p
         if config.response_format:
             fmt = config.response_format
@@ -440,14 +404,8 @@ class OpenAIProvider(BaseProvider):
 
         if stream:
             kwargs["stream"] = True
+        extensions: dict[str, Any] = {}
         for key, value in extra_body.items():
-            if key in {'messages', 'input', 'instructions', 'system', 'stream', 'response_format', 'text',
-                       'tools', 'tool_choice', 'functions', 'function_call', 'n'}:
-                raise ValueError(f'extra_body cannot supply protected request field {key}')
-            if key in {'top_p', 'stop'}:
-                raise ValueError(f'extra_body {key} must use the explicit generation control')
-            if reasoning_effort is not None and key == 'temperature':
-                raise ValueError('extra_body temperature cannot be combined with reasoning_effort')
             if key == 'reasoning' and isinstance(value, dict):
                 # ``effort`` was extracted above; retain vendor-supported
                 # fields such as ``summary`` in the native Responses object.
@@ -458,7 +416,12 @@ class OpenAIProvider(BaseProvider):
                 continue
             if key in kwargs and kwargs[key] != value:
                 raise ValueError(f'extra_body cannot override {key}')
-            kwargs.setdefault(key, value)
+            if key not in kwargs:
+                # Vendor extensions belong in the SDK's extra_body. Passing
+                # them as keyword arguments fails before sending any request.
+                extensions[key] = value
+        if extensions:
+            kwargs['extra_body'] = extensions
 
         self._validate_context_window(kwargs, config, model_id, protocol='openai')
         self._record_request_receipt(kwargs, config, endpoint='openai.responses')

@@ -8,6 +8,7 @@ from engine.runtime.writing_delegate import (
     WritingOutcome,
     get_story_pipeline_mode,
     is_story_pipeline_writing_enabled,
+    _build_runner,
     run_writing,
     run_story_pipeline_writing,
     story_pipeline_mode_was_unset,
@@ -48,6 +49,16 @@ def test_get_story_pipeline_mode_unknown_warns_and_defaults(monkeypatch, caplog)
 
     assert get_story_pipeline_mode() == "writing"
     assert "未知 PLOTPILOT_USE_STORY_PIPELINE" in caplog.text
+
+
+def test_build_runner_uses_the_daemon_that_owns_execution_identity():
+    daemon = MagicMock()
+    runner = MagicMock()
+
+    with patch("engine.runtime.runner.StoryPipelineRunner", return_value=runner):
+        assert _build_runner(daemon) is runner
+
+    runner.attach_legacy_daemon.assert_called_once_with(daemon)
 
 
 @pytest.mark.asyncio

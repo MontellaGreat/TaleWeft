@@ -10,7 +10,7 @@
         <span>思考预算（token）</span>
         <n-input-number :value="thinkingBudget" :min="0" :step="1024" clearable placeholder="由模型默认值决定" size="small" aria-label="思考预算" @update:value="emit('update:thinkingBudget', $event)" />
       </label>
-      <p class="em-infer-note">档位与预算以所选模型支持范围为准。留空采用模型默认；完整 AI 控制台中可检测能力与测试调用。</p>
+      <p class="em-infer-note">档位与预算以所选模型支持范围为准。留空采用模型默认；完整模型控制台中可检测能力与测试调用。</p>
       <label class="em-infer-field">
         <span>温度</span>
         <n-input-number

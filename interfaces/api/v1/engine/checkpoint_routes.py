@@ -27,10 +27,20 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_editable
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/novels", tags=["engine-core"])
+
+
+def _guard_character_setup_write(novel_id: str) -> None:
+    try:
+        assert_setup_editable(novel_id, "characters")
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={
+            "code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc),
+        }) from exc
 
 
 # ─── Pydantic DTOs ────────────────────────────────────────────────
@@ -739,6 +749,7 @@ async def _extract_character_psyche_impl(novel_id: str, character_name: str) -> 
     from application.world.dtos.bible_dto import CharacterDTO
     from interfaces.api.dependencies import get_bible_service
 
+    _guard_character_setup_write(novel_id)
     bible_service = get_bible_service()
     bible = bible_service.get_bible_by_novel(novel_id)
     if bible is None:
@@ -781,6 +792,10 @@ async def _extract_character_psyche_impl(novel_id: str, character_name: str) -> 
             timeline_notes=list(bible.timeline_notes),
             style_notes=list(bible.style_notes),
         )
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={
+            "code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc),
+        }) from exc
     except Exception as e:
         logger.error("character heuristic sync 写 Bible 失败: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -1254,6 +1269,7 @@ async def autofill_character_psyches(
             skipped_names=[],
         )
 
+    _guard_character_setup_write(novel_id)
     stages.append(PipelineStageResult(id="p1", label="阶段1·书目校验", status="ok", detail="novel 存在"))
 
     from interfaces.api.dependencies import get_bible_service
@@ -1341,6 +1357,8 @@ async def autofill_character_psyches(
                 )
             )
         except HTTPException as he:
+            if he.status_code == 409:
+                raise
             detail = he.detail
             if not isinstance(detail, str):
                 detail = str(detail)

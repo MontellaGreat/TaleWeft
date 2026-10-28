@@ -28,7 +28,7 @@
       <!-- 背景 -->
       <Background :gap="20" :size="1" :style="{ backgroundColor: 'transparent' }" />
       <!-- 控制面板 -->
-      <Controls position="bottom-right" />
+      <Controls position="bottom-right" :show-interactive="nodes === undefined" />
       <!-- 小地图 -->
       <MiniMap position="bottom-left" :pannable="true" :zoomable="true" />
     </VueFlow>
@@ -53,6 +53,9 @@ import CustomEdge from './CustomEdge.vue'
 
 const props = defineProps<{
   novelId: string
+  /** Isolated read-only graphs, e.g. the setup wizard. Never hydrate the writing store. */
+  nodes?: Node[]
+  edges?: Edge[]
 }>()
 
 const emit = defineEmits<{
@@ -84,7 +87,7 @@ function cloneEdgesForFlow(edges: Edge[]): Edge[] {
 }
 
 watch(
-  () => dagStore.vueFlowNodes,
+  () => props.nodes ?? dagStore.vueFlowNodes,
   (next) => {
     flowNodes.value = cloneNodesForFlow(next as Node[])
   },
@@ -92,7 +95,7 @@ watch(
 )
 
 watch(
-  () => dagStore.vueFlowEdges,
+  () => props.nodes ? (props.edges ?? []) : dagStore.vueFlowEdges,
   (next) => {
     flowEdges.value = cloneEdgesForFlow(next as Edge[])
   },
@@ -105,11 +108,12 @@ watch(
 
 /** ★ 单击节点 → 直接打开详情弹窗（仿 Dify） */
 function handleNodeClick(event: { node: { id: string } }) {
-  dagStore.selectNode(event.node.id)
+  if (props.nodes === undefined) dagStore.selectNode(event.node.id)
   emit('nodeDetail', event.node.id)
 }
 
 function handleNodeContextMenu(event: any) {
+  if (props.nodes) return
   const node = dagStore.dagDefinition?.nodes.find(n => n.id === event.node.id)
   if (node) {
     emit('contextmenu', event.event, node.id, node.enabled)

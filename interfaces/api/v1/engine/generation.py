@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from application.ai_invocation.contracts import ensure_invocation_contract
 from application.ai_invocation.dtos import InvocationPolicy
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_editable
 from application.audit.services.chapter_ai_review_service import (
     ChapterAIReviewContractError,
     ChapterAIReviewService,
@@ -840,6 +841,10 @@ def save_plot_outline(
     if novel is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Novel not found")
     try:
+        assert_setup_editable(novel_id, "plot_outline")
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
+    try:
         from application.ai_invocation.variable_hub import VariableWrite
         from infrastructure.persistence.database.sqlite_ai_invocation_repository import SqliteVariableHubRepository
 
@@ -1643,6 +1648,11 @@ async def generate_bible(
     - 需要 ANTHROPIC_API_KEY
     """
     try:
+        for stage in ("worldbuilding", "characters", "locations"):
+            assert_setup_editable(novel_id, stage)
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
+    try:
         novel = novel_service.get_novel(novel_id)
         if not novel:
             raise HTTPException(status_code=404, detail=f"Novel not found: {novel_id}")
@@ -1663,6 +1673,8 @@ async def generate_bible(
         )
     except HTTPException:
         raise
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
     except Exception as e:
         logger.exception("generate_bible failed for %s", novel_id)
         raise HTTPException(status_code=500, detail=f"Bible 生成失败：{str(e)}")

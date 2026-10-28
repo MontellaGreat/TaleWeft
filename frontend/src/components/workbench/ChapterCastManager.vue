@@ -7,14 +7,14 @@
         <span v-if="chapterNumber" class="ccm-chapter-tag">第 {{ chapterNumber }} 章</span>
       </div>
       <div class="ccm-actions">
-        <n-button size="tiny" quaternary :loading="scheduling" @click="runSchedule">
+        <n-button size="tiny" quaternary :loading="scheduling" :disabled="applying" @click="runSchedule">
           刷新内核
         </n-button>
         <n-button
           size="tiny"
           type="primary"
           secondary
-          :disabled="suggestions.length === 0"
+          :disabled="suggestions.length === 0 || scheduling || applying"
           :loading="applying"
           @click="applyAll"
         >
@@ -124,9 +124,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useMessage } from 'naive-ui'
 import { castApi, type ScheduledCharacterItem } from '@/api/cast'
+import { useWorkbenchDeskTickReload } from '@/composables/useWorkbenchNarrativeSync'
 import {
   getCastImportanceTierLabel,
   getCastRecommendationCssKey,
@@ -160,6 +161,7 @@ const suggestions = ref<ScheduledCharacterItem[]>([])
 const newCharacterCandidates = ref<NewCharacterCandidate[]>([])
 const generatedContext = ref('')
 const schedulingLog = ref<string[]>([])
+let requestRevision = 0
 
 const tierCounts = computed(() => ({
   major: suggestions.value.filter(s => s.importance === 'major').length,
@@ -190,31 +192,38 @@ function selectCharacter(characterId: string) {
 }
 
 async function runSchedule() {
-  if (!props.slug || !props.chapterNumber) return
+  const request = ++requestRevision, novelId = props.slug, chapterNumber = props.chapterNumber
+  if (!novelId || !chapterNumber) {
+    suggestions.value = []; newCharacterCandidates.value = []; generatedContext.value = ''; schedulingLog.value = []; scheduling.value = false
+    return
+  }
   scheduling.value = true
   try {
     const res = await castApi.analyzeOutline(
-      props.slug,
-      props.chapterNumber,
+      novelId,
+      chapterNumber,
       props.outline ?? '',
     )
+    if (request !== requestRevision) return
     suggestions.value = res.cast ?? []
     newCharacterCandidates.value = (res.new_character_candidates ?? []) as NewCharacterCandidate[]
     generatedContext.value = res.generated_context ?? ''
     schedulingLog.value = res.scheduling_log ?? []
   } catch (err: unknown) {
+    if (request !== requestRevision) return
     message.error(err instanceof Error ? err.message : '角色内核调度失败')
     suggestions.value = []
     newCharacterCandidates.value = []
     generatedContext.value = ''
     schedulingLog.value = []
   } finally {
-    scheduling.value = false
+    if (request === requestRevision) scheduling.value = false
   }
 }
 
 async function applyAll() {
-  if (!props.slug || !props.chapterNumber) return
+  if (!props.slug || !props.chapterNumber || applying.value || scheduling.value) return
+  const request = ++requestRevision
   applying.value = true
   try {
     const res = await castApi.scheduleAndPersist(props.slug, {
@@ -222,12 +231,14 @@ async function applyAll() {
       outline: props.outline ?? '',
       mode: 'apply',
     })
+    if (request !== requestRevision) return
     suggestions.value = res.cast ?? []
     newCharacterCandidates.value = (res.new_character_candidates ?? []) as NewCharacterCandidate[]
     generatedContext.value = res.generated_context ?? ''
     schedulingLog.value = res.scheduling_log ?? []
     message.success('角色合同已由内核写入')
   } catch (err: unknown) {
+    if (request !== requestRevision) return
     message.error(err instanceof Error ? err.message : '角色合同写入失败')
   } finally {
     applying.value = false
@@ -239,6 +250,8 @@ watch(
   () => { void runSchedule() },
   { immediate: true },
 )
+useWorkbenchDeskTickReload(() => { void runSchedule() })
+onBeforeUnmount(() => { ++requestRevision })
 </script>
 
 <style scoped>

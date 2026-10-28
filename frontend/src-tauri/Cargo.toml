@@ -1,7 +1,7 @@
 # Modified for TaleWeft on 2026-10-22: independent branding; upstream attribution retained.
 [package]
 name = "taleweft"
-version = "0.1.0-preview.1"
+version = "0.2.0"
 description = "叙织 · TaleWeft — 长篇小说创作工作台"
 authors = ["TaleWeft maintainers", "PlotPilot Team (upstream)"]
 edition = "2021"

@@ -1,6 +1,7 @@
 """小说生命周期路由 — Phase 5 从 AutopilotDaemon 收拢到 engine/runtime"""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -128,6 +129,22 @@ async def process_novel(host: Any, novel: Novel) -> None:
             from application.engine.services import continuation_proposal_service as continuation
             if continuation.active(novel.novel_id.value):
                 logger.debug("[%s] 续写结构必须由作者确认，自动审批保持等待", novel.novel_id)
+                return
+            from application.ai_invocation.autopilot.review_gate import resume_block_reason_from_status
+            from application.ai_invocation.autopilot.shared_state import read_autopilot_shared_state
+            from application.engine.services.query_service import _hydrate_pending_invocation_from_db
+
+            # Auto-approve applies to completed artifacts. An invocation that
+            # failed or still needs acceptance must obey the same gate as the
+            # resume API, otherwise each tick silently restarts planning.
+            review_state = await asyncio.to_thread(_hydrate_pending_invocation_from_db, {
+                **read_autopilot_shared_state(novel.novel_id.value),
+                "novel_id": novel.novel_id.value,
+                "current_stage": novel.current_stage.value,
+                "autopilot_status": novel.autopilot_status.value,
+            })
+            if resume_block_reason_from_status(review_state):
+                logger.debug("[%s] AI 请求尚未成功提交，自动审批保持等待", novel.novel_id)
                 return
             if getattr(novel, "auto_approve_mode", False):
                 logger.info("[%s] 全自动模式：跳过人工审阅", novel.novel_id)

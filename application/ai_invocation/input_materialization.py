@@ -39,7 +39,7 @@ def materialize_input_variables(
         *(extra_bindings or []),
     ]
     binding_by_alias = {binding.alias: binding for binding in bindings if binding.enabled}
-    written: list[dict[str, Any]] = []
+    pending: list[tuple[str, VariableWrite]] = []
     for alias, value in dict(variable_plan.aliases or {}).items():
         binding = binding_by_alias.get(alias)
         if binding is None or not binding.variable_key:
@@ -51,8 +51,7 @@ def materialize_input_variables(
         if binding.variable_key == "novel.setup.premise":
             value = strip_v1_structure_black_box_hint(str(value or ""))
         context_key = context_key_for_scope(session.context, binding.scope)
-        stored = variable_hub_repository.set_value(
-            VariableWrite(
+        pending.append((alias, VariableWrite(
                 key=binding.variable_key,
                 value=value,
                 context_key=context_key,
@@ -70,13 +69,17 @@ def materialize_input_variables(
                 display_name=binding.display_name,
                 scope=binding.scope,
                 stage=binding.stage,
-            )
-        )
+            )))
+    from application.onboarding.setup_edit_guard import assert_setup_variable_writes
+    assert_setup_variable_writes([write for _, write in pending], repository=variable_hub_repository)
+    written: list[dict[str, Any]] = []
+    for alias, write in pending:
+        stored = variable_hub_repository.set_value(write)
         written.append(
             {
                 "alias": alias,
-                "variable_key": binding.variable_key,
-                "context_key": context_key,
+                "variable_key": write.key,
+                "context_key": write.context_key,
                 "version_number": getattr(stored, "version_number", 1),
             }
         )

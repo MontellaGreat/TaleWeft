@@ -189,6 +189,53 @@ async def test_run_act_planning_pauses_for_ai_invocation(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_run_act_planning_caps_short_book_budget_to_remaining_target(monkeypatch):
+    """A two-chapter book must send chapter_count=2 to the act-plan contract."""
+    from domain.novel.entities.novel import NovelStage
+
+    host = MagicMock()
+    host._is_still_running.return_value = True
+    host.story_node_repo.get_children_sync.return_value = []
+
+    target_act = MagicMock()
+    target_act.id = "act-1"
+    target_act.number = 1
+    target_act.node_type.value = "act"
+    target_act.suggested_chapter_count = 5
+    target_act.title = "第一幕"
+    target_act.description = "开端"
+    host.story_node_repo.get_by_novel = AsyncMock(return_value=[target_act])
+
+    novel = MagicMock()
+    novel.novel_id.value = "short-book"
+    novel.target_chapters = 2
+    novel.current_act = 0
+    novel.auto_approve_mode = False
+
+    monkeypatch.setattr(
+        "engine.runtime.act_planning_delegate._read_shared_state",
+        lambda _novel_id: {},
+    )
+    request = AsyncMock(
+        return_value=SimpleNamespace(
+            status="awaiting_pre_call_review",
+            session_id="session-short",
+            operation="autopilot.act.plan",
+            node_key="planning-act",
+            autopilot_pause_reason="awaiting_ai_review",
+            payload={"session": SimpleNamespace(policy=SimpleNamespace(value="AUTOPILOT_PAUSE"))},
+        )
+    )
+    monkeypatch.setattr("engine.runtime.act_planning_delegate._request_act_invocation", request)
+
+    await run_act_planning(host, novel)
+
+    request.assert_awaited_once()
+    assert request.await_args.kwargs["chapter_budget"] == 2
+    assert novel.current_stage == NovelStage.PAUSED_FOR_REVIEW
+
+
+@pytest.mark.asyncio
 async def test_run_writing_routes_to_story_pipeline_when_enabled():
     host = MagicMock()
     host.use_story_pipeline_for_writing = True
@@ -252,6 +299,66 @@ def _lifecycle_host(breaker):
     host._read_autopilot_status_ephemeral.return_value = "running"
     host.circuit_breaker = breaker
     return host
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invocation_status", ["failed", "blocked", "awaiting_acceptance", "generating", "completed"])
+@pytest.mark.parametrize("lost_runtime", [False, True])
+async def test_auto_approve_respects_the_invocation_gate(monkeypatch, tmp_path, invocation_status, lost_runtime):
+    import sys
+    from domain.novel.entities.novel import AutopilotStatus, NovelStage
+
+    class NoopRecoveryPolicy:
+        def __init__(self, **_kwargs):
+            pass
+
+        def decide_on_daemon_tick(self, _novel):
+            return SimpleNamespace(next_stage=None, reason="", clear_pending_invocation=False)
+
+        def apply_transient_cleanup(self, _decision):
+            pass
+
+    monkeypatch.setattr("application.engine.services.autopilot_recovery_policy.AutopilotRecoveryPolicy", NoopRecoveryPolicy)
+    monkeypatch.setattr("application.engine.services.continuation_proposal_service.active", lambda *_args: None)
+    shared = {"novel:pending-plan": {
+        "active_invocation_session_id": "plan-request",
+        "active_invocation_operation": "autopilot.macro.plan",
+        "active_invocation_status": invocation_status,
+        "has_active_invocation": invocation_status != "completed",
+        "requires_ai_review": invocation_status != "completed",
+    }}
+    database = None
+    if lost_runtime:
+        import json
+        from infrastructure.persistence.database.connection import DatabaseConnection
+        from infrastructure.persistence.database.write_dispatch import sqlite_writes_bypass_queue
+
+        with sqlite_writes_bypass_queue():
+            database = DatabaseConnection(str(tmp_path / "review-gate.sqlite"))
+            database.execute("INSERT INTO ai_invocation_sessions(id,operation,node_key,policy,status,context_json) "
+                             "VALUES('plan-request','autopilot.macro.plan','planning-quick-macro','DIRECT',?,?)",
+                             (invocation_status, json.dumps({'novel_id': 'pending-plan'})))
+            database.commit()
+        monkeypatch.setattr("infrastructure.persistence.database.connection.get_database", lambda *_args: database)
+        shared = {}
+    monkeypatch.setitem(sys.modules, "__shared_state", shared)
+    host = _lifecycle_host(None)
+    novel = SimpleNamespace(novel_id=SimpleNamespace(value="pending-plan"),
+                            current_stage=NovelStage.PAUSED_FOR_REVIEW,
+                            autopilot_status=AutopilotStatus.RUNNING, auto_approve_mode=True)
+
+    try:
+        await process_novel(host, novel)
+    finally:
+        if database is not None:
+            database.close_all(skip_checkpoint=True)
+
+    if invocation_status == "completed":
+        assert novel.current_stage is NovelStage.ACT_PLANNING
+        host._save_novel_state.assert_called_once()
+    else:
+        assert novel.current_stage is NovelStage.PAUSED_FOR_REVIEW
+        host._save_novel_state.assert_not_called()
 
 
 @pytest.mark.asyncio

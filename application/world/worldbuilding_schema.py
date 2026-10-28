@@ -104,6 +104,23 @@ def validate_complete_dimension_fields(
     }
 
 
+def dimension_field_errors(dim_key: str, fields: Mapping[str, Any]) -> list[str]:
+    """Describe contract failures without including any generated/private prose."""
+    canonical = canonicalize_dimension_fields(dim_key, fields)
+    labels = WORLDBUILDING_DIMENSION_DEFS.get(dim_key, {}).get("fields", {})
+    errors = []
+    for key in schema_field_order(dim_key):
+        text = canonical.get(key, "")
+        name = f"{key}（{labels.get(key, key)}）"
+        if not text:
+            errors.append(f"{name} 缺失或为空")
+        elif len(text) < MIN_WORLDBUILDING_FIELD_CHARS:
+            errors.append(f"{name} 少于 {MIN_WORLDBUILDING_FIELD_CHARS} 字")
+        elif len(text) > MAX_WORLDBUILDING_FIELD_CHARS:
+            errors.append(f"{name} 超过 {MAX_WORLDBUILDING_FIELD_CHARS} 字")
+    return errors
+
+
 def build_fields_desc_for_prompt(dimension_keys: Any = None) -> str:
     """CPMS user.md 的 {fields_desc} 占位内容。"""
     lines: list[str] = []

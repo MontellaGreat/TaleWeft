@@ -306,6 +306,8 @@ class CharacterNarrativeKernel:
         bible = self._get_bible(novel_id)
         characters = list(getattr(bible, "characters", []) or []) if bible else []
         char = next((c for c in characters if self._char_id(c) == character_id), None)
+        if char is None:
+            raise LookupError('角色不存在或已删除')
         name = getattr(char, "name", "") or character_id
 
         state = self.character_state_repo.get(character_id, novel_id) if self.character_state_repo else None
@@ -355,6 +357,7 @@ class CharacterNarrativeKernel:
         scene_director: Optional[Dict[str, Any]] = None,
     ) -> List[NewCharacterCandidate]:
         known_names = {getattr(c, "name", "") for c in characters if getattr(c, "name", "")}
+        deleted_names = self._deleted_character_names(novel_id)
         location_names = self._bible_location_names(novel_id)
         explicit = []
         if scene_director and isinstance(scene_director.get("characters"), list):
@@ -366,6 +369,10 @@ class CharacterNarrativeKernel:
         out: List[NewCharacterCandidate] = []
         for name in sorted(candidates):
             if name in known_names:
+                continue
+            if name in deleted_names:
+                out.append(NewCharacterCandidate(name=name, evidence=name, narrative_function='author_deleted_character',
+                    recommendation='ignore', confidence=1.0, reason='作者已删除此角色，保留正文提及不触发自动恢复'))
                 continue
             if name in location_names or name in self._non_character_words:
                 out.append(NewCharacterCandidate(
@@ -405,6 +412,27 @@ class CharacterNarrativeKernel:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _deleted_character_names(self, novel_id: str) -> set[str]:
+        # Reuse the injected canonical database; isolated/in-memory repositories
+        # have no SQLite tombstone registry and keep their existing behavior.
+        repository = self.bible_repo or getattr(self.bible_service, 'bible_repository', None)
+        database = getattr(repository, 'db', None) or getattr(self.unified_character_repo, '_db', None)
+        if database is None:
+            return set()
+        rows = database.fetch_all("SELECT canonical_name,aliases_json FROM narrative_entities "
+            "WHERE novel_id=? AND entity_type='character' AND lifecycle_status='deleted'", (novel_id,))
+        names = set()
+        for row in rows:
+            if row.get('canonical_name'):
+                names.add(row['canonical_name'])
+            try:
+                aliases = json.loads(row.get('aliases_json') or '[]')
+            except (ValueError, TypeError):
+                aliases = []
+            if isinstance(aliases, list):
+                names.update(alias for alias in aliases if isinstance(alias, str) and alias)
+        return names
 
     def get_chapter_node_id(self, novel_id: str, chapter_number: int) -> Optional[str]:
         if not self.story_node_repo:
@@ -585,7 +613,10 @@ class CharacterNarrativeKernel:
         return any(w in outline for w in nearby_words) or name.endswith(("甲", "乙"))
 
     def _apply_new_character_candidates(self, plan: ChapterCastPlan, chapter_id: str) -> None:
+        deleted_names = self._deleted_character_names(plan.novel_id)
         for cand in plan.new_character_candidates:
+            if cand.name in deleted_names:
+                continue
             if cand.recommendation == "ephemeral":
                 ephemeral_id = f"ephemeral-{plan.chapter_number}-{uuid.uuid5(uuid.NAMESPACE_URL, cand.name).hex[:8]}"
                 slot = CastSlot(

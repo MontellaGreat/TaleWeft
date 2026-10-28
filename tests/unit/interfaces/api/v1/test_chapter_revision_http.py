@@ -252,6 +252,27 @@ async def test_edit_first_chapter_replays_second_and_reports_suffix_failure(chap
 
 
 @pytest.mark.asyncio
+async def test_earlier_edit_reconciles_a_suffix_with_an_old_failed_cascade(chapter_http):
+    from application.core.services.chapter_derivation_readiness import assert_previous_derivations_ready
+
+    app, db, pipeline, _knowledge = chapter_http
+    db.execute("INSERT INTO chapters(id,novel_id,number,title,content,status) VALUES('chapter-2','book',2,'第二章','第二章原文','draft')")
+    db.execute("INSERT INTO chapters(id,novel_id,number,title,content,status) VALUES('chapter-3','book',3,'第三章','第三章原文','draft')")
+    db.execute("INSERT INTO chapter_derivation_jobs(job_id,chapter_id,novel_id,chapter_number,revision,payload_json,status,cascade_status,cascade_error) "
+               "VALUES('old-suffix','chapter-2','book',2,0,?,'completed','unavailable','old failure')",
+               (json.dumps({'content': '第二章原文', 'reconcile_following': True}),))
+
+    saved = await request(app, 'PUT', json={'content': '第一章改写', 'expected_revision': 0})
+
+    assert saved.status_code == 200, saved.text
+    assert [call[0][1] for call in pipeline.calls] == [1, 2, 3]
+    assert db.fetch_one("SELECT status,cascade_status,cascade_error FROM chapter_derivation_jobs WHERE job_id='old-suffix'") == {
+        'status': 'completed', 'cascade_status': 'not_requested', 'cascade_error': '',
+    }
+    assert_previous_derivations_ready(db, 'book', 4)
+
+
+@pytest.mark.asyncio
 async def test_save_receipt_survives_reopen_and_replay_does_not_add_versions(chapter_http):
     from application.core.services.chapter_save_receipts import ChapterSaveReceipts
     from infrastructure.persistence.database.connection import DatabaseConnection
@@ -410,6 +431,34 @@ async def test_failed_writer_rolls_back_body_history_and_outbox(chapter_http):
     assert db.fetch_one("SELECT revision,content FROM chapters WHERE id='chapter'") == {"revision": 0, "content": "原文"}
     assert db.fetch_all("SELECT * FROM chapter_derivation_jobs") == []
     assert len(ChapterVersionService(db).list_versions("chapter")) == 1
+
+
+@pytest.mark.asyncio
+async def test_startup_recovery_avoids_loading_models_without_pending_jobs(chapter_http):
+    _app, db, _pipeline, _knowledge = chapter_http
+    def unexpected_factory():
+        pytest.fail('an empty recovery queue must not initialize model services')
+    assert await recover_chapter_derivation_jobs(db, startup=True,
+        pipeline_factory=unexpected_factory, knowledge_service_factory=unexpected_factory) == []
+
+
+@pytest.mark.asyncio
+async def test_recovery_factories_run_off_event_loop_and_replay_pending_job(chapter_http):
+    _app, db, pipeline, knowledge = chapter_http
+    loop_thread = threading.get_ident()
+    factory_threads = []
+    def create_pipeline():
+        factory_threads.append(threading.get_ident())
+        return pipeline
+    def create_knowledge():
+        factory_threads.append(threading.get_ident())
+        return knowledge
+    ChapterVersionService(db).save_if_revision('chapter', 0, '恢复正文',
+        pending_job={'job_id': 'lazy-recovery', 'payload': {'content': '恢复正文'}})
+    assert await recover_chapter_derivation_jobs(db, startup=True,
+        pipeline_factory=create_pipeline, knowledge_service_factory=create_knowledge) == ['completed']
+    assert len(factory_threads) == 2 and all(item != loop_thread for item in factory_threads)
+    assert db.fetch_one("SELECT status FROM chapter_derivation_jobs WHERE job_id='lazy-recovery'")['status'] == 'completed'
 
 
 @pytest.mark.asyncio

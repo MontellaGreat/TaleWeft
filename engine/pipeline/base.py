@@ -486,6 +486,24 @@ class BaseStoryPipeline(ABC):
                     chapter_repository=ctx.chapter_repository,
                     story_node_repo=ctx.story_node_repo,
                 )
+            chapter_base = None
+            if ctx.chapter_repository is not None:
+                try:
+                    from domain.novel.value_objects.novel_id import NovelId
+
+                    before = ctx.chapter_repository.get_by_novel_and_number(
+                        NovelId(ctx.novel_id), int(ctx.chapter_number)
+                    )
+                    if "chapter_base_absent" in ctx.metadata and (
+                        ctx.metadata["chapter_base_absent"] != (before is None)
+                        or (before is not None and ctx.metadata.get("chapter_base_revision") != getattr(before, "revision", None))
+                    ):
+                        return StepResult.fail("章节版本已变更，停止本轮生成以保留作者修改")
+                    if before is not None:
+                        chapter_base = (getattr(before, "revision", None),
+                                        getattr(before, "content", ""), getattr(before, "title", ""))
+                except Exception:
+                    return StepResult.fail("章前规划前无法确认章节版本，停止本轮生成")
             try:
                 outline = await preplanning_service.ensure_execution_plan(
                     novel_id=ctx.novel_id,
@@ -499,6 +517,42 @@ class BaseStoryPipeline(ABC):
             ctx.outline = outline
             ctx.metadata["chapter_plan_mode"] = "chapter_preplan"
             ctx.metadata["outline_plan_mode"] = "chapter_preplan"
+
+            # Adopt only our outline write. A provider wait may also contain
+            # an author's edit; adopting that revision would let final prose
+            # overwrite the edit instead of failing optimistic concurrency.
+            if ctx.chapter_repository is not None:
+                try:
+                    from domain.novel.value_objects.novel_id import NovelId
+
+                    current = ctx.chapter_repository.get_by_novel_and_number(
+                        NovelId(ctx.novel_id), int(ctx.chapter_number)
+                    )
+                    if chapter_base is not None:
+                        base_revision, base_content, base_title = chapter_base
+                        current_revision = getattr(current, "revision", None)
+                        if (current is None
+                                or getattr(current, "content", "") != base_content
+                                or getattr(current, "title", "") != base_title
+                                or (base_revision is not None and current_revision not in (base_revision, base_revision + 1))):
+                            return StepResult.fail("章前规划期间章节版本已变更，停止本轮生成以保留作者修改")
+                    elif current is not None and (
+                        getattr(current, "content", "")
+                        or getattr(current, "title", "") != str(getattr(ctx.chapter_node, "title", "") or f"第{ctx.chapter_number}章")
+                        or getattr(current, "revision", 0) != 0
+                    ):
+                        return StepResult.fail("章前规划期间章节已被编辑，停止本轮生成以保留作者修改")
+                    ctx.metadata["chapter_base_absent"] = current is None
+                    ctx.metadata["chapter_base_revision"] = (
+                        getattr(current, "revision", None) if current is not None else None
+                    )
+                except Exception as exc:
+                    logger.debug(
+                        "[%s] 章前剧本保存后刷新 revision 失败: %s",
+                        ctx.novel_id,
+                        exc,
+                    )
+                    return StepResult.fail("章前规划后无法确认章节版本，停止本轮生成")
 
         logger.info(
             "[%s] 第 %s 章使用整章执行剧本生成，plan_chars=%d target_words=%d",

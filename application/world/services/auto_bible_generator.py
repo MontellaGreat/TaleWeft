@@ -435,6 +435,8 @@ class AutoBibleGenerator:
         """
         if stage not in {"all", "worldbuilding", "characters", "locations"}:
             raise ValueError(f"Unknown stage: {stage}")
+        from application.onboarding.setup_edit_guard import assert_setup_bible_generation_editable
+        assert_setup_bible_generation_editable(novel_id, stage)
         logger.info(f"Generating Bible for novel: {premise[:50]}... (stage: {stage})")
 
         ensure_trace(novel_id=novel_id, stage="world.bible.generate", stage_label="圣经生成")
@@ -484,6 +486,7 @@ class AutoBibleGenerator:
             logger.debug("Calling _generate_worldbuilding_and_style")
             # 只生成世界观和文风
             bible_data = await self._generate_worldbuilding_and_style(premise, target_chapters, novel_id=novel_id)
+            assert_setup_bible_generation_editable(novel_id, stage)
             logger.debug("_generate_worldbuilding_and_style completed, keys=%s", list(bible_data.keys()))
             logger.debug("Has 'worldbuilding' key: %s, worldbuilding_service is None: %s", 'worldbuilding' in bible_data, self.worldbuilding_service is None)
             # 保存文风
@@ -516,6 +519,7 @@ class AutoBibleGenerator:
             # 基于已有世界观生成人物
             existing_worldbuilding = self._load_worldbuilding(novel_id)
             bible_data = await self._generate_characters(premise, target_chapters, existing_worldbuilding, novel_id=novel_id)
+            assert_setup_bible_generation_editable(novel_id, stage)
             chars_payload = bible_data.get("characters") or []
             if not chars_payload:
                 raise ValueError(
@@ -583,6 +587,7 @@ class AutoBibleGenerator:
             existing_worldbuilding = self._load_worldbuilding(novel_id)
             existing_characters = self._load_characters(novel_id)
             bible_data = await self._generate_locations(premise, target_chapters, existing_worldbuilding, existing_characters, novel_id=novel_id)
+            assert_setup_bible_generation_editable(novel_id, stage)
             locs_payload = bible_data.get("locations") or []
             if not locs_payload:
                 raise ValueError(
@@ -638,6 +643,8 @@ class AutoBibleGenerator:
 
     async def _save_to_bible(self, novel_id: str, bible_data: Dict[str, Any]) -> None:
         """保存到 Bible"""
+        from application.onboarding.setup_edit_guard import assert_setup_bible_generation_editable
+        assert_setup_bible_generation_editable(novel_id)
 
         # 先确保 Bible 记录存在
         try:
@@ -709,6 +716,8 @@ class AutoBibleGenerator:
 
     async def _save_worldbuilding(self, novel_id: str, worldbuilding_data: Dict[str, Any]) -> None:
         """保存世界观到 Worldbuilding V2 主文档。"""
+        from application.onboarding.setup_edit_guard import assert_setup_editable
+        assert_setup_editable(novel_id, "worldbuilding")
         from application.world.worldbuilding_schema import validate_complete_dimension_fields
 
         logger.debug("_save_worldbuilding called")

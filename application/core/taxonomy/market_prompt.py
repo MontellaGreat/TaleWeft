@@ -59,6 +59,15 @@ class MarketPromptHooks:
                                composition_hash=stable_hash({"base": snapshot.composition_hash, "market_profile": evidence}))
         return snapshot, evidence
 
+    def validate_current_profile(self, context, evidence):
+        """Check the profile anchor before deriving an internal setup prompt."""
+        snapshot, _ = load_verified_market_profile(self.db, str((context or {}).get('novel_id') or ''))
+        structured = bool(snapshot.get('canonical_genre_id') or snapshot.get('custom_market_profile'))
+        if not structured and not evidence:
+            return
+        if not evidence or evidence.get('profile_snapshot_hash') != profile_snapshot_hash(snapshot):
+            raise ValueError('市场画像已变化，请重新生成当前阶段，不能沿用过期审计')
+
     def validate_frozen(self, prompt, context, evidence):
         from application.ai_invocation.dtos import prompt_hash
         snapshot, block = load_verified_market_profile(self.db, str((context or {}).get("novel_id") or ""))

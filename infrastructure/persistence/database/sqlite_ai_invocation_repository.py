@@ -765,37 +765,6 @@ class SqliteVariableHubRepository:
     def __init__(self, db):
         self._db = db
 
-    @staticmethod
-    def _next_binding_set_identity(conn, binding_set_id: str, node_key: str, direction: str) -> tuple[int, int]:
-        existing = conn.execute(
-            """
-            SELECT version_number, is_active
-            FROM cpms_variable_binding_sets
-            WHERE id = ?
-            """,
-            (binding_set_id,),
-        ).fetchone()
-        if existing is not None:
-            return int(existing["version_number"] or 1), int(existing["is_active"] or 0)
-
-        rows = conn.execute(
-            """
-            SELECT version_number, is_active
-            FROM cpms_variable_binding_sets
-            WHERE node_key = ? AND direction = ?
-            """,
-            (node_key, direction),
-        ).fetchall()
-        if not rows:
-            return 1, 1
-
-        # Binding sets are addressed by id from InvocationSpec.  The CPMS schema
-        # also keeps a legacy unique (node_key, direction, version_number), so a
-        # second operation reusing the same node must get its own version and must
-        # not steal the existing active set.
-        next_version = max(int(row["version_number"] or 0) for row in rows) + 1
-        return next_version, 0
-
     def get_bindings(self, binding_set_id: str, node_key: str) -> list[VariableBinding]:
         return self._get_bindings(binding_set_id, node_key, direction="input")
 
@@ -813,12 +782,6 @@ class SqliteVariableHubRepository:
         if not binding_set_id:
             return
         with self._db.transaction() as conn:
-            version_number, is_active = self._next_binding_set_identity(
-                conn,
-                binding_set_id,
-                node_key,
-                direction,
-            )
             aliases = {binding.alias for binding in bindings}
             if aliases:
                 placeholders = ",".join("?" for _ in aliases)
@@ -841,12 +804,26 @@ class SqliteVariableHubRepository:
                 """
                 INSERT INTO cpms_variable_binding_sets (
                     id, node_key, direction, version_number, status, is_active, created_by
-                ) VALUES (?, ?, ?, ?, 'published', ?, 'system')
+                ) VALUES (?, ?, ?,
+                    COALESCE(
+                        (SELECT version_number FROM cpms_variable_binding_sets WHERE id=?),
+                        (SELECT COALESCE(MAX(version_number),0)+1 FROM cpms_variable_binding_sets
+                         WHERE node_key=? AND direction=?)
+                    ), 'published',
+                    COALESCE(
+                        (SELECT is_active FROM cpms_variable_binding_sets WHERE id=?),
+                        CASE WHEN EXISTS (SELECT 1 FROM cpms_variable_binding_sets
+                                          WHERE node_key=? AND direction=?) THEN 0 ELSE 1 END
+                    ), 'system')
                 ON CONFLICT(id) DO UPDATE SET
                     status='published',
                     is_active=excluded.is_active
                 """,
-                (binding_set_id, node_key, direction, version_number, is_active),
+                # Compute identity inside the writer's transaction. Queued
+                # transaction cursors cannot be read before their batch commits.
+                # A second set gets a new version without stealing activation.
+                (binding_set_id, node_key, direction,
+                 binding_set_id, node_key, direction, binding_set_id, node_key, direction),
             )
             for binding in bindings:
                 conn.execute(

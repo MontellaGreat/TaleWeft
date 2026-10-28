@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from application.audit.services.paragraph_style_policy import PARAGRAPH_PERIOD_RULE
 from application.engine.rules.positive_framing_rules import POSITIVE_FRAMING_MAP
 from application.engine.rules.allowlist_manager import get_allowlist_manager
 from application.engine.rules.character_state_vector import get_character_state_vector_manager
@@ -68,10 +69,11 @@ class RuleParser:
         protocol_lines.extend([
             "",
             "P4. 节奏与段落法则",
-            "  节奏快 → 句子短促，动词前移，主语可省——但短句不等于短段：同一动作链内的连续短句必须合并在同一段落，不能每个短句独占一行。",
-            "  节奏慢 → 长短交替，感官细节穿插，铺陈段落2-5句有机聚合。",
-            "  禁止连续3句以上长度相近的句子。",
-            "  全章独段（1句成段）比例不得超过15%，仅限冲突引爆/重大揭露/情绪暴击的瞬间使用。",
+            "  " + PARAGRAPH_PERIOD_RULE,
+            "  节奏快 → 逻辑分句短促，动词前移，主语可省；同一动作链的分句有机聚合，不得每个分句独占一行。",
+            "  节奏慢 → 逻辑分句长短交替，感官细节穿插，铺陈段落可由2-5个逻辑分句有机聚合，在段末统一收束。",
+            "  禁止连续3个以上长度相近的逻辑分句。",
+            "  全章极短段比例不得超过15%，仅限冲突引爆、重大揭露或情绪暴击的瞬间使用；单个句号收束不等于必须写成极短段。",
             "",
             "P5. 衔接法则",
             "  节拍间无断点。情绪有惯性。",

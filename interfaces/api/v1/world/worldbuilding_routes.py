@@ -17,9 +17,17 @@ from application.paths import get_db_path
 
 from interfaces.api.dependencies import get_bible_service
 from application.world.services.narrative_contract_loader import load_merged_worldbuilding_slices
+from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_editable
 
 
 router = APIRouter(prefix="/novels", tags=["worldbuilding"])
+
+
+def _guard_setup_edit(novel_id: str) -> None:
+    try:
+        assert_setup_editable(novel_id, "worldbuilding")
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
 
 
 def _sync_worldbuilding_variable_hub(novel_id: str, slices: dict[str, dict[str, str]]) -> None:
@@ -146,6 +154,7 @@ def create_worldbuilding(
     service: WorldbuildingService = Depends(get_worldbuilding_service)
 ):
     """创建空白世界观"""
+    _guard_setup_edit(slug)
     worldbuilding = service.create_worldbuilding(slug)
     return worldbuilding.to_dict()
 
@@ -157,6 +166,7 @@ def update_worldbuilding(
     service: WorldbuildingService = Depends(get_worldbuilding_service)
 ):
     """更新世界观"""
+    _guard_setup_edit(slug)
     worldbuilding = service.update_worldbuilding(
         novel_id=slug,
         core_rules=request.core_rules.dict() if request.core_rules else None,

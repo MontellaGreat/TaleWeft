@@ -10,6 +10,7 @@ from application.ai_invocation.output_binding_resolution import (
     extract_bound_output_values,
     load_session_output_bindings,
 )
+from application.onboarding.setup_edit_guard import assert_setup_editable
 
 _PHASE_SCHEMA = [
     {"phase": "opening", "label": "开篇阶段", "range_percent": "1-15%"},
@@ -394,6 +395,7 @@ def normalize_setup_plot_outline_payload(
 
 
 def setup_plot_outline_handler(context: ContinuationContext) -> Mapping[str, Any]:
+    assert_setup_editable(str(context.session.context.get("novel_id") or ""), "plot_outline")
     payload = _parse_json_object(context.decision.accepted_content or "")
     bound_outline = _coerce_bound_outline(payload, context=context)
     legacy_outline = _coerce_legacy_outline(payload)

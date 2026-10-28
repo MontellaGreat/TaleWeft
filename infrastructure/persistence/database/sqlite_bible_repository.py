@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +17,7 @@ from domain.bible.repositories.bible_repository import BibleRepository
 from domain.novel.value_objects.novel_id import NovelId
 from infrastructure.persistence.database.connection import DatabaseConnection
 from infrastructure.persistence.mappers.bible_mapper import BibleMapper
+from infrastructure.persistence.database.character_voice_profile import read_character_voice_profile
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,83 @@ class SqliteBibleRepository(BibleRepository):
                     (sn.id, novel_id, sn.category, sn.content or "", now, now),
                 )
 
+    def restore_missing_character_voices(self, novel_id, before, wanted, *, run_id, validate_basis):
+        """One writer-side CAS: restore voices without rewriting any other field.
+
+        Capture SQL snapshots before the final DTO read. The materialized guard
+        then rejects edits, relationship changes and lost leases at execution,
+        including changes made while this batch was waiting for the writer.
+        """
+        from application.ai_invocation.dtos import stable_hash
+        from application.world.dtos.bible_dto import BibleDTO
+        scopes = {
+            'novels': 'id=?', 'bibles': 'novel_id=?', 'worldbuilding': 'novel_id=?',
+            'unified_characters': 'novel_id=?',
+            'unified_character_relationships': 'character_id IN (SELECT id FROM unified_characters WHERE novel_id=?)',
+            'ai_invocation_sessions': "json_extract(context_json,'$.novel_id')=?",
+            **{name: "session_id IN (SELECT id FROM ai_invocation_sessions WHERE json_extract(context_json,'$.novel_id')=?)"
+                for name in ('ai_invocation_attempts', 'ai_adoption_decisions', 'ai_adoption_commits')},
+            **{name: 'novel_id=?' for name in ('bible_style_notes', 'bible_world_settings',
+                'bible_locations', 'bible_timeline_notes')},
+        }
+        guards, params = [], []
+        for table, scope in scopes.items():
+            columns = [row['name'] for row in self.db.fetch_all(f'PRAGMA table_info("{table}")')]
+            if not columns:
+                continue
+            names = ','.join('"' + column.replace('"', '""') + '"' for column in columns)
+            order = 'id' if 'id' in columns else 'novel_id'
+            expression = (f'(SELECT json_group_array(json_array({names})) '
+                          f'FROM (SELECT * FROM "{table}" WHERE {scope} ORDER BY "{order}"))')
+            snapshot = self.db.fetch_one(f'SELECT {expression} AS snapshot', (novel_id,))['snapshot']
+            guards.append(f'{expression} IS ?')
+            params.extend((novel_id, snapshot))
+        validate_basis()
+        def projection(rows):
+            output = {}
+            for row in rows:
+                data = asdict(row)
+                data['relationships'] = sorted(data.get('relationships') or [], key=stable_hash)
+                output[row.id] = data
+            return output
+        current = self.get_by_novel_id(NovelId(novel_id))
+        if current is None or projection(BibleDTO.from_domain(current).characters) != projection(before):
+            raise RuntimeError('人物恢复前资料已变化，已阻止补写')
+        expected = {row.id: row for row in wanted}
+        if set(expected) != {row.id for row in before}:
+            raise ValueError('人物恢复标识不一致')
+        patches = []
+        for row in before:
+            target = expected[row.id]
+            if projection([row]) == projection([target]):
+                continue
+            if row.voice_profile or not target.voice_profile:
+                raise ValueError('人物恢复声线冲突')
+            from dataclasses import replace
+            if projection([replace(row, voice_profile=target.voice_profile)]) != projection([target]):
+                raise ValueError('人物恢复包含非声线改动')
+            patches.append({'id': row.id, **{key: target.voice_profile.get(key, '')
+                for key in ('style', 'sentence_pattern', 'speech_tempo')}})
+        if not patches:
+            return
+        guards.append("EXISTS (SELECT 1 FROM novel_execution_leases WHERE novel_id=? AND owner='setup' "
+                      "AND job_id=? AND expires_at>(julianday('now')-2440587.5)*86400.0)")
+        params.extend((novel_id, run_id))
+        sql = ('WITH repair_guard AS MATERIALIZED (SELECT (' + ' AND '.join(guards) + ') AS ok), '
+               'patches AS MATERIALIZED (SELECT value FROM json_each(?)) '
+               'UPDATE unified_characters SET ' + ','.join(
+                   f'{column}=(SELECT json_extract(value,\'$.{key}\') FROM patches '
+                   "WHERE json_extract(value,'$.id')=unified_characters.id)"
+                   for column, key in (('voice_style', 'style'), ('sentence_pattern', 'sentence_pattern'),
+                                       ('speech_tempo', 'speech_tempo'))) +
+               " WHERE novel_id=? AND (SELECT ok FROM repair_guard)=1 "
+               "AND id IN (SELECT json_extract(value,'$.id') FROM patches)")
+        with self.db.transaction() as conn:
+            conn.execute(sql, tuple(params) + (json.dumps(patches, ensure_ascii=False), novel_id))
+            result = conn.execute('SELECT changes() AS repaired')
+        if result.fetchone()['repaired'] != len(patches):
+            raise RuntimeError('人物恢复保存前资料或执行租约已变化，已阻止补写')
+
     def _save_unified_character(self, conn, novel_id: str, char: Any, now: str) -> None:
         cid = char.character_id.value
         voice_profile = getattr(char, "voice_profile", None) or {}
@@ -148,8 +227,8 @@ class SqliteBibleRepository(BibleRepository):
                 sentence_pattern, speech_tempo, core_belief, moral_taboos_json,
                 active_wounds_json, mental_state, mental_state_reason,
                 emotional_arc_json, current_state_summary, last_updated_chapter,
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, updated_at, voice_profile_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 -- NOT NULL rejects an ownership race on the actual writer,
                 -- before any relationship or aggregate changes can commit.
@@ -165,6 +244,7 @@ class SqliteBibleRepository(BibleRepository):
                 verbal_tic=excluded.verbal_tic, idle_behavior=excluded.idle_behavior,
                 voice_style=excluded.voice_style, sentence_pattern=excluded.sentence_pattern,
                 speech_tempo=excluded.speech_tempo, core_belief=excluded.core_belief,
+                voice_profile_json=excluded.voice_profile_json,
                 moral_taboos_json=excluded.moral_taboos_json,
                 active_wounds_json=excluded.active_wounds_json,
                 mental_state=excluded.mental_state, mental_state_reason=excluded.mental_state_reason,
@@ -200,6 +280,7 @@ class SqliteBibleRepository(BibleRepository):
                 0,
                 now,
                 now,
+                json.dumps(voice_profile, ensure_ascii=False),
             ),
         )
 
@@ -282,15 +363,7 @@ class SqliteBibleRepository(BibleRepository):
                     "reveal_chapter": row.get("reveal_chapter"),
                     "core_belief": row.get("core_belief") or "",
                     "moral_taboos": self._loads(row.get("moral_taboos_json"), []),
-                    "voice_profile": {
-                        k: v
-                        for k, v in {
-                            "style": row.get("voice_style") or "",
-                            "sentence_pattern": row.get("sentence_pattern") or "",
-                            "speech_tempo": row.get("speech_tempo") or "",
-                        }.items()
-                        if v
-                    },
+                    "voice_profile": read_character_voice_profile(row),
                     "active_wounds": self._loads(row.get("active_wounds_json"), []),
                 }
             )

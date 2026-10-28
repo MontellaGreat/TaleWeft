@@ -23,7 +23,9 @@ async def test_missing_injection_prompt_is_error(node_name, monkeypatch):
 async def test_non_final_chapter_records_finale_bypass():
     from application.engine.dag.nodes.anti_ai_nodes import FinaleEnhancementNode
     result = await FinaleEnhancementNode().execute({"is_final_chapter": False}, {})
-    assert result.status == NodeStatus.BYPASSED
+    assert result.status == NodeStatus.SUCCESS
+    assert result.outputs['finale_mode'] == 'not_applicable'
+    assert result.outputs['body_scanned'] is False
 
 
 @pytest.mark.asyncio
@@ -47,7 +49,15 @@ async def test_unavailable_validation_dependency_is_error(node_name, module_name
 @pytest.mark.asyncio
 @pytest.mark.parametrize("node_type", [AntiAINode, ChapterAuditNode])
 async def test_actual_scanner_reports_real_hits(node_type):
-    result = await node_type().execute({"content": "他的嘴角上扬，眼中闪过一丝笑意。"}, {"chapter_number": 1})
+    import json
+    async def semantic_review(prompt):
+        request = json.loads(prompt.user)
+        return {"review_version": request["review_version"], "passed": True, "input_hash": request["input_hash"], "issues": [],
+            "checks": {key: True for key in request["required_checks"]},
+            "coverage": [{"text_id": item["text_id"]}
+                         for item in request["texts"]]}
+    result = await node_type().execute({"content": "他的嘴角上扬，眼中闪过一丝笑意。"},
+        {"chapter_number": 1, "semantic_anti_ai_invoke": semantic_review})
     assert result.status == NodeStatus.WARNING
     assert result.outputs["total_hits"] > 0
     assert result.outputs["severity_score"] > 0

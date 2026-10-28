@@ -430,6 +430,15 @@ def _invalidate_plaza_cache() -> None:
     global _plaza_cache, _plaza_cache_ts
     _plaza_cache = {}
     _plaza_cache_ts = 0.0
+    from infrastructure.ai.prompt_registry import get_prompt_registry
+    get_prompt_registry().invalidate_cache()
+
+
+def _plaza_node_dict(node) -> Dict[str, Any]:
+    from infrastructure.ai.prompt_usage import get_prompt_usage
+    result = node.to_dict()
+    result["runtime_usage"] = get_prompt_usage(node.node_key, is_builtin=node.is_builtin)
+    return result
 
 
 @router.get('/prompts/plaza-init')
@@ -463,7 +472,7 @@ async def plaza_init() -> Dict[str, Any]:
     grouped = mgr.get_nodes_by_category()
     nodes_by_category: Dict[str, List[Dict[str, Any]]] = {}
     for cat, nodes in grouped.items():
-        nodes_by_category[cat] = [n.to_dict() for n in nodes]
+        nodes_by_category[cat] = [_plaza_node_dict(n) for n in nodes]
 
     result = {
         "stats": stats,
@@ -536,7 +545,7 @@ async def list_prompts(
         nodes = mgr.list_nodes(category=category, template_id=template_id,
                                include_versions=True)
 
-    return [n.to_dict() for n in nodes]
+    return [_plaza_node_dict(n) for n in nodes]
 
 
 @router.get('/prompts/by-category')
@@ -547,7 +556,7 @@ async def list_prompts_by_category() -> Dict[str, List[Dict[str, Any]]]:
     grouped = mgr.get_nodes_by_category()
     result: Dict[str, List[Dict[str, Any]]] = {}
     for cat, nodes in grouped.items():
-        result[cat] = [n.to_dict() for n in nodes]
+        result[cat] = [_plaza_node_dict(n) for n in nodes]
     return result
 
 
@@ -738,6 +747,16 @@ async def get_node_detail(node_key: str) -> Dict[str, Any]:
             detail=f"Prompt node '{node_key}' not found",
         )
     detail = node.to_detail_dict()
+    detail["runtime_usage"] = _plaza_node_dict(node)["runtime_usage"]
+    detail["active_version_id"] = node.active_version_id
+    references = mgr.get_node_references(node.node_key, node.id)
+    detail["deletion_references"] = references
+    detail["can_delete"] = not node.is_builtin and not references
+    if not node.is_builtin and references:
+        detail["runtime_usage"] = {
+            "status": "referenced", "label": "已有持久引用",
+            "description": "本模板存在调用或绑定引用；引用清单见下方。引用存在不能单独证明本次生成已执行它。",
+        }
     try:
         from application.engine.narrative_projection.linkage_kernel import linkage_bundle
 
@@ -745,11 +764,13 @@ async def get_node_detail(node_key: str) -> Dict[str, Any]:
         detail["dag_bindings"] = [
             row for row in linkage.get("nodes", [])
             if row.get("cpms_node_key") == node.node_key
+            or any(sub.get("cpms_node_key") == node.node_key for sub in row.get("cpms_sub_keys", []))
         ]
         detail["dag_registry_bindings"] = [
             {"node_type": node_type, **meta}
             for node_type, meta in linkage.get("registry_cpms_by_type", {}).items()
             if meta.get("cpms_node_key") == node.node_key
+            or any(sub.get("cpms_node_key") == node.node_key for sub in meta.get("cpms_sub_keys", []))
         ]
     except Exception as exc:
         logger.debug("DAG linkage lookup failed for prompt %s: %s", node.node_key, exc)
@@ -792,7 +813,10 @@ async def delete_node(node_id: str) -> Dict[str, str]:
     node = mgr.get_node(node_id, by_key=False)
     if node and node.is_builtin:
         raise HTTPException(status_code=403, detail="Cannot delete built-in prompt")
-    success = mgr.delete_node(node_id)
+    try:
+        success = mgr.delete_node(node_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     _invalidate_plaza_cache()
     if not success:
         raise HTTPException(status_code=404, detail="Node not found")
@@ -1175,6 +1199,16 @@ async def backfill_variable_hub(payload: VariableHubBackfillRequest) -> Dict[str
     from infrastructure.persistence.database.sqlite_ai_invocation_repository import SqliteVariableHubRepository
     from infrastructure.persistence.database.worldbuilding_repository import WorldbuildingRepository
     from interfaces.api.dependencies import get_bible_repository, get_novel_repository
+    from application.ai_invocation.variable_hub import VariableWrite
+    from application.onboarding.setup_edit_guard import SetupEditConflict, assert_setup_variable_writes
+
+    # Check every affected book before the maintenance service can fill the
+    # first missing fact; backfill_all otherwise allows a partially changed run.
+    try:
+        assert_setup_variable_writes([VariableWrite(key="novel.setup.premise", value=None,
+            context_key=f"novel_id:{payload.novel_id}" if payload.novel_id else "global")], db=get_database())
+    except SetupEditConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": "SETUP_AUDIT_INCOMPLETE", "reason": str(exc)}) from exc
 
     service = VariableHubBackfillService(
         variable_hub_repository=SqliteVariableHubRepository(get_database()),

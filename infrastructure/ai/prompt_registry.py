@@ -66,8 +66,14 @@ class PromptRegistry:
         # 检查缓存
         if use_cache and node_key in self._node_cache:
             ts = self._cache_timestamps.get(node_key, 0)
-            if time.time() - ts < self._cache_ttl:
+            # Plaza and the daemon can run in separate processes. A local
+            # invalidation alone leaves the other process on an old version.
+            revision = self._get_manager().get_node_revision(node_key)
+            cached = self._node_cache[node_key]
+            if (time.time() - ts < self._cache_ttl and revision is not None
+                    and revision[0] == (cached.active_version_id or "")):
                 return self._node_cache[node_key]
+            self.invalidate_cache(node_key)
 
         mgr = self._get_manager()
         mgr.ensure_seeded()

@@ -51,7 +51,7 @@
 
           <span v-if="mode === 'expanded'" class="global-llm-copy">
             <span class="global-llm-title-row">
-              <span class="global-llm-title">AI 控制台</span>
+              <span class="global-llm-title">模型控制台</span>
               <span class="global-llm-status"></span>
             </span>
             <span class="global-llm-subtitle">LLM Gateway · OpenAI / Claude / Gemini</span>
@@ -76,7 +76,7 @@
           <div class="modal-header">
             <div class="modal-header-left">
               <span class="modal-header-icon modal-header-icon-llm" aria-hidden="true">AI</span>
-              <span class="modal-header-title">AI 控制台</span>
+              <span class="modal-header-title">模型控制台</span>
               <n-tag
                 size="small"
                 :type="runtimeUnavailable ? 'warning' : 'info'"
@@ -122,7 +122,7 @@
       </div>
       <template #footer>
         <div class="modal-footer-hint">
-          完整能力（含嵌入模型）请从侧栏或顶栏打开 AI 控制台。
+          完整能力（含嵌入模型）请从侧栏或顶栏打开模型控制台。
         </div>
       </template>
     </n-modal>

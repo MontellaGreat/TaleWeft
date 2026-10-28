@@ -14,12 +14,25 @@
         内置与自定义提示词<strong>均可直接修改</strong>；点「保存为新版本」写入数据库，历史保留在「版本历史」中，可随时回滚。
       </p>
       <p class="desc-text">{{ nodeDetail?.description || '（无描述）' }}</p>
+      <n-alert v-if="nodeDetail?.runtime_usage" :type="nodeDetail.runtime_usage.status === 'runtime' ? 'success' : 'info'" :show-icon="false">
+        <strong>{{ nodeDetail.runtime_usage.label }}</strong>：{{ nodeDetail.runtime_usage.description }}
+      </n-alert>
+      <div v-if="!nodeDetail?.is_builtin" class="delete-prompt-row">
+        <n-popconfirm v-if="nodeDetail?.can_delete" @positive-click="handleDelete">
+          <template #trigger>
+            <n-button type="error" size="small" secondary :loading="deleting">删除提示词</n-button>
+          </template>
+          确认删除此自定义提示词及其全部版本？
+        </n-popconfirm>
+        <n-button v-else type="error" size="small" secondary disabled>删除提示词</n-button>
+        <span v-if="deletionReferences.length">仍被引用：{{ deletionReferences.join('、') }}。请先处理关联；调用历史使用的版本需保留。</span>
+      </div>
       <div class="source-line" v-if="nodeDetail?.source">
         <span class="source-icon">S</span>
         <code>{{ nodeDetail.source }}</code>
       </div>
       <div class="dag-linkage" v-if="dagBindingLabels.length">
-        <span class="dag-linkage-label">DAG</span>
+        <span class="dag-linkage-label">DAG 关联（实际用途以上方说明为准）</span>
         <n-tag
           v-for="item in dagBindingLabels"
           :key="item"
@@ -202,7 +215,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import {
   NTag, NTabs, NTabPane, NInput, NForm, NFormItem,
-  NButton, NAlert, NEmpty, NModal, NSpin, useMessage,
+  NButton, NAlert, NEmpty, NModal, NSpin, NPopconfirm, useMessage,
 } from 'naive-ui'
 import {
   promptPlazaApi,
@@ -211,7 +224,6 @@ import {
   type PromptVariable,
   type PromptVersionDetail,
 } from '../../../api/llmControl'
-import { usePromptPlazaBridge } from '@/stores/promptPlazaBridge'
 import { formatApiError } from '../../../utils/apiError'
 
 const props = defineProps<{
@@ -221,6 +233,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updated: []
   close: []
+  deleted: []
 }>()
 
 const message = useMessage()
@@ -228,6 +241,7 @@ const message = useMessage()
 const activeTab = ref<'content' | 'versions'>('content')
 const loading = ref(true)
 const saving = ref(false)
+const deleting = ref(false)
 const nodeDetail = ref<PromptNodeDetail | null>(null)
 const versions = ref<PromptVersion[]>([])
 
@@ -246,6 +260,7 @@ const selectedVersionFull = ref<PromptVersionDetail | null>(null)
 // ---- 计算属性 ----
 
 const variables = computed<PromptVariable[]>(() => nodeDetail.value?.variables || [])
+const deletionReferences = computed(() => (nodeDetail.value?.deletion_references || []).map(ref => `${ref.label}（${ref.count}）`))
 const dagBindingLabels = computed(() => {
   const canvas = nodeDetail.value?.dag_bindings || []
   if (canvas.length) {
@@ -299,6 +314,23 @@ async function handleSave() {
     message.error(formatApiError(e, '保存失败'))
   } finally {
     saving.value = false
+  }
+}
+
+async function handleDelete() {
+  if (!nodeDetail.value?.can_delete || deleting.value) return false
+  deleting.value = true
+  try {
+    await promptPlazaApi.deleteNode(nodeDetail.value.id)
+    message.success('自定义提示词已删除')
+    emit('deleted')
+    return true
+  } catch (error: unknown) {
+    message.error(formatApiError(error, '删除失败'))
+    await loadDetail()
+    return false
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -356,6 +388,15 @@ onMounted(() => { loadDetail() })
   padding: 6px 2px;
 }
 
+.delete-prompt-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
 .detail-tabs {
   margin-top: 2px;
 }

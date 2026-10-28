@@ -18,7 +18,9 @@ from infrastructure.ai.url_utils import (
     normalize_gemini_base_url,
     normalize_openai_base_url,
 )
-from infrastructure.ai.providers.capabilities import validate_reasoning_capability
+from infrastructure.ai.providers.generation_constraints import (
+    anthropic_thinking, validate_anthropic_thinking_budget, validate_generation_constraints,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +86,7 @@ class LLMProfile(BaseModel):
         if self.protocol != 'openai' and self.reasoning_effort is not None:
             raise ValueError('此适配器请使用 thinking_budget_tokens')
         if self.protocol == 'anthropic' and self.thinking_budget_tokens not in (None, 0):
-            if self.thinking_budget_tokens < 1024 or self.thinking_budget_tokens >= self.max_tokens:
-                raise ValueError('Anthropic 思考预算需至少 1024 且小于输出上限')
+            validate_anthropic_thinking_budget(self.thinking_budget_tokens, self.max_tokens)
         return self
 
     @field_validator('currency')
@@ -452,6 +453,21 @@ class LLMControlService:
             profiles=profiles,
         )
 
+    def get_config_readonly(self) -> LLMControlConfig:
+        """Read the effective configuration without creating rows or migrating secrets."""
+        rows = self._db().fetch_all("SELECT * FROM llm_profiles ORDER BY sort_order, created_at")
+        profiles = [self._row_to_profile(row) for row in rows]
+        if not profiles:
+            return self._build_initial_config()
+        endpoint_mode = self._get_meta('endpoint_mode', '')
+        if endpoint_mode not in ('unified', 'independent'):
+            endpoint_mode = self._infer_endpoint_mode_from_profiles(profiles)
+        return LLMControlConfig(
+            active_profile_id=self._get_meta('active_profile_id') or None,
+            endpoint_mode=endpoint_mode,
+            profiles=profiles,
+        )
+
     @staticmethod
     def _infer_endpoint_mode_from_profiles(profiles: List[LLMProfile]) -> LLMEndpointMode:
         """无 meta 时的向后兼容：存在「经济模型」「知识图谱模型」档案则视为独立端点 UI。"""
@@ -471,19 +487,22 @@ class LLMControlService:
 
     @staticmethod
     def _validate_profile_capabilities(profile: LLMProfile) -> None:
-        """Reject reviewed model/effort combinations before persistence/use.
+        """Reject deterministic offline option conflicts before persistence/use.
 
         This deliberately runs outside ``LLMProfile``'s Pydantic validator so
         an older, already persisted profile can still be read and edited.  A
         save or a test revalidates it, and the provider repeats the same gate
         immediately before serializing a request.
         """
-        validate_reasoning_capability(
+        validate_generation_constraints(
             profile.protocol,
-            profile.model,
-            profile.base_url,
-            profile.reasoning_effort,
+            profile,
+            model=profile.model,
+            base_url=profile.base_url,
+            endpoint_kind=profile.endpoint_kind,
+            legacy_chat=profile.use_legacy_chat_completions,
             extra_body=profile.extra_body,
+            token_limit_settings=profile,
         )
 
     def _save_config_locked(self, sanitized: LLMControlConfig, db) -> LLMControlConfig:
@@ -649,10 +668,18 @@ class LLMControlService:
                 system='你是连通性测试助手。',
                 user='请只回复"连接成功"。',
             )
+            enabled_thinking = bool(resolved.thinking_budget_tokens) or (
+                resolved.protocol == 'anthropic'
+                and anthropic_thinking(resolved, resolved.extra_body).get('type') == 'enabled'
+            )
+            generation_extension = resolved.extra_body.get('generationConfig')
+            fixed_extension_budget = any(key in resolved.extra_body for key in (
+                'max_tokens', 'max_output_tokens', 'max_completion_tokens',
+            )) or (isinstance(generation_extension, dict) and 'maxOutputTokens' in generation_extension)
             config = GenerationConfig(
                 model=resolved.model,
                 max_tokens=min(resolved.max_tokens, resolved.max_output_tokens_limit or resolved.max_tokens)
-                    if resolved.thinking_budget_tokens else min(resolved.max_tokens, 256, resolved.max_output_tokens_limit or 256),
+                    if enabled_thinking or fixed_extension_budget else min(resolved.max_tokens, 256, resolved.max_output_tokens_limit or 256),
                 temperature=resolved.temperature,
                 reasoning_effort=resolved.reasoning_effort,
                 thinking_budget_tokens=resolved.thinking_budget_tokens,
@@ -710,10 +737,6 @@ class LLMControlService:
         profiles: List[LLMProfile] = []
         seen_ids: set = set()
         for index, profile in enumerate(config.profiles):
-            from infrastructure.ai.providers.token_limits import resolve_token_limits
-            limits = resolve_token_limits(profile.protocol, profile.model, profile)
-            if limits.max_output_tokens is not None and profile.max_tokens > limits.max_output_tokens:
-                raise ValueError(f'{profile.name}: max_tokens exceeds model output limit {limits.max_output_tokens}')
             candidate_id = profile.id.strip() or f'profile-{index + 1}'
             if candidate_id in seen_ids:
                 candidate_id = f'{candidate_id}-{index + 1}'
@@ -730,7 +753,7 @@ class LLMControlService:
                     }
                 )
             )
-            self._validate_profile_capabilities(profiles[-1])
+            self._validate_profile_capabilities(self.resolve_profile(profiles[-1]))
 
         if not profiles:
             profiles = self._build_initial_config().profiles

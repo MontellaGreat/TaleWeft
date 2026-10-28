@@ -7,6 +7,7 @@ from domain.shared.time_utils import utcnow_iso
 from domain.character.entities.character import Character
 from domain.character.repositories.character_repository import CharacterRepository
 from domain.character.value_objects.character_id import CharacterId
+from infrastructure.persistence.database.character_voice_profile import read_character_voice_profile
 
 
 def _row_to_character(row) -> Character:
@@ -33,6 +34,7 @@ def _row_to_character(row) -> Character:
         voice_style=d.get("voice_style", ""),
         sentence_pattern=d.get("sentence_pattern", ""),
         speech_tempo=d.get("speech_tempo", ""),
+        voice_profile=read_character_voice_profile(d),
         core_belief=d.get("core_belief", ""),
         moral_taboos=json.loads(d.get("moral_taboos_json") or "[]"),
         active_wounds=json.loads(d.get("active_wounds_json") or "[]"),
@@ -74,8 +76,8 @@ class SqliteUnifiedCharacterRepository(CharacterRepository):
                 core_belief, moral_taboos_json, active_wounds_json,
                 mental_state, mental_state_reason,
                 emotional_arc_json, current_state_summary, last_updated_chapter,
-                created_at, updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                created_at, updated_at, voice_profile_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 name=excluded.name, description=excluded.description,
                 public_profile=excluded.public_profile, hidden_profile=excluded.hidden_profile,
@@ -90,6 +92,7 @@ class SqliteUnifiedCharacterRepository(CharacterRepository):
                 verbal_tic=excluded.verbal_tic, idle_behavior=excluded.idle_behavior,
                 voice_style=excluded.voice_style, sentence_pattern=excluded.sentence_pattern,
                 speech_tempo=excluded.speech_tempo, core_belief=excluded.core_belief,
+                voice_profile_json=COALESCE(excluded.voice_profile_json,unified_characters.voice_profile_json),
                 moral_taboos_json=excluded.moral_taboos_json,
                 active_wounds_json=excluded.active_wounds_json,
                 mental_state=excluded.mental_state,
@@ -113,6 +116,7 @@ class SqliteUnifiedCharacterRepository(CharacterRepository):
                 json.dumps(character.emotional_arc, ensure_ascii=False),
                 character.current_state_summary, character.last_updated_chapter,
                 character.created_at, now,
+                json.dumps(character.voice_profile, ensure_ascii=False) if character.voice_profile is not None else None,
             ),
         )
         self._db.get_connection().commit()

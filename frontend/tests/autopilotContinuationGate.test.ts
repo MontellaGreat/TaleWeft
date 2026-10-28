@@ -21,21 +21,43 @@ const proposal = { proposal_id: 'continuation', novel_id: 'novel', mode: 'contin
     proposal: { creates: [], updates: [], deletes: [], affected_chapters: [] }, audits: [] },
 } satisfies ContinuationProposal
 let app: App | null = null, host: HTMLDivElement | null = null
-async function flush() { for (let i = 0; i < 6; i++) { await nextTick(); await new Promise(resolve => setTimeout(resolve, 0)) } }
+async function flush() { for (let i = 0; i < 6; i++) { await nextTick(); if (vi.isFakeTimers()) await vi.advanceTimersByTimeAsync(0); else await new Promise(resolve => setTimeout(resolve, 0)) } }
 function click(label: string) {
   const node = [...document.querySelectorAll('button')].find(item => item.textContent?.trim() === label)
   if (!node) throw new Error(`Missing button ${label}`)
   node.click()
 }
-async function mount() {
-  vi.mocked(autopilotApi.getStatus).mockResolvedValue(status)
+async function mount(initialStatus = status) {
+  vi.mocked(autopilotApi.getStatus).mockResolvedValue(initialStatus)
   host = document.createElement('div'); document.body.append(host)
   app = createApp({ render: () => h(NMessageProvider, {}, { default: () => h(AutopilotPanel, { novelId: 'novel', renderLivePreview: false }) }) })
   for (const [name, component] of Object.entries({ NAlert, NButton, NForm, NFormItem, NInput, NInputNumber, NModal, NProgress, NRadio, NRadioGroup, NSpace, NSwitch, NText })) app.component(name, component)
   app.mount(host); await flush()
 }
-afterEach(() => { app?.unmount(); host?.remove(); app = null; host = null; document.body.innerHTML = ''; vi.clearAllMocks() })
+afterEach(() => { app?.unmount(); host?.remove(); app = null; host = null; document.body.innerHTML = ''; vi.useRealTimers(); vi.clearAllMocks() })
 describe('autopilot continuation gate integration', () => {
+  it('restores a pending start after reopening and explains why the executor has not acknowledged', async () => {
+    vi.useFakeTimers()
+    vi.mocked(autopilotApi.listContinuationProposals).mockResolvedValue([])
+    await mount({ ...status, current_stage: 'planning', autopilot_status: 'stopped', needs_review: false,
+      command_id: 'pending-start', command_type: 'start', command_status: 'pending', execution_confirmed: false,
+      control_message: '请求已保存，等待执行器确认；执行器暂无有效心跳，请检查后台状态',
+    } as typeof status)
+    expect(document.querySelector('.ap-inline-alert')?.textContent).toContain('执行器暂无有效心跳')
+    expect(autopilotApi.start).not.toHaveBeenCalled()
+    vi.mocked(autopilotApi.getStatus).mockResolvedValue({ ...status, current_stage: 'planning', autopilot_status: 'stopped', needs_review: false,
+      command_id: 'pending-start', command_type: 'start', command_status: 'pending', execution_confirmed: false,
+      execution_reservation_expired: true, control_message: '启动请求的执行租约已过期，尚未启动；请重新提交启动请求',
+    })
+    await vi.advanceTimersByTimeAsync(30000)
+    expect(document.querySelector('.ap-inline-alert')?.textContent).toContain('请重新提交启动请求')
+    expect(document.body.textContent).not.toContain('执行器已确认启动')
+    vi.mocked(autopilotApi.start).mockResolvedValue(new Response(JSON.stringify({ accepted: true,
+      command_id: 'retried-start', command_status: 'pending', execution_confirmed: false })))
+    click('🚀 启动全托管'); await flush()
+    click('启动'); await flush()
+    expect(autopilotApi.start).toHaveBeenCalledOnce()
+  })
   it('restores the pending structure after reopening and replaces generic resume with explicit author confirmation', async () => {
     vi.mocked(autopilotApi.listContinuationProposals).mockResolvedValue([proposal])
     vi.mocked(autopilotApi.confirmContinuationStructure).mockResolvedValue({ status: 'applied', proposal_id: 'change', snapshot_id: 'snapshot', audit_id: 'audit', state_hash: 'after' })

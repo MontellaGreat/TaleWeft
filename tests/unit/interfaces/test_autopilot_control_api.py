@@ -30,6 +30,7 @@ def db(tmp_path, monkeypatch):
     monkeypatch.setattr(novel_stop_signal, "publish_start_signal", lambda *args, **kwargs: False)
     monkeypatch.setattr(novel_stop_signal, "publish_stop_signal", lambda *args, **kwargs: False)
     monkeypatch.setattr(routes, "_get_shared_state_for_novel", lambda nid: None)
+    monkeypatch.setattr(routes, "_autopilot_executor_running", lambda: True, raising=False)
     control._processing.clear()
     yield database
     control._processing.clear()
@@ -64,6 +65,20 @@ async def test_http_start_stop_receipts_reflect_executor_ack(db):
         control.confirm_quiescent("book", db=db)
         assert (await client.get(f"/autopilot/book/commands/{stopped['command_id']}" )).json()["execution_confirmed"] is True
         assert db.fetch_one("SELECT autopilot_status FROM novels WHERE id='book'")["autopilot_status"] == "stopped"
+
+
+@pytest.mark.asyncio
+async def test_start_is_rejected_before_persisting_when_executor_is_unavailable(db, monkeypatch):
+    monkeypatch.setattr(routes, "_autopilot_executor_running", lambda: False, raising=False)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app()), base_url="http://test") as client:
+        response = await client.post("/autopilot/book/start", json={"target_chapters": 10})
+
+    assert response.status_code == 503
+    assert "执行器" in response.json()["detail"]
+    assert db.fetch_one("SELECT autopilot_status,autopilot_run_epoch FROM novels WHERE id='book'") == {
+        "autopilot_status": "stopped", "autopilot_run_epoch": 0,
+    }
+    assert db.fetch_one("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='autopilot_commands'")["n"] == 0
 
 
 @pytest.mark.asyncio
@@ -194,3 +209,61 @@ def test_heartbeat_rejects_stale_and_future_shared_projection(monkeypatch):
         assert routes._daemon_lease_status()["daemon_alive"] is False
     monkeypatch.setattr(runtime_state, "_get_shared_state", lambda: {"_daemon_heartbeat": time.time()})
     assert routes._daemon_lease_status()["daemon_alive"] is True
+
+
+@pytest.mark.parametrize("running", [True, False])
+def test_executor_availability_uses_owned_process_even_during_long_model_call(monkeypatch, running):
+    import sys
+    monkeypatch.setitem(sys.modules, "interfaces.main", SimpleNamespace(
+        _daemon_manager=SimpleNamespace(status=lambda: SimpleNamespace(running=running))))
+    monkeypatch.setattr(routes, "_daemon_lease_status", lambda: {"daemon_alive": False})
+    assert routes._autopilot_executor_running() is running
+
+
+@pytest.mark.asyncio
+async def test_pending_status_explains_missing_executor_and_reservation(db, monkeypatch):
+    from interfaces import runtime_state
+    monkeypatch.setattr(runtime_state, "_get_shared_state", lambda: {})
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app()), base_url="http://test") as client:
+        started = (await client.post("/autopilot/book/start", json={"target_chapters": 10})).json()
+        status = (await client.get("/autopilot/book/status")).json()
+        assert status["command_id"] == started["command_id"]
+        assert status["command_status"] == "pending"
+        assert status["execution_confirmed"] is False
+        assert status["execution_owner"] == "autopilot"
+        assert status["command_wait_seconds"] >= 0
+        assert "执行器" in status["control_message"]
+        assert status["daemon_alive"] is False
+        assert status["execution_reservation_expired"] is False
+
+
+@pytest.mark.asyncio
+async def test_expired_pending_status_is_explicit_and_read_only(db):
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app()), base_url="http://test") as client:
+        started = (await client.post("/autopilot/book/start", json={"target_chapters": 10})).json()
+        db.execute("UPDATE novel_execution_leases SET expires_at=0")
+        db.commit()
+        status = (await client.get("/autopilot/book/status")).json()
+        assert status["execution_reservation_expired"] is True
+        assert status["execution_owner"] is None
+        assert "过期" in status["control_message"]
+        assert control.get_command(started["command_id"], db=db)["state"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_status_and_command_gets_never_mutate_database(db, monkeypatch):
+    from infrastructure.persistence.database.write_dispatch import sql_is_mutating
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app()), base_url="http://test") as client:
+        started = (await client.post("/autopilot/book/start", json={"target_chapters": 10})).json()
+        original = db.execute
+        reads = []
+
+        def readonly(sql, params=()):
+            assert not sql_is_mutating(sql), sql
+            reads.append(sql)
+            return original(sql, params)
+
+        monkeypatch.setattr(db, "execute", readonly)
+        assert (await client.get("/autopilot/book/status")).status_code == 200
+        assert (await client.get(f"/autopilot/book/commands/{started['command_id']}")).status_code == 200
+        assert reads

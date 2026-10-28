@@ -31,6 +31,8 @@ class CharacterProjectionService:
     def get_projection(self, novel_id: str, character_id: str, *, rebuild: bool = True) -> Dict[str, Any]:
         if rebuild:
             return self.rebuild_projection(novel_id, character_id).data
+        if self._get_character(novel_id, character_id) is None:
+            raise LookupError('角色不存在或已删除')
         existing = self.memory.get_projection(novel_id, character_id)
         if existing:
             return existing.data
@@ -38,6 +40,8 @@ class CharacterProjectionService:
 
     def rebuild_projection(self, novel_id: str, character_id: str) -> MemoryProjection:
         char = self._get_character(novel_id, character_id)
+        if char is None:
+            raise LookupError('角色不存在或已删除')
         name = getattr(char, "name", "") or character_id
         self.memory.ensure_entity(novel_id, character_id, canonical_name=name)
 

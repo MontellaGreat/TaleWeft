@@ -6,6 +6,7 @@ import json
 import hashlib
 import uuid
 import asyncio
+import inspect
 from dataclasses import replace
 from typing import Any, Callable, Mapping
 
@@ -136,6 +137,7 @@ class AttemptService:
         session: InvocationSession,
         prompt_snapshot: PromptSnapshot,
         config: GenerationConfig | None = None,
+        on_started: Callable[[InvocationAttempt], Any] | None = None,
     ) -> InvocationAttempt:
         prompt_snapshot, prompt_hooks = self._prepare_prose_prompt(session, prompt_snapshot)
         attempt = InvocationAttempt(
@@ -148,6 +150,10 @@ class AttemptService:
         session.attempts.append(attempt.id)
         session.status = InvocationSessionStatus.GENERATING
         try:
+            if on_started is not None:
+                started = on_started(attempt)
+                if inspect.isawaitable(started):
+                    await started
             with capture_usage(novel_id=str(session.context.get('novel_id') or ''), attempt_id=attempt.id) as usage:
                 try:
                     result = await self._llm_service.generate(prompt_snapshot.prompt, config or GenerationConfig())
@@ -205,7 +211,7 @@ class AttemptService:
         session: InvocationSession,
         prompt_snapshot: PromptSnapshot,
         config: GenerationConfig | None = None,
-        on_chunk: Callable[[str, str], None] | None = None,
+        on_chunk: Callable[[str, str], Any] | None = None,
         attempt: InvocationAttempt | None = None,
     ) -> InvocationAttempt:
         prompt_snapshot, prompt_hooks = self._prepare_prose_prompt(session, prompt_snapshot)
@@ -246,6 +252,8 @@ class AttemptService:
                         attempt.content = "".join(content_parts)
                         if on_chunk is not None:
                             keep_going = on_chunk(chunk, attempt.content)
+                            if inspect.isawaitable(keep_going):
+                                keep_going = await keep_going
                             if keep_going is False:
                                 stopped = True
                                 break
@@ -570,13 +578,14 @@ class AdoptionCommitService:
                     session.node_key,
                     exc,
                 )
+                return {"blocked": True, "reason": "output_bindings_unavailable", "error": str(exc)}
 
         bindings = []
         if snapshot.output_binding_set_id:
             try:
                 bindings = repo.get_output_bindings(snapshot.output_binding_set_id, snapshot.node_key)
             except Exception as exc:
-                return {"skipped": True, "reason": "output_bindings_unavailable", "error": str(exc)}
+                return {"blocked": True, "reason": "output_bindings_unavailable", "error": str(exc)}
 
         if not bindings:
             return {"skipped": True, "reason": "no_output_bindings"}
@@ -611,7 +620,7 @@ class AdoptionCommitService:
                 "payload_source": "decision" if payload_from_decision else "continuation",
             }
 
-        written: list[dict[str, Any]] = []
+        pending: list[tuple[str, VariableWrite]] = []
         missing_required: list[str] = []
         for binding in bindings:
             if not binding.enabled or not binding.variable_key:
@@ -646,15 +655,7 @@ class AdoptionCommitService:
                 scope=binding.scope,
                 stage=binding.stage,
             )
-            stored = repo.set_value(write)
-            written.append(
-                {
-                    "alias": binding.alias,
-                    "variable_key": binding.variable_key,
-                    "context_key": write.context_key,
-                    "version_number": getattr(stored, "version_number", 1),
-                }
-            )
+            pending.append((binding.alias, write))
         if missing_required:
             return {
                 "blocked": True,
@@ -662,6 +663,19 @@ class AdoptionCommitService:
                 "missing_aliases": missing_required,
                 "binding_set_id": snapshot.output_binding_set_id,
             }
+        from application.onboarding.setup_edit_guard import assert_setup_variable_writes
+        assert_setup_variable_writes([write for _, write in pending], repository=repo)
+        written: list[dict[str, Any]] = []
+        for alias, write in pending:
+            stored = repo.set_value(write)
+            written.append(
+                {
+                    "alias": alias,
+                    "variable_key": write.key,
+                    "context_key": write.context_key,
+                    "version_number": getattr(stored, "version_number", 1),
+                }
+            )
         if not written:
             return {"skipped": True, "reason": "no_matching_output_values"}
         return {
@@ -704,7 +718,7 @@ class AdoptionCommitService:
             return f"novel_id:{novel_id}"
         return "global"
 
-    def commit(self, *, session: InvocationSession, decision: AdoptionDecision) -> AdoptionCommit:
+    def commit(self, *, session: InvocationSession, decision: AdoptionDecision, commit_id: str | None = None) -> AdoptionCommit:
         if decision.session_id != session.id:
             raise ValueError("decision 不属于当前 invocation session")
         key = f"{session.id}:{decision.id}"
@@ -714,7 +728,7 @@ class AdoptionCommitService:
         if decision.decision != "accepted" or not decision.accept_content:
             session.status = InvocationSessionStatus.CANCELLED
             commit = AdoptionCommit(
-                id=str(uuid.uuid4()),
+                id=commit_id or str(uuid.uuid4()),
                 session_id=session.id,
                 decision_id=decision.id,
                 status=AdoptionCommitStatus.SUCCEEDED,
@@ -744,7 +758,7 @@ class AdoptionCommitService:
 
         session.status = InvocationSessionStatus.COMMITTING
         commit = AdoptionCommit(
-            id=str(uuid.uuid4()),
+            id=commit_id or str(uuid.uuid4()),
             session_id=session.id,
             decision_id=decision.id,
             status=AdoptionCommitStatus.RUNNING,

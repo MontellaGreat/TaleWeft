@@ -1,8 +1,8 @@
 // Generated from release-manifest.json by sync-release.mjs.
 export const release = {
-  "version": "0.1.0-preview.1",
-  "build_id": "taleweft-0.1.0-preview.1-20261022",
+  "version": "0.2.0",
+  "build_id": "taleweft-0.2.0-20261028",
   "python": "3.14",
   "node": ">=22.12.0",
-  "channel": "preview"
+  "channel": "stable"
 } as const

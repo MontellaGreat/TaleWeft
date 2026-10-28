@@ -36,6 +36,9 @@ New-Item -ItemType Directory -Force -Path (Join-Path $PreviewRoot 'data') | Out-
 $env:TALEWEFT_PROD_DATA_DIR = Join-Path $PreviewRoot 'data'
 $env:PLOTPILOT_PROD_DATA_DIR = $env:TALEWEFT_PROD_DATA_DIR
 $env:PYTHONIOENCODING = 'utf-8'
+# The author-facing launcher owns the autopilot executor. Do not inherit a
+# verification/smoke-test setting that silently disables command execution.
+$env:DISABLE_AUTO_DAEMON = '0'
 Set-Location -LiteralPath $ProjectRoot
 $DataIdentity = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:TALEWEFT_PROD_DATA_DIR.ToLowerInvariant())).Replace('/', '_')
 $DataMutex = New-Object System.Threading.Mutex($false, ('Local\TaleWeft.AuthorDesk.' + $DataIdentity))

@@ -267,7 +267,7 @@ watch(() => props.currentPanel, (newVal) => {
   background: var(--taleweft-panel-muted);
   border-left: 1px solid var(--taleweft-split-border);
 }
-.reference-heading { display:flex; align-items:center; gap:12px; padding:16px 12px 12px; background:var(--app-surface); }
+.reference-heading { display:flex; align-items:center; flex-shrink:0; gap:12px; padding:16px 12px 12px; background:var(--app-surface); }
 .reference-heading > div { flex:none; display:flex; flex-direction:column; gap:4px; }
 .reference-eyebrow { font-size:8px; letter-spacing:1.3px; color:var(--app-text-muted); }
 .reference-heading strong { font-size:14px; font-weight:600; }
@@ -361,6 +361,7 @@ watch(() => props.currentPanel, (newVal) => {
 }
 
 .settings-tabs :deep(.n-tabs-nav) {
+  flex-shrink: 0;
   padding: 0 8px;
   background: var(--app-surface);
   border-bottom: 1px solid var(--taleweft-split-border);
@@ -384,12 +385,19 @@ watch(() => props.currentPanel, (newVal) => {
 }
 
 .settings-tabs :deep(.n-tabs-pane-wrapper) {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .settings-tabs :deep(.n-tab-pane) {
-  height: 100%;
+  /* Naive UI renders panes directly when animation is off. 100% plus the
+     navigation consumed more than the available height and clipped footers. */
+  flex: 1;
+  min-height: 0;
+  padding: 0;
   overflow: hidden;
 }
 </style>

@@ -15,6 +15,7 @@ from infrastructure.ai.config.settings import Settings
 from infrastructure.ai.http_timeout import build_httpx_timeout
 from .base import BaseProvider
 from .model_resolution import require_resolved_model_id
+from .generation_constraints import anthropic_thinking
 from infrastructure.ai.url_utils import anthropic_messages_url
 
 logger = logging.getLogger(__name__)
@@ -221,28 +222,12 @@ class AnthropicProvider(BaseProvider):
             "system": prompt.system,
             "messages": [{"role": "user", "content": prompt.user}],
         }
-        if config.reasoning_effort not in (None, "none"):
-            raise ValueError(
-                "Anthropic Messages uses thinking_budget_tokens; reasoning_effort is not supported"
-            )
-        if config.thinking_budget_tokens is not None:
-            budget = config.thinking_budget_tokens
-            if budget == 0:
-                payload['thinking'] = {'type': 'disabled'}
-                payload['temperature'] = config.temperature
-            else:
-                if budget < 1024 or budget >= config.max_tokens:
-                    raise ValueError('Anthropic thinking budget must be at least 1024 and less than max_tokens')
-                payload["thinking"] = {"type": "enabled", "budget_tokens": budget}
-            # Extended thinking requests must not be combined with a sampling
-            # temperature. The API applies its constrained default.
-        else:
-            payload["temperature"] = config.temperature
-            if config.reasoning_effort == 'none':
-                payload['thinking'] = {'type': 'disabled'}
+        thinking = anthropic_thinking(config, self.settings.extra_body or {})
+        if thinking:
+            payload['thinking'] = thinking
+        if thinking.get('type') != 'enabled':
+            payload['temperature'] = config.temperature
         if config.top_p is not None:
-            if payload.get('thinking', {}).get('type') == 'enabled':
-                raise ValueError('top_p is unavailable with enabled Anthropic thinking')
             payload['top_p'] = config.top_p
         if config.stop_sequences:
             payload['stop_sequences'] = config.stop_sequences
@@ -255,25 +240,9 @@ class AnthropicProvider(BaseProvider):
         # Provider extensions remain available, but cannot silently replace the
         # resolved request. This makes non-stream and stream behavior identical.
         for key, value in (self.settings.extra_body or {}).items():
-            if key in {'messages', 'system', 'stream', 'input', 'instructions', 'response_format',
-                       'tools', 'tool_choice'}:
-                raise ValueError(f'extra_body cannot supply protected request field {key}')
-            if key in {'top_p', 'stop_sequences'}:
-                raise ValueError(f'extra_body {key} must use the explicit generation control')
-            if key == 'temperature' and payload.get('thinking', {}).get('type') == 'enabled':
-                raise ValueError('extra_body temperature cannot be combined with enabled thinking')
             if key in payload and payload[key] != value:
                 raise ValueError(f"extra_body cannot override {key}")
             payload.setdefault(key, value)
-        thinking = payload.get('thinking') or {}
-        if thinking.get('type') == 'enabled':
-            if config.top_p is not None:
-                raise ValueError('top_p is unavailable with enabled Anthropic thinking')
-            budget = thinking.get('budget_tokens')
-            if isinstance(budget, bool) or not isinstance(budget, int) or budget < 1024 or budget >= config.max_tokens:
-                raise ValueError('Anthropic thinking budget must be at least 1024 and less than max_tokens')
-            if 'thinking' in (self.settings.extra_body or {}) and config.thinking_budget_tokens is None:
-                payload.pop('temperature', None)
         self._validate_context_window(payload, config, model_id, protocol='anthropic')
         self._record_request_receipt(payload, config, endpoint='anthropic.messages',
             **({'structured_output': 'prompt_json_instruction'} if config.response_format else {}))
